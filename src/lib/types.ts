@@ -1,4 +1,4 @@
-export type Period = "today" | "24h" | "7d" | "30d" | "all";
+export type Period = "today" | "24h" | "7d" | "30d" | "all" | "custom";
 
 export const PERIOD_LABELS: Record<Period, string> = {
   today: "Today",
@@ -6,7 +6,10 @@ export const PERIOD_LABELS: Record<Period, string> = {
   "7d": "Last 7 days",
   "30d": "Last 30 days",
   all: "All time",
+  custom: "Custom",
 };
+
+export type CustomRange = { from: string; to: string }; // YYYY-MM-DD local dates
 
 export type UsageRecord = {
   id: string;
