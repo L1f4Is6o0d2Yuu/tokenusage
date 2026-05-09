@@ -39,3 +39,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# local data — never commit personal token usage. The synthetic sample is committed.
+/data/*.db
+!/data/sample.db

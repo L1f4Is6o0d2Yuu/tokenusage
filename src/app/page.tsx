@@ -1,65 +1,282 @@
-import Image from "next/image";
+import { loadRecords } from "@/lib/adapters";
+import { aggregate, filterByPeriod } from "@/lib/aggregate";
+import { PERIOD_LABELS, type Period } from "@/lib/types";
+import { formatInt, formatTokens, formatUsd } from "@/lib/format";
+import { PeriodTabs } from "@/components/period-tabs";
+import { UsageTrend } from "@/components/usage-trend";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 
-export default function Home() {
+const VALID_PERIODS: Period[] = ["today", "24h", "7d", "30d", "all"];
+
+function parsePeriod(raw: string | string[] | undefined): Period {
+  if (typeof raw === "string" && (VALID_PERIODS as string[]).includes(raw)) {
+    return raw as Period;
+  }
+  return "7d";
+}
+
+export default async function Page({
+  searchParams,
+}: {
+  searchParams: Promise<{ period?: string }>;
+}) {
+  const { period: rawPeriod } = await searchParams;
+  const period = parsePeriod(rawPeriod);
+
+  const { records, resolved } = await loadRecords();
+  const scoped = filterByPeriod(records, period);
+  const agg = aggregate(scoped);
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+    <main className="mx-auto w-full max-w-6xl px-6 py-10">
+      <header className="mb-8 flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">tokenusage</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Token spend across your AI tooling — read-only, local-first.
           </p>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+        <PeriodTabs active={period} />
+      </header>
+
+      <SourceBanner
+        adapterLabel={resolved.adapter.label}
+        sourcePath={resolved.sourcePath}
+        recordCount={resolved.recordCount}
+        fellBack={resolved.fellBackToSample}
+      />
+
+      <section className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <SummaryCard
+          label="Total spend"
+          value={
+            agg.totals.costKnown
+              ? formatUsd(agg.totals.costUsd, { precise: true })
+              : `~${formatUsd(agg.totals.costUsd, { precise: true })}`
+          }
+          hint={agg.totals.costKnown ? "estimated" : "partial cost data"}
+        />
+        <SummaryCard
+          label="Total tokens"
+          value={formatTokens(agg.totals.totalTokens)}
+          hint={`${formatInt(agg.totals.records)} sessions`}
+        />
+        <SummaryCard
+          label="Input / Output"
+          value={`${formatTokens(agg.totals.inputTokens)} / ${formatTokens(
+            agg.totals.outputTokens
+          )}`}
+          hint="non-cache"
+        />
+        <SummaryCard
+          label="Cache read"
+          value={formatTokens(agg.totals.cacheReadTokens)}
+          hint={`${formatTokens(agg.totals.cacheWriteTokens)} written`}
+        />
+      </section>
+
+      <section className="mt-8 grid gap-4 lg:grid-cols-3">
+        <Card className="lg:col-span-2">
+          <CardHeader>
+            <CardTitle>Daily trend</CardTitle>
+            <CardDescription>
+              Tokens (left) and USD cost (right) per local day —{" "}
+              {PERIOD_LABELS[period].toLowerCase()}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <UsageTrend data={agg.byDay} />
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Top models</CardTitle>
+            <CardDescription>By total tokens</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {agg.byModel.slice(0, 5).map((m) => {
+              const share =
+                agg.totals.totalTokens === 0
+                  ? 0
+                  : Math.round((m.totalTokens / agg.totals.totalTokens) * 100);
+              return (
+                <div key={`${m.provider}-${m.model}`} className="space-y-1">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="font-medium">{m.model}</span>
+                    <span className="text-muted-foreground">{share}%</span>
+                  </div>
+                  <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                    <div
+                      className="h-full bg-foreground"
+                      style={{ width: `${share}%` }}
+                    />
+                  </div>
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>{formatTokens(m.totalTokens)} tokens</span>
+                    <span>
+                      {m.costKnown
+                        ? formatUsd(m.costUsd, { precise: true })
+                        : `~${formatUsd(m.costUsd, { precise: true })}`}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+            {agg.byModel.length === 0 && (
+              <p className="text-sm text-muted-foreground">No usage in this period.</p>
+            )}
+          </CardContent>
+        </Card>
+      </section>
+
+      <section className="mt-8">
+        <Card>
+          <CardHeader>
+            <CardTitle>Breakdown by model</CardTitle>
+            <CardDescription>
+              Sorted by total tokens. Costs are estimates based on what your gateway
+              recorded, not bills.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Provider</TableHead>
+                  <TableHead>Model</TableHead>
+                  <TableHead className="text-right">Sessions</TableHead>
+                  <TableHead className="text-right">Input</TableHead>
+                  <TableHead className="text-right">Output</TableHead>
+                  <TableHead className="text-right">Cache R/W</TableHead>
+                  <TableHead className="text-right">Reasoning</TableHead>
+                  <TableHead className="text-right">Total</TableHead>
+                  <TableHead className="text-right">Cost</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {agg.byModel.map((m) => (
+                  <TableRow key={`${m.provider}-${m.model}`}>
+                    <TableCell>
+                      <Badge variant="outline">{m.provider}</Badge>
+                    </TableCell>
+                    <TableCell className="font-medium">{m.model}</TableCell>
+                    <TableCell className="text-right tabular-nums">
+                      {formatInt(m.records)}
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums">
+                      {formatTokens(m.inputTokens)}
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums">
+                      {formatTokens(m.outputTokens)}
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums text-muted-foreground">
+                      {formatTokens(m.cacheReadTokens)} /{" "}
+                      {formatTokens(m.cacheWriteTokens)}
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums">
+                      {formatTokens(m.reasoningTokens)}
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums font-medium">
+                      {formatTokens(m.totalTokens)}
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums">
+                      {m.costKnown
+                        ? formatUsd(m.costUsd, { precise: true })
+                        : `~${formatUsd(m.costUsd, { precise: true })}`}
+                    </TableCell>
+                  </TableRow>
+                ))}
+                {agg.byModel.length === 0 && (
+                  <TableRow>
+                    <TableCell
+                      colSpan={9}
+                      className="text-center text-sm text-muted-foreground"
+                    >
+                      No usage in this period.
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      </section>
+    </main>
+  );
+}
+
+function SummaryCard({
+  label,
+  value,
+  hint,
+}: {
+  label: string;
+  value: string;
+  hint?: string;
+}) {
+  return (
+    <Card>
+      <CardHeader className="pb-2">
+        <CardDescription>{label}</CardDescription>
+        <CardTitle className="text-2xl tabular-nums">{value}</CardTitle>
+      </CardHeader>
+      {hint && (
+        <CardContent className="pt-0 text-xs text-muted-foreground">{hint}</CardContent>
+      )}
+    </Card>
+  );
+}
+
+function SourceBanner({
+  adapterLabel,
+  sourcePath,
+  recordCount,
+  fellBack,
+}: {
+  adapterLabel: string;
+  sourcePath: string;
+  recordCount: number;
+  fellBack: boolean;
+}) {
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border bg-muted/40 px-4 py-2 text-xs text-muted-foreground">
+      <div className="flex items-center gap-2">
+        <span
+          className={
+            fellBack
+              ? "h-2 w-2 rounded-full bg-amber-500"
+              : "h-2 w-2 rounded-full bg-emerald-500"
+          }
+        />
+        <span>
+          Reading from <span className="font-mono">{adapterLabel}</span>
+          {" — "}
+          {formatInt(recordCount)} sessions
+        </span>
+      </div>
+      <div className="flex items-center gap-3">
+        <span className="font-mono">{sourcePath}</span>
+        {fellBack && (
+          <Badge variant="outline" className="text-amber-700 dark:text-amber-300">
+            sample data
+          </Badge>
+        )}
+      </div>
     </div>
   );
 }

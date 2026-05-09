@@ -1,36 +1,71 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# tokenusage
 
-## Getting Started
+A local-first dashboard that shows how many tokens — and how many dollars — you've spent across multiple AI coding tools (Claude Code, Codex, DeepSeek, ...). Reads usage data straight from your local gateway / CLI logs. No backend, no telemetry, no account.
 
-First, run the development server:
+> Status: **early — v0.1**. Currently ships a single adapter for the Hermes gateway. Codex and Claude Code direct adapters are planned for v0.2.
+
+## Features
+
+- **Total spend, total tokens, input/output/cache breakdown** at a glance
+- **Daily trend chart** (tokens + USD) over the selected window
+- **Per-model breakdown table** with cost estimates
+- **Period selector**: Today / 24h / 7d / 30d / All
+- **Read-only** — your data never leaves the machine
+- **Fallback sample data** so the dashboard renders even before you connect a real source
+
+## Quickstart
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
+pnpm install
+pnpm sample        # generate data/sample.db (already committed; only needed if you customize)
 pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open <http://localhost:3000>.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+If `~/.hermes/state.db` exists, the dashboard will read from it automatically. Otherwise it falls back to the synthetic sample database.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Pointing at a non-default Hermes path
 
-## Learn More
+```bash
+TOKENUSAGE_HERMES_DB=/path/to/state.db pnpm dev
+```
 
-To learn more about Next.js, take a look at the following resources:
+## Architecture
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```
+src/
+├── app/
+│   ├── page.tsx          # Server-rendered overview (queries DB directly, no API routes)
+│   └── layout.tsx
+├── components/
+│   ├── period-tabs.tsx   # URL-driven period selector
+│   ├── usage-trend.tsx   # Recharts line chart (client component)
+│   └── ui/               # shadcn/ui primitives
+└── lib/
+    ├── adapters/
+    │   ├── hermes.ts     # better-sqlite3 readonly → ~/.hermes/state.db
+    │   ├── sample.ts     # reads data/sample.db
+    │   └── index.ts      # picks first adapter with data
+    ├── aggregate.ts      # period filtering + group-by-model + daily rollup
+    ├── format.ts         # tokens / USD / int formatters
+    └── types.ts          # UsageRecord, ProviderAdapter, Aggregation
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Adding a new adapter is a matter of implementing `ProviderAdapter` from `lib/types.ts` and registering it in `lib/adapters/index.ts`.
 
-## Deploy on Vercel
+## Costs are estimates, not bills
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Cost figures come from whatever your gateway recorded at the time of the request. They're useful as a rough budget signal but should not be reconciled against an invoice. Some sessions may have no cost recorded — those are summed into a `~$X` value with a "partial cost data" hint.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Roadmap
+
+- [ ] Codex adapter — read `~/.codex/sessions/*.jsonl` directly
+- [ ] Claude Code adapter — read `~/.claude/projects/**/*.jsonl`
+- [ ] Custom date range picker
+- [ ] Per-session detail page
+- [ ] Export filtered view to CSV
+
+## License
+
+MIT
