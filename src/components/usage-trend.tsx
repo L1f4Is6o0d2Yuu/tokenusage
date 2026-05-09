@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import {
   CartesianGrid,
   Line,
@@ -12,7 +13,20 @@ import {
 import type { DailyPoint } from "@/lib/types";
 import { formatTokens, formatUsd } from "@/lib/format";
 
+// Recharts measures its parent's width on mount via ResizeObserver. When the
+// chart is rendered during SSR the initial paint can show stale or partial
+// geometry, and any animation that fires before the resize observation
+// completes will draw against the wrong width — that's why headless
+// screenshots used to capture a half-empty curve.
+//
+// Gating render on a post-hydration `useEffect` flag means the chart only
+// ever mounts on the client, after layout. Animation is then safe to keep on.
 export function UsageTrend({ data }: { data: DailyPoint[] }) {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   if (data.length === 0) {
     return (
       <div className="flex h-64 items-center justify-center text-sm text-muted-foreground">
@@ -20,6 +34,11 @@ export function UsageTrend({ data }: { data: DailyPoint[] }) {
       </div>
     );
   }
+
+  if (!mounted) {
+    return <div className="h-64 w-full" aria-hidden />;
+  }
+
   return (
     <div className="h-64 w-full">
       <ResponsiveContainer width="100%" height="100%">
@@ -65,7 +84,7 @@ export function UsageTrend({ data }: { data: DailyPoint[] }) {
             stroke="var(--chart-1)"
             strokeWidth={2}
             dot={false}
-            isAnimationActive={false}
+            animationDuration={600}
             name="totalTokens"
           />
           <Line
@@ -75,7 +94,7 @@ export function UsageTrend({ data }: { data: DailyPoint[] }) {
             stroke="var(--chart-2)"
             strokeWidth={2}
             dot={false}
-            isAnimationActive={false}
+            animationDuration={600}
             name="costUsd"
           />
         </LineChart>

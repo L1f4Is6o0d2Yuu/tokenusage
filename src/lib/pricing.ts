@@ -1,9 +1,11 @@
-// Hardcoded model price table (USD per token). Used by adapters whose source
-// data doesn't include pre-computed cost (e.g. codex sessions). Update as
-// providers change pricing — these are estimates, not invoices.
+// Loads the model price table once at module init. Default rules ship with
+// the repo at data/prices.default.json. Users can drop a `data/prices.json`
+// next to it to override (gitignored). Both files use the same schema.
 //
-// Cache-read is typically discounted ~10x vs input; reasoning is billed at the
-// output rate by default unless we know better.
+// Estimates, not invoices.
+
+import path from "node:path";
+import fs from "node:fs";
 
 export type ModelPricing = {
   inputPerToken: number;
@@ -13,28 +15,65 @@ export type ModelPricing = {
   reasoningPerToken?: number;
 };
 
-const PRICES: Array<{ match: RegExp; price: ModelPricing }> = [
-  // OpenAI / Codex models
-  { match: /^gpt-5\.5/i, price: { inputPerToken: 5 / 1e6, outputPerToken: 20 / 1e6, cacheReadPerToken: 0.5 / 1e6 } },
-  { match: /^gpt-5\.4/i, price: { inputPerToken: 3 / 1e6, outputPerToken: 12 / 1e6, cacheReadPerToken: 0.3 / 1e6 } },
-  { match: /^gpt-5/i,    price: { inputPerToken: 3 / 1e6, outputPerToken: 12 / 1e6, cacheReadPerToken: 0.3 / 1e6 } },
-  { match: /^o4-mini/i,  price: { inputPerToken: 1.1 / 1e6, outputPerToken: 4.4 / 1e6, cacheReadPerToken: 0.275 / 1e6 } },
-  { match: /^o4/i,       price: { inputPerToken: 5 / 1e6, outputPerToken: 20 / 1e6, cacheReadPerToken: 1.25 / 1e6 } },
-  // Anthropic
-  { match: /opus/i,      price: { inputPerToken: 15 / 1e6, outputPerToken: 75 / 1e6, cacheReadPerToken: 1.5 / 1e6, cacheWritePerToken: 18.75 / 1e6 } },
-  { match: /sonnet/i,    price: { inputPerToken: 3 / 1e6, outputPerToken: 15 / 1e6, cacheReadPerToken: 0.3 / 1e6, cacheWritePerToken: 3.75 / 1e6 } },
-  { match: /haiku/i,     price: { inputPerToken: 0.8 / 1e6, outputPerToken: 4 / 1e6, cacheReadPerToken: 0.08 / 1e6, cacheWritePerToken: 1 / 1e6 } },
-  // DeepSeek
-  { match: /deepseek-reasoner/i, price: { inputPerToken: 0.55 / 1e6, outputPerToken: 2.19 / 1e6, cacheReadPerToken: 0.14 / 1e6 } },
-  { match: /deepseek/i,  price: { inputPerToken: 0.27 / 1e6, outputPerToken: 1.1 / 1e6, cacheReadPerToken: 0.07 / 1e6 } },
-  // Gemini
-  { match: /gemini.*pro/i, price: { inputPerToken: 1.25 / 1e6, outputPerToken: 5 / 1e6, cacheReadPerToken: 0.3125 / 1e6 } },
-];
+type Rule = {
+  match: string;
+  input: number;
+  output: number;
+  cacheRead?: number;
+  cacheWrite?: number;
+  reasoning?: number;
+};
+
+type PriceFile = {
+  version: number;
+  rules: Rule[];
+};
+
+type CompiledRule = { regex: RegExp; price: ModelPricing };
+
+function compile(rules: Rule[]): CompiledRule[] {
+  return rules.map((r) => ({
+    regex: new RegExp(r.match, "i"),
+    price: {
+      inputPerToken: r.input,
+      outputPerToken: r.output,
+      cacheReadPerToken: r.cacheRead,
+      cacheWritePerToken: r.cacheWrite,
+      reasoningPerToken: r.reasoning,
+    },
+  }));
+}
+
+function loadFile(p: string): PriceFile | null {
+  if (!fs.existsSync(p)) return null;
+  try {
+    const raw = fs.readFileSync(p, "utf8");
+    return JSON.parse(raw) as PriceFile;
+  } catch {
+    return null;
+  }
+}
+
+function loadRules(): CompiledRule[] {
+  const dataDir = path.join(process.cwd(), "data");
+  const overridePath = path.join(dataDir, "prices.json");
+  const defaultPath = path.join(dataDir, "prices.default.json");
+  const file = loadFile(overridePath) ?? loadFile(defaultPath);
+  if (!file) {
+    if (process.env.NODE_ENV !== "production") {
+      console.warn("[pricing] no price file found, all costs will be null");
+    }
+    return [];
+  }
+  return compile(file.rules);
+}
+
+const RULES: CompiledRule[] = loadRules();
 
 export function getPricing(model: string | null | undefined): ModelPricing | null {
   if (!model) return null;
-  for (const { match, price } of PRICES) {
-    if (match.test(model)) return price;
+  for (const { regex, price } of RULES) {
+    if (regex.test(model)) return price;
   }
   return null;
 }
