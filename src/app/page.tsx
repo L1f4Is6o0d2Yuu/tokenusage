@@ -38,7 +38,7 @@ export default async function Page({
   const { period: rawPeriod } = await searchParams;
   const period = parsePeriod(rawPeriod);
 
-  const { records, resolved } = await loadRecords();
+  const { records, sources, fellBackToSample } = await loadRecords();
   const scoped = filterByPeriod(records, period);
   const agg = aggregate(scoped);
 
@@ -54,12 +54,7 @@ export default async function Page({
         <PeriodTabs active={period} />
       </header>
 
-      <SourceBanner
-        adapterLabel={resolved.adapter.label}
-        sourcePath={resolved.sourcePath}
-        recordCount={resolved.recordCount}
-        fellBack={resolved.fellBackToSample}
-      />
+      <SourceBanner sources={sources} fellBack={fellBackToSample} />
 
       <section className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <SummaryCard
@@ -242,15 +237,13 @@ function SummaryCard({
   );
 }
 
+type BannerSource = { adapter: { label: string }; recordCount: number; sourcePath: string };
+
 function SourceBanner({
-  adapterLabel,
-  sourcePath,
-  recordCount,
+  sources,
   fellBack,
 }: {
-  adapterLabel: string;
-  sourcePath: string;
-  recordCount: number;
+  sources: BannerSource[];
   fellBack: boolean;
 }) {
   return (
@@ -263,14 +256,24 @@ function SourceBanner({
               : "h-2 w-2 rounded-full bg-emerald-500"
           }
         />
-        <span>
-          Reading from <span className="font-mono">{adapterLabel}</span>
-          {" — "}
-          {formatInt(recordCount)} sessions
-        </span>
+        {sources.length === 0 ? (
+          <span>No data sources found.</span>
+        ) : (
+          <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            <span>Reading from</span>
+            {sources.map((s, i) => (
+              <span key={s.adapter.label} className="flex items-center gap-1">
+                <span className="font-mono text-foreground">{s.adapter.label}</span>
+                <span className="text-muted-foreground">
+                  ({formatInt(s.recordCount)})
+                </span>
+                {i < sources.length - 1 && <span className="text-muted-foreground">+</span>}
+              </span>
+            ))}
+          </span>
+        )}
       </div>
       <div className="flex items-center gap-3">
-        <span className="font-mono">{sourcePath}</span>
         {fellBack && (
           <Badge variant="outline" className="text-amber-700 dark:text-amber-300">
             sample data
