@@ -1,0 +1,157 @@
+import "server-only";
+import path from "node:path";
+import os from "node:os";
+import fs from "node:fs";
+import readline from "node:readline";
+import Database from "better-sqlite3";
+import type { ProviderAdapter, AdapterStatus, UsageRecord } from "@/lib/types";
+import { estimateCost } from "@/lib/pricing";
+
+type ThreadRow = {
+  id: string;
+  model: string | null;
+  model_provider: string;
+  source: string;
+  rollout_path: string;
+  created_at: number;
+  updated_at: number | null;
+  title: string | null;
+  tokens_used: number;
+};
+
+const DEFAULT_DIR = path.join(os.homedir(), ".codex");
+
+function resolveDir(): string {
+  return process.env.TOKENUSAGE_CODEX_DIR || DEFAULT_DIR;
+}
+
+function statePath(dir: string): string {
+  return path.join(dir, "state_5.sqlite");
+}
+
+type TokenBreakdown = {
+  input: number;
+  output: number;
+  cacheRead: number;
+  reasoning: number;
+};
+
+// Read the last `event_msg.token_count` line that has a populated `info` field
+// — that holds the cumulative `total_token_usage` for the whole session.
+async function lastTokenCount(jsonlPath: string): Promise<TokenBreakdown | null> {
+  if (!fs.existsSync(jsonlPath)) return null;
+  const stream = fs.createReadStream(jsonlPath, { encoding: "utf8" });
+  const rl = readline.createInterface({ input: stream, crlfDelay: Infinity });
+  let last: TokenBreakdown | null = null;
+  for await (const line of rl) {
+    if (!line.includes("token_count")) continue;
+    try {
+      const obj = JSON.parse(line);
+      if (obj?.type !== "event_msg") continue;
+      const payload = obj.payload;
+      if (payload?.type !== "token_count") continue;
+      const total = payload.info?.total_token_usage;
+      if (!total) continue;
+      last = {
+        input: Number(total.input_tokens ?? 0),
+        output: Number(total.output_tokens ?? 0),
+        cacheRead: Number(total.cached_input_tokens ?? 0),
+        reasoning: Number(total.reasoning_output_tokens ?? 0),
+      };
+    } catch {
+      // skip malformed line
+    }
+  }
+  return last;
+}
+
+function readThreads(dir: string): ThreadRow[] {
+  const sp = statePath(dir);
+  if (!fs.existsSync(sp)) return [];
+  const db = new Database(sp, { readonly: true, fileMustExist: true });
+  try {
+    return db
+      .prepare(
+        `SELECT id, model, model_provider, source, rollout_path,
+                created_at, updated_at, title, tokens_used
+           FROM threads
+          WHERE tokens_used > 0
+          ORDER BY created_at DESC`
+      )
+      .all() as ThreadRow[];
+  } finally {
+    db.close();
+  }
+}
+
+export const codexAdapter: ProviderAdapter = {
+  id: "codex",
+  label: "Codex CLI",
+
+  async status(): Promise<AdapterStatus> {
+    const dir = resolveDir();
+    const sp = statePath(dir);
+    if (!fs.existsSync(sp)) {
+      return { ok: false, reason: "state_5.sqlite not found", sourcePath: dir };
+    }
+    try {
+      const rows = readThreads(dir);
+      return { ok: true, recordCount: rows.length, sourcePath: dir };
+    } catch (err) {
+      return {
+        ok: false,
+        reason: err instanceof Error ? err.message : "unknown error",
+        sourcePath: dir,
+      };
+    }
+  },
+
+  async load(): Promise<UsageRecord[]> {
+    const dir = resolveDir();
+    const threads = readThreads(dir);
+    if (threads.length === 0) return [];
+
+    // Parse JSONLs in parallel — each is small (tens of KB to a few MB).
+    const records = await Promise.all(
+      threads.map(async (t): Promise<UsageRecord> => {
+        const breakdown = await lastTokenCount(t.rollout_path);
+        const input = breakdown?.input ?? 0;
+        const output = breakdown?.output ?? 0;
+        const cacheRead = breakdown?.cacheRead ?? 0;
+        const reasoning = breakdown?.reasoning ?? 0;
+
+        // If no JSONL breakdown, fall back to bucketing the sqlite total into output.
+        // Better than dropping the record entirely.
+        const fallback = breakdown ? 0 : t.tokens_used;
+
+        const cost = estimateCost(t.model, {
+          input,
+          output: output + fallback,
+          cacheRead,
+          cacheWrite: 0,
+          reasoning,
+        });
+
+        return {
+          id: `codex:${t.id}`,
+          provider: "codex",
+          source: t.source,
+          model: t.model,
+          startedAt: t.created_at * 1000,
+          endedAt: t.updated_at ? t.updated_at * 1000 : null,
+          inputTokens: input,
+          outputTokens: output + fallback,
+          cacheReadTokens: cacheRead,
+          cacheWriteTokens: 0,
+          reasoningTokens: reasoning,
+          costUsd: cost,
+          costStatus: cost == null ? "unpriced" : "estimated",
+          apiCallCount: 0,
+          title: t.title,
+        };
+      })
+    );
+
+    return records;
+  },
+};

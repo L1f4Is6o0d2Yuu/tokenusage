@@ -4,7 +4,7 @@ A local-first dashboard that shows how many tokens — and how many dollars — 
 
 ![tokenusage dashboard](docs/screenshot.png)
 
-> Status: **early — v0.1**. Currently ships a single adapter for the Hermes gateway. Codex and Claude Code direct adapters are planned for v0.2. Screenshot above is from the bundled synthetic sample data.
+> Status: **early — v0.2**. Ships adapters for the Hermes gateway and Codex CLI. Claude Code direct adapter is planned next. Screenshot above is from the bundled synthetic sample data.
 
 ## Features
 
@@ -25,13 +25,14 @@ pnpm dev
 
 Open <http://localhost:3000>.
 
-If `~/.hermes/state.db` exists, the dashboard will read from it automatically. Otherwise it falls back to the synthetic sample database.
+The dashboard auto-detects every supported source on the machine and merges them:
 
-### Pointing at a non-default Hermes path
+| Source | Path | Env override |
+|---|---|---|
+| Hermes gateway | `~/.hermes/state.db` | `TOKENUSAGE_HERMES_DB` |
+| Codex CLI | `~/.codex/state_5.sqlite` + `~/.codex/sessions/**.jsonl` | `TOKENUSAGE_CODEX_DIR` |
 
-```bash
-TOKENUSAGE_HERMES_DB=/path/to/state.db pnpm dev
-```
+If none are present it falls back to the bundled synthetic sample database, so the dashboard always renders something.
 
 ## Architecture
 
@@ -47,8 +48,10 @@ src/
 └── lib/
     ├── adapters/
     │   ├── hermes.ts     # better-sqlite3 readonly → ~/.hermes/state.db
+    │   ├── codex.ts      # state_5.sqlite + last token_count event from each rollout JSONL
     │   ├── sample.ts     # reads data/sample.db
-    │   └── index.ts      # picks first adapter with data
+    │   └── index.ts      # merges UsageRecords from every adapter that has data
+    ├── pricing.ts        # hardcoded model price table — used when source data has no cost
     ├── aggregate.ts      # period filtering + group-by-model + daily rollup
     ├── format.ts         # tokens / USD / int formatters
     └── types.ts          # UsageRecord, ProviderAdapter, Aggregation
@@ -62,10 +65,11 @@ Cost figures come from whatever your gateway recorded at the time of the request
 
 ## Roadmap
 
-- [ ] Codex adapter — read `~/.codex/sessions/*.jsonl` directly
+- [x] Codex adapter — read `~/.codex/sessions/*.jsonl` + `state_5.sqlite`
 - [ ] Claude Code adapter — read `~/.claude/projects/**/*.jsonl`
 - [ ] Custom date range picker
 - [ ] Per-session detail page
+- [ ] User-editable price overrides (currently hardcoded in `lib/pricing.ts`)
 - [ ] Export filtered view to CSV
 
 ## License
