@@ -2,7 +2,9 @@
 
 A local-first dashboard that shows how many tokens — and how many dollars — you've spent across multiple AI coding tools (Claude Code, Codex, DeepSeek, ...). Reads usage data straight from your local gateway / CLI logs. No backend, no telemetry, no account.
 
-> Status: **early — v0.1**. Currently ships a single adapter for the Hermes gateway. Codex and Claude Code direct adapters are planned for v0.2.
+![tokenusage dashboard](docs/screenshot.png)
+
+> Status: **early — v0.1**. Currently ships a single adapter for the Hermes gateway. Codex and Claude Code direct adapters are planned for v0.2. Screenshot above is from the bundled synthetic sample data.
 
 ## Features
 
