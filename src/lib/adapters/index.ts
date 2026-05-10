@@ -1,10 +1,11 @@
 import "server-only";
 import { hermesAdapter } from "./hermes";
 import { codexAdapter } from "./codex";
+import { claudeCodeAdapter } from "./claude-code";
 import { sampleAdapter } from "./sample";
 import type { ProviderAdapter, UsageRecord } from "@/lib/types";
 
-const REAL_ADAPTERS: ProviderAdapter[] = [hermesAdapter, codexAdapter];
+const REAL_ADAPTERS: ProviderAdapter[] = [hermesAdapter, codexAdapter, claudeCodeAdapter];
 
 export type ResolvedSource = {
   adapter: ProviderAdapter;

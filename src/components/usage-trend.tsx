@@ -65,6 +65,7 @@ export function UsageTrend({ data }: { data: DailyPoint[] }) {
             stroke="var(--chart-1)"
             strokeWidth={2}
             dot={false}
+            isAnimationActive={false}
             name="totalTokens"
           />
           <Line
@@ -74,6 +75,7 @@ export function UsageTrend({ data }: { data: DailyPoint[] }) {
             stroke="var(--chart-2)"
             strokeWidth={2}
             dot={false}
+            isAnimationActive={false}
             name="costUsd"
           />
         </LineChart>
