@@ -165,8 +165,8 @@
     "clipboardError": "Не удалось скопировать. Выделите команду вручную.",
     "copyCommand": "Скопировать команду",
     "copied": "Скопировано ✓",
-    "pasteHintBrew": "Устанавливает CLI tokenusage через Homebrew и регистрирует agent как фоновый сервис.",
-    "pasteHintCurl": "Bash-установщик —— работает на Mac/Linux без Homebrew.",
+    "pasteHintBrew": "Автоматически ставит Homebrew, если его нет; потом устанавливает CLI tokenusage и регистрирует agent как фоновый сервис.",
+    "pasteHintCurl": "Чистый Bash-установщик —— Homebrew не нужен, только curl + tar (есть на Mac/Linux по умолчанию).",
     "tabBrew": "Homebrew (рекомендуется)",
     "tabCurl": "curl | sh"
   },

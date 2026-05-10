@@ -165,8 +165,8 @@
     "clipboardError": "無法複製到剪貼簿，請手動選取指令。",
     "copyCommand": "複製指令",
     "copied": "已複製 ✓",
-    "pasteHintBrew": "透過 Homebrew 安裝 tokenusage CLI，並將 agent 註冊為背景服務。",
-    "pasteHintCurl": "Bash 安裝器 —— 在任何 Mac 或 Linux 上都能跑，不需要 Homebrew。",
+    "pasteHintBrew": "自動偵測 Homebrew，沒裝會先幫你裝；然後透過 brew 安裝 tokenusage CLI 並把 agent 註冊為背景服務。",
+    "pasteHintCurl": "純 Bash 安裝器 —— 不需要 Homebrew，只要 curl + tar（Mac/Linux 內建）。",
     "tabBrew": "Homebrew（建議）",
     "tabCurl": "curl | sh"
   },

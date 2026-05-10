@@ -165,8 +165,8 @@
     "clipboardError": "Copie impossible. Sélectionnez la commande manuellement.",
     "copyCommand": "Copier",
     "copied": "Copié ✓",
-    "pasteHintBrew": "Installe le CLI tokenusage via Homebrew puis enregistre l'agent en service de fond.",
-    "pasteHintCurl": "Installeur Bash —— marche sur Mac/Linux sans Homebrew.",
+    "pasteHintBrew": "Installe Homebrew automatiquement s'il manque, puis le CLI tokenusage, puis enregistre l'agent en service de fond.",
+    "pasteHintCurl": "Installeur Bash pur —— pas besoin de Homebrew, juste curl + tar (intégrés sur Mac/Linux).",
     "tabBrew": "Homebrew (recommandé)",
     "tabCurl": "curl | sh"
   },

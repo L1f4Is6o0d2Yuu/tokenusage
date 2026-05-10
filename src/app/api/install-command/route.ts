@@ -16,9 +16,16 @@ export async function POST(): Promise<Response> {
   const { plaintext } = createApiToken(user.id, `agent ${stamp}`);
   const publicUrl = await getPublicUrl();
 
+  // The brew command auto-installs Homebrew when it's missing — about half
+  // of fresh Macs don't have it. The check + install + shellenv eval all
+  // chain with `&&`, so an early failure stops the whole thing instead of
+  // silently dropping into a broken state. Backslash-newline breaks at
+  // `&&` keep the line readable when pasted into Terminal.
   const brewCommand =
-    `brew install L1f4Is6o0d2Yuu/tap/tokenusage && ` +
-    `tokenusage start --server ${publicUrl} --token ${plaintext}`;
+    `{ command -v brew >/dev/null || /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"; } \\\n` +
+    `  && eval "$(brew shellenv 2>/dev/null || /opt/homebrew/bin/brew shellenv 2>/dev/null || /usr/local/bin/brew shellenv 2>/dev/null || /home/linuxbrew/.linuxbrew/bin/brew shellenv 2>/dev/null)" \\\n` +
+    `  && brew install L1f4Is6o0d2Yuu/tap/tokenusage \\\n` +
+    `  && tokenusage start --server ${publicUrl} --token ${plaintext}`;
   const curlCommand = `curl -fsSL "${publicUrl}/install.sh?token=${plaintext}" | sh`;
 
   return Response.json({

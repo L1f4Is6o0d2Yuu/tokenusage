@@ -165,8 +165,8 @@
     "clipboardError": "No se pudo copiar al portapapeles. Selecciona el comando manualmente.",
     "copyCommand": "Copiar comando",
     "copied": "Copiado ✓",
-    "pasteHintBrew": "Instala el CLI tokenusage vía Homebrew y registra el agente como servicio de fondo.",
-    "pasteHintCurl": "Instalador Bash —— funciona en cualquier Mac/Linux sin Homebrew.",
+    "pasteHintBrew": "Instala Homebrew automáticamente si no lo tienes, luego instala el CLI de tokenusage y registra el agente como servicio de fondo.",
+    "pasteHintCurl": "Instalador Bash puro —— no necesita Homebrew, solo curl + tar (vienen con Mac/Linux).",
     "tabBrew": "Homebrew (recomendado)",
     "tabCurl": "curl | sh"
   },

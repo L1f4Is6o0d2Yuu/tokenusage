@@ -165,8 +165,8 @@
     "clipboardError": "クリップボードにコピーできませんでした。手動で選択してください。",
     "copyCommand": "コマンドをコピー",
     "copied": "コピー済み ✓",
-    "pasteHintBrew": "Homebrew で tokenusage CLI をインストールし、agent をバックグラウンドサービスとして登録します。",
-    "pasteHintCurl": "Bash インストーラ —— Homebrew のない Mac/Linux でも動きます。",
+    "pasteHintBrew": "Homebrew がなければ自動でインストールし、tokenusage CLI を入れて agent をバックグラウンドサービスとして登録します。",
+    "pasteHintCurl": "純粋な Bash インストーラ —— Homebrew 不要、curl と tar だけ（Mac/Linux に標準搭載）。",
     "tabBrew": "Homebrew（推奨）",
     "tabCurl": "curl | sh"
   },

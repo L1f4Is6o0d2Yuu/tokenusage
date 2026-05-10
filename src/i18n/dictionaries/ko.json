@@ -165,8 +165,8 @@
     "clipboardError": "클립보드 복사 실패. 명령어를 직접 선택하세요.",
     "copyCommand": "명령어 복사",
     "copied": "복사됨 ✓",
-    "pasteHintBrew": "Homebrew로 tokenusage CLI를 설치하고 agent를 백그라운드 서비스로 등록합니다.",
-    "pasteHintCurl": "Bash 설치 스크립트 —— Homebrew 없이도 Mac/Linux에서 작동합니다.",
+    "pasteHintBrew": "Homebrew가 없으면 자동으로 설치한 뒤 tokenusage CLI를 설치하고 agent를 백그라운드 서비스로 등록합니다.",
+    "pasteHintCurl": "순수 Bash 설치 스크립트 —— Homebrew 불필요, curl + tar만 있으면 됩니다 (Mac/Linux 기본 탑재).",
     "tabBrew": "Homebrew (권장)",
     "tabCurl": "curl | sh"
   },

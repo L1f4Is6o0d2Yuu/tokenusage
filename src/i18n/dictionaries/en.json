@@ -165,8 +165,8 @@
     "clipboardError": "Couldn't copy to clipboard. Select the command manually.",
     "copyCommand": "Copy command",
     "copied": "Copied ✓",
-    "pasteHintBrew": "Installs the tokenusage CLI via Homebrew, then registers the agent as a background service.",
-    "pasteHintCurl": "Bash installer — works on any Mac or Linux without Homebrew.",
+    "pasteHintBrew": "Auto-installs Homebrew if you don't have it, then installs the tokenusage CLI and registers the agent as a background service.",
+    "pasteHintCurl": "Pure bash installer — no Homebrew required, just curl + tar (built into Mac and Linux).",
     "tabBrew": "Homebrew (recommended)",
     "tabCurl": "curl | sh"
   },
