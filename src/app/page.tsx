@@ -7,10 +7,13 @@ import { formatInt, formatTokens, formatUsd } from "@/lib/format";
 import { isTheme, THEME_COOKIE, type Theme } from "@/lib/theme";
 import { requireUser } from "@/lib/auth-guard";
 import { logoutAction } from "@/app/auth-actions";
+import { getPublicUrl } from "@/lib/public-url";
+import { countServerRecords } from "@/lib/adapters";
 import { PeriodTabs } from "@/components/period-tabs";
 import { UsageTrend } from "@/components/usage-trend";
 import { LocaleSwitcher } from "@/components/locale-switcher";
 import { ThemeSwitcher } from "@/components/theme-switcher";
+import { OnboardingCard } from "@/components/onboarding-card";
 import { getDictionary, readLocale } from "@/i18n";
 import { interp } from "@/i18n/interp";
 import {
@@ -66,11 +69,19 @@ export default async function Page({
   const themeRaw = cookieStore.get(THEME_COOKIE)?.value;
   const theme: Theme = isTheme(themeRaw) ? themeRaw : "system";
 
-  const { records, sources, fellBackToSample } = await loadRecords();
+  const { records, sources, fellBackToSample, mode } = await loadRecords();
   const scoped = filterByPeriod(records, period, customRange);
   const granularity = pickGranularity(scoped, period);
   const agg = aggregate(scoped, granularity);
   const recent = [...scoped].sort((a, b) => b.startedAt - a.startedAt).slice(0, 10);
+
+  // First-run UX: in multi-user mode with absolutely zero records ever
+  // ingested for this user, show a guided onboarding card instead of a row
+  // of empty cards. We use the lifetime count rather than the period-scoped
+  // count so the user doesn't think "no data this week" is the empty state.
+  const showOnboarding =
+    mode === "multi" && currentUser != null && countServerRecords(currentUser.id) === 0;
+  const publicUrl = showOnboarding ? await getPublicUrl() : "";
 
   return (
     <main className="mx-auto w-full max-w-6xl px-6 py-10">
@@ -94,7 +105,7 @@ export default async function Page({
                     href="/users"
                     className="text-muted-foreground hover:text-foreground"
                   >
-                    users
+                    Users
                   </Link>
                 )}
                 <form action={logoutAction}>
@@ -102,7 +113,7 @@ export default async function Page({
                     type="submit"
                     className="text-muted-foreground hover:text-foreground"
                   >
-                    sign out
+                    Sign out
                   </button>
                 </form>
               </div>
@@ -119,6 +130,10 @@ export default async function Page({
         fellBack={fellBackToSample}
         t={t.banner}
       />
+
+      {showOnboarding && currentUser && (
+        <OnboardingCard username={currentUser.username} publicUrl={publicUrl} />
+      )}
 
       <section className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <SummaryCard

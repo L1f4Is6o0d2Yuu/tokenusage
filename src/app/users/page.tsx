@@ -1,9 +1,10 @@
-import { headers } from "next/headers";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { readCurrentUser, listUsers, listInvites } from "@/lib/auth";
 import { isMultiUserMode } from "@/lib/server-db";
+import { getPublicUrl } from "@/lib/public-url";
 import { createInviteAction, revokeInviteAction } from "./actions";
+import { SubmitButton } from "@/components/submit-button";
 import {
   Card,
   CardContent,
@@ -26,17 +27,6 @@ function formatDate(ms: number | null): string {
   return new Date(ms).toLocaleString();
 }
 
-async function inferOrigin(): Promise<string> {
-  // Best-effort detection of the public URL so the invite link we hand out is
-  // pasteable. Honour TOKENUSAGE_PUBLIC_URL when set; otherwise reconstruct
-  // from the request headers.
-  if (process.env.TOKENUSAGE_PUBLIC_URL) return process.env.TOKENUSAGE_PUBLIC_URL.replace(/\/$/, "");
-  const h = await headers();
-  const proto = h.get("x-forwarded-proto") ?? "http";
-  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3000";
-  return `${proto}://${host}`;
-}
-
 export default async function UsersPage({
   searchParams,
 }: {
@@ -53,7 +43,7 @@ export default async function UsersPage({
   const { new: newInvite } = await searchParams;
   const users = listUsers();
   const invites = listInvites();
-  const origin = await inferOrigin();
+  const origin = await getPublicUrl();
 
   return (
     <main className="mx-auto w-full max-w-4xl px-6 py-10">
@@ -107,12 +97,7 @@ export default async function UsersPage({
                 className="mt-1 w-full rounded border bg-background px-3 py-2 text-sm"
               />
             </div>
-            <button
-              type="submit"
-              className="rounded-md bg-foreground px-4 py-2 text-sm font-medium text-background hover:opacity-90"
-            >
-              Create invite
-            </button>
+            <SubmitButton pendingText="Creating…">Create invite</SubmitButton>
           </form>
         </CardContent>
       </Card>
@@ -163,12 +148,9 @@ export default async function UsersPage({
                         {!used && (
                           <form action={revokeInviteAction}>
                             <input type="hidden" name="id" value={inv.id} />
-                            <button
-                              type="submit"
-                              className="rounded-md border border-amber-600 bg-background px-3 py-1 text-xs font-medium text-amber-700 hover:bg-amber-50 dark:text-amber-300"
-                            >
+                            <SubmitButton variant="danger" pendingText="Revoking…">
                               Revoke
-                            </button>
+                            </SubmitButton>
                           </form>
                         )}
                       </TableCell>

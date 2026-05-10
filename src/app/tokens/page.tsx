@@ -1,7 +1,10 @@
 import Link from "next/link";
 import { requireUser } from "@/lib/auth-guard";
 import { listTokens } from "@/lib/auth";
+import { getPublicUrl } from "@/lib/public-url";
 import { createTokenAction, revokeTokenAction } from "./actions";
+import { SubmitButton } from "@/components/submit-button";
+import { AgentInstallSnippet } from "@/components/agent-install-snippet";
 import {
   Card,
   CardContent,
@@ -40,6 +43,7 @@ export default async function TokensPage({
   }
   const { new: newToken } = await searchParams;
   const tokens = listTokens(user.id);
+  const publicUrl = await getPublicUrl();
 
   return (
     <main className="mx-auto w-full max-w-3xl px-6 py-10">
@@ -66,10 +70,17 @@ export default async function TokensPage({
               Copy it now — this is the only time it will be displayed.
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
             <code className="block w-full break-all rounded border bg-background px-3 py-2 font-mono text-sm">
               {newToken}
             </code>
+            <div>
+              <p className="mb-2 text-xs text-muted-foreground">
+                On the machine that has your Hermes / Codex / Claude Code data,
+                run this (Node 22+ required):
+              </p>
+              <AgentInstallSnippet publicUrl={publicUrl} token={newToken} />
+            </div>
           </CardContent>
         </Card>
       )}
@@ -92,12 +103,7 @@ export default async function TokensPage({
                 className="mt-1 w-full rounded border bg-background px-3 py-2 font-mono text-sm"
               />
             </div>
-            <button
-              type="submit"
-              className="rounded-md bg-foreground px-4 py-2 text-sm font-medium text-background hover:opacity-90"
-            >
-              Create token
-            </button>
+            <SubmitButton pendingText="Creating…">Create token</SubmitButton>
           </form>
         </CardContent>
       </Card>
@@ -132,12 +138,9 @@ export default async function TokensPage({
                     <TableCell className="text-right">
                       <form action={revokeTokenAction}>
                         <input type="hidden" name="id" value={tk.id} />
-                        <button
-                          type="submit"
-                          className="rounded-md border border-amber-600 bg-background px-3 py-1 text-xs font-medium text-amber-700 hover:bg-amber-50 dark:text-amber-300"
-                        >
+                        <SubmitButton variant="danger" pendingText="Revoking…">
                           Revoke
-                        </button>
+                        </SubmitButton>
                       </form>
                     </TableCell>
                   </TableRow>
