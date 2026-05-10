@@ -5,6 +5,7 @@ import { getPublicUrl } from "@/lib/public-url";
 import { createTokenAction, revokeTokenAction, setSyncIntervalAction } from "./actions";
 import { SubmitButton } from "@/components/submit-button";
 import { AgentInstallSnippet } from "@/components/agent-install-snippet";
+import { InstallAgentButton } from "@/components/install-agent-button";
 import { getUserSyncState } from "@/lib/sync-state";
 import {
   Card,
@@ -139,24 +140,33 @@ export default async function TokensPage({
 
       <Card>
         <CardHeader>
-          <CardTitle>Create a token</CardTitle>
-          <CardDescription>Give it a name so you remember which machine.</CardDescription>
+          <CardTitle>Add a machine</CardTitle>
+          <CardDescription>
+            One token per machine you want to track. Click below to generate
+            the install command in one step.
+          </CardDescription>
         </CardHeader>
-        <CardContent>
-          <form action={createTokenAction} className="flex items-end gap-3">
-            <div className="flex-1">
-              <label htmlFor="name" className="text-xs text-muted-foreground">
-                Name
-              </label>
-              <input
-                id="name"
-                name="name"
-                placeholder="laptop"
-                className="mt-1 w-full rounded border bg-background px-3 py-2 font-mono text-sm"
-              />
-            </div>
-            <SubmitButton pendingText="Creating…">Create token</SubmitButton>
-          </form>
+        <CardContent className="space-y-4">
+          <InstallAgentButton />
+          <details className="group">
+            <summary className="cursor-pointer text-xs text-muted-foreground hover:text-foreground">
+              Advanced — name the token manually
+            </summary>
+            <form action={createTokenAction} className="mt-3 flex items-end gap-3">
+              <div className="flex-1">
+                <label htmlFor="name" className="text-xs text-muted-foreground">
+                  Name
+                </label>
+                <input
+                  id="name"
+                  name="name"
+                  placeholder="laptop"
+                  className="mt-1 w-full rounded border bg-background px-3 py-2 font-mono text-sm"
+                />
+              </div>
+              <SubmitButton pendingText="Creating…">Create token</SubmitButton>
+            </form>
+          </details>
         </CardContent>
       </Card>
 
