@@ -3,6 +3,7 @@ import { readActivePrices } from "@/lib/pricing";
 import { savePricesAction, resetPricesAction } from "./actions";
 import { getDictionary } from "@/i18n";
 import { requireUser } from "@/lib/auth-guard";
+import { SubmitButton } from "@/components/submit-button";
 import {
   Card,
   CardContent,
@@ -98,12 +99,7 @@ export default async function PricesPage({
               </TableBody>
             </Table>
             <div className="mt-6 flex items-center justify-end gap-3">
-              <button
-                type="submit"
-                className="rounded-md bg-foreground px-4 py-2 text-sm font-medium text-background hover:opacity-90"
-              >
-                {t.save}
-              </button>
+              <SubmitButton pendingText="Saving…">{t.save}</SubmitButton>
             </div>
           </form>
         </CardContent>
@@ -117,12 +113,9 @@ export default async function PricesPage({
           </CardHeader>
           <CardContent>
             <form action={resetPricesAction}>
-              <button
-                type="submit"
-                className="rounded-md border border-amber-600 bg-background px-4 py-2 text-sm font-medium text-amber-700 hover:bg-amber-50 dark:text-amber-300"
-              >
+              <SubmitButton variant="danger" pendingText="Resetting…">
                 {t.resetButton}
-              </button>
+              </SubmitButton>
             </form>
           </CardContent>
         </Card>
