@@ -1,0 +1,330 @@
+#!/bin/bash
+# tokenusage — agent CLI for the tokenusage.online dashboard.
+#
+# Single-file: handles install/uninstall, service registration on
+# launchd / systemd, and the long-poll upload loop.
+#
+# Usage:
+#   tokenusage start --server URL --token TOKEN   # first-time install + start
+#   tokenusage start                              # restart with saved config
+#   tokenusage stop                               # stop the service (keeps config)
+#   tokenusage uninstall                          # remove service + config
+#   tokenusage status                             # show config + last-upload time
+#   tokenusage logs                               # tail the agent log
+#   tokenusage sync                               # manual sync now (server flag)
+#   tokenusage --loop                             # internal: long-poll + upload loop
+#   tokenusage version
+
+set -uo pipefail
+
+VERSION="0.14.0"
+CONFIG_DIR="$HOME/.tokenusage"
+CONFIG_FILE="$CONFIG_DIR/config.env"
+STATE_FILE="$CONFIG_DIR/state"
+LOG_FILE="$CONFIG_DIR/agent.log"
+PLIST_PATH="$HOME/Library/LaunchAgents/com.tokenusage.agent.plist"
+SYSTEMD_UNIT="$HOME/.config/systemd/user/tokenusage-agent.service"
+
+ts() { date -u +%FT%TZ; }
+err() { printf '%s\n' "$*" >&2; }
+
+# Resolve the absolute path to *this* script so launchd/systemd can be told
+# exactly which binary to run. Works for both bin/tokenusage (Homebrew, a
+# symlink) and ~/.tokenusage/tokenusage (curl-installed).
+script_path() {
+  local src="${BASH_SOURCE[0]}"
+  while [ -L "$src" ]; do
+    local dir
+    dir="$(cd -P "$(dirname "$src")" && pwd)"
+    src="$(readlink "$src")"
+    [[ "$src" != /* ]] && src="$dir/$src"
+  done
+  printf '%s/%s\n' "$(cd -P "$(dirname "$src")" && pwd)" "$(basename "$src")"
+}
+
+usage() {
+  sed -n '2,17p' "$(script_path)" | sed 's/^# \{0,1\}//'
+}
+
+# ---------- service registration ----------
+
+write_launchd_plist() {
+  local exe="$1"
+  mkdir -p "$(dirname "$PLIST_PATH")"
+  cat > "$PLIST_PATH" <<PLIST
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>com.tokenusage.agent</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>$exe</string>
+    <string>--loop</string>
+  </array>
+  <key>RunAtLoad</key><true/>
+  <key>KeepAlive</key><true/>
+  <key>StandardOutPath</key><string>$LOG_FILE</string>
+  <key>StandardErrorPath</key><string>$LOG_FILE</string>
+  <key>WorkingDirectory</key><string>$HOME</string>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>HOME</key><string>$HOME</string>
+    <key>PATH</key><string>/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+  </dict>
+</dict>
+</plist>
+PLIST
+}
+
+write_systemd_unit() {
+  local exe="$1"
+  mkdir -p "$(dirname "$SYSTEMD_UNIT")"
+  cat > "$SYSTEMD_UNIT" <<UNIT
+[Unit]
+Description=tokenusage agent
+After=network.target
+
+[Service]
+ExecStart=$exe --loop
+Restart=always
+RestartSec=5
+StandardOutput=append:$LOG_FILE
+StandardError=append:$LOG_FILE
+
+[Install]
+WantedBy=default.target
+UNIT
+}
+
+register_service() {
+  local exe
+  exe="$(script_path)"
+  case "$(uname -s)" in
+    Darwin)
+      write_launchd_plist "$exe"
+      launchctl unload "$PLIST_PATH" 2>/dev/null || true
+      launchctl load "$PLIST_PATH"
+      printf '✓ tokenusage agent registered (launchd)\n'
+      printf '  Logs:    tail -f %s\n' "$LOG_FILE"
+      printf '  Stop:    tokenusage stop\n'
+      ;;
+    Linux)
+      write_systemd_unit "$exe"
+      systemctl --user daemon-reload
+      systemctl --user enable --now tokenusage-agent
+      printf '✓ tokenusage agent registered (systemd --user)\n'
+      printf '  Logs:    journalctl --user -u tokenusage-agent -f\n'
+      printf '  Stop:    tokenusage stop\n'
+      printf '\n  Note: on a headless box, also run\n'
+      printf '        sudo loginctl enable-linger $(id -un)\n'
+      printf '  so the agent keeps running after you log out.\n'
+      ;;
+    *)
+      err "unsupported OS: $(uname -s) — running in foreground"
+      exec "$exe" --loop
+      ;;
+  esac
+}
+
+stop_service() {
+  case "$(uname -s)" in
+    Darwin)
+      [ -f "$PLIST_PATH" ] && launchctl unload "$PLIST_PATH" 2>/dev/null || true
+      printf '✓ tokenusage agent stopped\n'
+      ;;
+    Linux)
+      systemctl --user stop tokenusage-agent 2>/dev/null || true
+      systemctl --user disable tokenusage-agent 2>/dev/null || true
+      printf '✓ tokenusage agent stopped\n'
+      ;;
+    *) ;;
+  esac
+}
+
+# ---------- subcommands ----------
+
+cmd_start() {
+  local server="" token=""
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --server) server="$2"; shift 2 ;;
+      --token) token="$2"; shift 2 ;;
+      -h|--help) usage; exit 0 ;;
+      *) err "unknown arg: $1"; exit 1 ;;
+    esac
+  done
+
+  mkdir -p "$CONFIG_DIR"
+  chmod 700 "$CONFIG_DIR"
+
+  if [ -n "$server" ] && [ -n "$token" ]; then
+    cat > "$CONFIG_FILE" <<CONFIG
+SERVER="$server"
+TOKEN="$token"
+CONFIG
+    chmod 600 "$CONFIG_FILE"
+  fi
+
+  if [ ! -f "$CONFIG_FILE" ]; then
+    err "no config; run: tokenusage start --server URL --token TOKEN"
+    exit 1
+  fi
+
+  register_service
+  printf '\nFirst sync starting now. Visit your dashboard to see your data.\n'
+}
+
+cmd_stop()      { stop_service; }
+
+cmd_uninstall() {
+  stop_service
+  rm -f "$PLIST_PATH" "$SYSTEMD_UNIT"
+  rm -rf "$CONFIG_DIR"
+  printf '✓ tokenusage agent uninstalled. Config and logs removed.\n'
+}
+
+cmd_status() {
+  if [ ! -f "$CONFIG_FILE" ]; then
+    printf 'tokenusage: not configured\n'
+    return
+  fi
+  # shellcheck disable=SC1090
+  . "$CONFIG_FILE"
+  printf 'server:      %s\n' "$SERVER"
+  printf 'token:       %s\n' "$(printf '%s' "$TOKEN" | sed 's/\(....\).*\(....\)/\1…\2/')"
+  if [ -f "$STATE_FILE" ]; then
+    local last
+    last=$(cat "$STATE_FILE" 2>/dev/null)
+    printf 'last upload: %s\n' "$(date -r "$last" 2>/dev/null || echo "$last")"
+  fi
+  if [ "$(uname -s)" = "Darwin" ]; then
+    if launchctl list 2>/dev/null | grep -q com.tokenusage.agent; then
+      printf 'service:     running (launchd)\n'
+    else
+      printf 'service:     not loaded\n'
+    fi
+  fi
+}
+
+cmd_logs() {
+  [ -f "$LOG_FILE" ] || { err "no log yet at $LOG_FILE"; exit 1; }
+  exec tail -n 200 -f "$LOG_FILE"
+}
+
+cmd_sync() {
+  [ -f "$CONFIG_FILE" ] || { err "not configured"; exit 1; }
+  # shellcheck disable=SC1090
+  . "$CONFIG_FILE"
+  curl -fsS -X POST "$SERVER/api/sync-now" \
+    -H "Authorization: Bearer $TOKEN" \
+    -o /dev/null && printf '✓ sync requested\n'
+}
+
+cmd_version() {
+  printf 'tokenusage %s\n' "$VERSION"
+}
+
+# ---------- the long-poll loop (--loop) ----------
+
+upload() {
+  local TMP SIZE
+  TMP="$(mktemp -d -t tokenusage-XXXXXX)"
+
+  mkdir -p "$TMP/payload"
+  if [ -f "$HOME/.hermes/state.db" ]; then
+    cp "$HOME/.hermes/state.db" "$TMP/payload/hermes.db"
+  fi
+  if [ -d "$HOME/.codex" ]; then
+    mkdir -p "$TMP/payload/codex"
+    [ -f "$HOME/.codex/state_5.sqlite" ] && cp "$HOME/.codex/state_5.sqlite" "$TMP/payload/codex/state_5.sqlite"
+    [ -d "$HOME/.codex/sessions" ] && cp -R "$HOME/.codex/sessions" "$TMP/payload/codex/sessions"
+  fi
+  if [ -d "$HOME/.claude/projects" ]; then
+    cp -R "$HOME/.claude/projects" "$TMP/payload/claude-projects"
+  fi
+
+  if [ -z "$(ls -A "$TMP/payload" 2>/dev/null)" ]; then
+    printf '[%s] no data to upload (none of ~/.hermes ~/.codex ~/.claude/projects exist)\n' "$(ts)"
+    rm -rf "$TMP"
+    return
+  fi
+
+  tar czf "$TMP/payload.tar.gz" -C "$TMP/payload" .
+  SIZE=$(wc -c < "$TMP/payload.tar.gz" | tr -d ' ')
+
+  if curl -fsS --max-time 600 \
+    -X POST "$SERVER/api/upload" \
+    -H "Authorization: Bearer $TOKEN" \
+    -H "Content-Type: application/gzip" \
+    --data-binary "@$TMP/payload.tar.gz" \
+    -o /dev/null; then
+    LAST_UPLOAD=$(date +%s)
+    printf '%s' "$LAST_UPLOAD" > "$STATE_FILE"
+    printf '[%s] upload OK (%s bytes)\n' "$(ts)" "$SIZE"
+  else
+    printf '[%s] upload FAILED\n' "$(ts)"
+  fi
+
+  rm -rf "$TMP"
+}
+
+cmd_loop() {
+  [ -f "$CONFIG_FILE" ] || { err "not configured"; exit 1; }
+  # shellcheck disable=SC1090
+  . "$CONFIG_FILE"
+
+  if [ -f "$STATE_FILE" ]; then
+    LAST_UPLOAD=$(cat "$STATE_FILE" 2>/dev/null || echo 0)
+  else
+    LAST_UPLOAD=0
+  fi
+  INTERVAL_SECONDS=300
+
+  printf '[%s] tokenusage agent starting; server=%s\n' "$(ts)" "$SERVER"
+
+  # Eager first upload unless we just uploaded (rapid restart loop guard).
+  NOW=$(date +%s)
+  if [ $((NOW - LAST_UPLOAD)) -gt 60 ]; then
+    upload
+  fi
+
+  while true; do
+    RESP=$(curl -fsS --max-time 360 \
+      "$SERVER/api/sync-wait" \
+      -H "Authorization: Bearer $TOKEN" 2>/dev/null || echo '')
+
+    NEW_INTERVAL=$(printf '%s' "$RESP" | sed -nE 's/.*"intervalSeconds":([0-9]+).*/\1/p')
+    [ -n "$NEW_INTERVAL" ] && INTERVAL_SECONDS=$NEW_INTERVAL
+
+    PAUSED=$(printf '%s' "$RESP" | sed -nE 's/.*"paused":(true|false).*/\1/p')
+    SYNC=$(printf '%s' "$RESP" | sed -nE 's/.*"sync":(true|false).*/\1/p')
+    NOW=$(date +%s)
+    ELAPSED=$((NOW - LAST_UPLOAD))
+
+    if [ "$PAUSED" = "true" ]; then
+      printf '[%s] tracking paused — skipping upload\n' "$(ts)"
+    elif [ "$SYNC" = "true" ]; then
+      upload
+    elif [ "$ELAPSED" -ge "$INTERVAL_SECONDS" ]; then
+      upload
+    fi
+
+    sleep 1
+  done
+}
+
+# ---------- dispatch ----------
+
+case "${1:-help}" in
+  start)     shift; cmd_start "$@" ;;
+  stop)      shift; cmd_stop "$@" ;;
+  uninstall) shift; cmd_uninstall "$@" ;;
+  status)    shift; cmd_status "$@" ;;
+  logs)      shift; cmd_logs "$@" ;;
+  sync)      shift; cmd_sync "$@" ;;
+  --loop)    cmd_loop ;;
+  version|--version|-v) cmd_version ;;
+  help|--help|-h) usage ;;
+  *) err "unknown command: $1"; usage; exit 1 ;;
+esac
