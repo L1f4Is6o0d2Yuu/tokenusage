@@ -26,17 +26,18 @@ export function AgentStatusBar({
   lastSyncedAt,
   agentSeenAt,
   intervalSeconds,
+  paused,
 }: {
   lastSyncedAt: number | null;
   agentSeenAt: number | null;
   intervalSeconds: number;
+  paused: boolean;
 }) {
   const [now, setNow] = useState<number | null>(null);
   const [pending, startTransition] = useTransition();
   const [requested, setRequested] = useState(false);
+  const [toggling, setToggling] = useState(false);
 
-  // Tick every second once we're hydrated. Initial render uses null so
-  // server HTML matches client HTML (no hydration mismatch).
   useEffect(() => {
     setNow(Date.now());
     const t = setInterval(() => setNow(Date.now()), 1000);
@@ -46,26 +47,51 @@ export function AgentStatusBar({
   const agentLive =
     agentSeenAt != null && now != null && now - agentSeenAt < AGENT_LIVE_THRESHOLD_MS;
   const everSynced = lastSyncedAt != null;
+  const installed = everSynced || agentSeenAt != null;
 
   function handleSync() {
-    if (requested || pending) return;
+    if (requested || pending || paused) return;
     setRequested(true);
     startTransition(async () => {
       try {
         await fetch("/api/sync-now", { method: "POST" });
       } catch {
-        // best-effort; agent may pick up via heartbeat anyway
+        // best-effort
       }
-      // Wait for agent to upload, then reload the page to show new data.
       setTimeout(() => window.location.reload(), RELOAD_DELAY_MS);
     });
   }
 
+  function handleToggle() {
+    if (toggling) return;
+    setToggling(true);
+    const endpoint = paused ? "/api/agent-resume" : "/api/agent-pause";
+    startTransition(async () => {
+      try {
+        await fetch(endpoint, { method: "POST" });
+      } catch {
+        // best-effort
+      }
+      // Reload promptly so the new state is reflected. The server already
+      // pinged the agent's long-poll connection so it knows too.
+      window.location.reload();
+    });
+  }
+
   let leftPill: React.ReactNode;
-  if (!everSynced && agentSeenAt == null) {
+  if (!installed) {
     leftPill = (
       <Pill color="gray" dot>
         Agent not installed
+      </Pill>
+    );
+  } else if (paused) {
+    leftPill = (
+      <Pill color="gray" dot>
+        Tracking paused
+        {agentSeenAt != null && agentLive && (
+          <span className="ml-1 text-muted-foreground">· agent online</span>
+        )}
       </Pill>
     );
   } else if (agentLive) {
@@ -112,17 +138,42 @@ export function AgentStatusBar({
           Heartbeat <span className="text-foreground">{intervalLabel}</span>
         </span>
       </div>
-      <button
-        type="button"
-        onClick={handleSync}
-        disabled={pending || requested}
-        className={cn(
-          "rounded-md border bg-background px-3 py-1.5 text-xs font-medium hover:bg-muted",
-          "disabled:cursor-not-allowed disabled:opacity-60"
+      <div className="flex items-center gap-2">
+        {installed && (
+          <button
+            type="button"
+            onClick={handleToggle}
+            disabled={toggling || pending}
+            className={cn(
+              "rounded-md border px-3 py-1.5 text-xs font-medium",
+              paused
+                ? "border-emerald-600 bg-background text-emerald-700 hover:bg-emerald-50 dark:text-emerald-300"
+                : "border-amber-600 bg-background text-amber-700 hover:bg-amber-50 dark:text-amber-300",
+              "disabled:cursor-not-allowed disabled:opacity-60"
+            )}
+          >
+            {toggling
+              ? paused
+                ? "Resuming…"
+                : "Pausing…"
+              : paused
+                ? "Resume tracking"
+                : "Pause tracking"}
+          </button>
         )}
-      >
-        {requested ? "Syncing…" : "Sync now"}
-      </button>
+        <button
+          type="button"
+          onClick={handleSync}
+          disabled={pending || requested || paused || !installed}
+          className={cn(
+            "rounded-md border bg-background px-3 py-1.5 text-xs font-medium hover:bg-muted",
+            "disabled:cursor-not-allowed disabled:opacity-60"
+          )}
+          title={paused ? "Resume tracking first" : undefined}
+        >
+          {requested ? "Syncing…" : "Sync now"}
+        </button>
+      </div>
     </div>
   );
 }

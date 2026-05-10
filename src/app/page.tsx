@@ -146,6 +146,7 @@ export default async function Page({
           lastSyncedAt={syncState.lastUploadedAt}
           agentSeenAt={agentSeenAt}
           intervalSeconds={syncState.syncIntervalSeconds}
+          paused={syncState.paused}
         />
       )}
 
