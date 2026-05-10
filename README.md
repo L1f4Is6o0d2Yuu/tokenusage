@@ -4,7 +4,7 @@ A local-first dashboard that shows how many tokens — and how many dollars — 
 
 ![tokenusage dashboard](docs/screenshot.png)
 
-> Status: **v0.4**. Ships adapters for Hermes, Codex CLI, and Claude Code. Per-session detail pages, CSV export, and a user-editable price table. Screenshot above is from the bundled synthetic sample data.
+> Status: **v0.5**. Three adapters (Hermes / Codex CLI / Claude Code), per-session detail pages, CSV export, custom date range, and an inline price-table editor at `/prices`. Screenshot above is from the bundled synthetic sample data.
 
 ## Features
 
@@ -71,8 +71,10 @@ Cost figures come from whatever your gateway recorded at the time of the request
 - [x] Per-session detail page (`/sessions/[id]`)
 - [x] Export filtered view to CSV (`/api/export?period=...`)
 - [x] User-editable price overrides — drop a `data/prices.json` to override `data/prices.default.json`
-- [ ] Custom date range picker
-- [ ] Inline price-table editor in the UI
+- [x] Custom date range picker (period=custom + from/to URL params)
+- [x] Inline price-table editor in the UI (`/prices`)
+- [ ] Add/remove individual rule rows without rewriting the whole table
+- [ ] Multi-user / shared-deployment mode (everything is single-tenant local right now)
 
 ## License
 

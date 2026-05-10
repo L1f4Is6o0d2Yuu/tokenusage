@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { loadRecords } from "@/lib/adapters";
 import { aggregate, filterByPeriod } from "@/lib/aggregate";
-import { PERIOD_LABELS, type Period, type UsageRecord } from "@/lib/types";
+import { PERIOD_LABELS, type CustomRange, type Period, type UsageRecord } from "@/lib/types";
 import { formatInt, formatTokens, formatUsd } from "@/lib/format";
 import { PeriodTabs } from "@/components/period-tabs";
 import { UsageTrend } from "@/components/usage-trend";
@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 
-const VALID_PERIODS: Period[] = ["today", "24h", "7d", "30d", "all"];
+const VALID_PERIODS: Period[] = ["today", "24h", "7d", "30d", "all", "custom"];
 
 function parsePeriod(raw: string | string[] | undefined): Period {
   if (typeof raw === "string" && (VALID_PERIODS as string[]).includes(raw)) {
@@ -31,16 +31,27 @@ function parsePeriod(raw: string | string[] | undefined): Period {
   return "7d";
 }
 
+function parseCustomRange(
+  from: string | string[] | undefined,
+  to: string | string[] | undefined
+): CustomRange | undefined {
+  const f = typeof from === "string" && /^\d{4}-\d{2}-\d{2}$/.test(from) ? from : null;
+  const t = typeof to === "string" && /^\d{4}-\d{2}-\d{2}$/.test(to) ? to : null;
+  if (!f && !t) return undefined;
+  return { from: f ?? "", to: t ?? "" };
+}
+
 export default async function Page({
   searchParams,
 }: {
-  searchParams: Promise<{ period?: string }>;
+  searchParams: Promise<{ period?: string; from?: string; to?: string }>;
 }) {
-  const { period: rawPeriod } = await searchParams;
+  const { period: rawPeriod, from, to } = await searchParams;
   const period = parsePeriod(rawPeriod);
+  const customRange = period === "custom" ? parseCustomRange(from, to) : undefined;
 
   const { records, sources, fellBackToSample } = await loadRecords();
-  const scoped = filterByPeriod(records, period);
+  const scoped = filterByPeriod(records, period, customRange);
   const agg = aggregate(scoped);
   const recent = [...scoped].sort((a, b) => b.startedAt - a.startedAt).slice(0, 10);
 
@@ -53,7 +64,7 @@ export default async function Page({
             Token spend across your AI tooling — read-only, local-first.
           </p>
         </div>
-        <PeriodTabs active={period} />
+        <PeriodTabs active={period} custom={customRange} />
       </header>
 
       <SourceBanner sources={sources} fellBack={fellBackToSample} />
@@ -151,13 +162,25 @@ export default async function Page({
                 gateway recorded, not bills.
               </CardDescription>
             </div>
-            <a
-              href={`/api/export?period=${period}`}
-              className="rounded-md border bg-background px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted"
-              download
-            >
-              Export CSV
-            </a>
+            <div className="flex shrink-0 items-center gap-2">
+              <Link
+                href="/prices"
+                className="rounded-md border bg-background px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted"
+              >
+                Edit prices
+              </Link>
+              <a
+                href={
+                  period === "custom" && customRange
+                    ? `/api/export?period=custom&from=${customRange.from}&to=${customRange.to}`
+                    : `/api/export?period=${period}`
+                }
+                className="rounded-md border bg-background px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted"
+                download
+              >
+                Export CSV
+              </a>
+            </div>
           </CardHeader>
           <CardContent>
             <Table>
