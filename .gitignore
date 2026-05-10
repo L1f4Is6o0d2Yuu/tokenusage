@@ -43,3 +43,6 @@ next-env.d.ts
 # local data — never commit personal token usage. The synthetic sample is committed.
 /data/*.db
 !/data/sample.db
+
+# user price overrides — defaults ship as data/prices.default.json
+/data/prices.json

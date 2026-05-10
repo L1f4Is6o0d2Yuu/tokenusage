@@ -4,7 +4,7 @@ A local-first dashboard that shows how many tokens — and how many dollars — 
 
 ![tokenusage dashboard](docs/screenshot.png)
 
-> Status: **early — v0.2**. Ships adapters for the Hermes gateway and Codex CLI. Claude Code direct adapter is planned next. Screenshot above is from the bundled synthetic sample data.
+> Status: **v0.4**. Ships adapters for Hermes, Codex CLI, and Claude Code. Per-session detail pages, CSV export, and a user-editable price table. Screenshot above is from the bundled synthetic sample data.
 
 ## Features
 
@@ -49,9 +49,10 @@ src/
     ├── adapters/
     │   ├── hermes.ts     # better-sqlite3 readonly → ~/.hermes/state.db
     │   ├── codex.ts      # state_5.sqlite + last token_count event from each rollout JSONL
+    │   ├── claude-code.ts # walks ~/.claude/projects/**.jsonl
     │   ├── sample.ts     # reads data/sample.db
     │   └── index.ts      # merges UsageRecords from every adapter that has data
-    ├── pricing.ts        # hardcoded model price table — used when source data has no cost
+    ├── pricing.ts        # loads data/prices.json (override) or data/prices.default.json
     ├── aggregate.ts      # period filtering + group-by-model + daily rollup
     ├── format.ts         # tokens / USD / int formatters
     └── types.ts          # UsageRecord, ProviderAdapter, Aggregation
@@ -66,11 +67,12 @@ Cost figures come from whatever your gateway recorded at the time of the request
 ## Roadmap
 
 - [x] Codex adapter — read `~/.codex/sessions/*.jsonl` + `state_5.sqlite`
-- [ ] Claude Code adapter — read `~/.claude/projects/**/*.jsonl`
+- [x] Claude Code adapter — read `~/.claude/projects/**/*.jsonl`
+- [x] Per-session detail page (`/sessions/[id]`)
+- [x] Export filtered view to CSV (`/api/export?period=...`)
+- [x] User-editable price overrides — drop a `data/prices.json` to override `data/prices.default.json`
 - [ ] Custom date range picker
-- [ ] Per-session detail page
-- [ ] User-editable price overrides (currently hardcoded in `lib/pricing.ts`)
-- [ ] Export filtered view to CSV
+- [ ] Inline price-table editor in the UI
 
 ## License
 

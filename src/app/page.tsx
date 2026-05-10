@@ -1,6 +1,7 @@
+import Link from "next/link";
 import { loadRecords } from "@/lib/adapters";
 import { aggregate, filterByPeriod } from "@/lib/aggregate";
-import { PERIOD_LABELS, type Period } from "@/lib/types";
+import { PERIOD_LABELS, type Period, type UsageRecord } from "@/lib/types";
 import { formatInt, formatTokens, formatUsd } from "@/lib/format";
 import { PeriodTabs } from "@/components/period-tabs";
 import { UsageTrend } from "@/components/usage-trend";
@@ -41,6 +42,7 @@ export default async function Page({
   const { records, sources, fellBackToSample } = await loadRecords();
   const scoped = filterByPeriod(records, period);
   const agg = aggregate(scoped);
+  const recent = [...scoped].sort((a, b) => b.startedAt - a.startedAt).slice(0, 10);
 
   return (
     <main className="mx-auto w-full max-w-6xl px-6 py-10">
@@ -141,12 +143,21 @@ export default async function Page({
 
       <section className="mt-8">
         <Card>
-          <CardHeader>
-            <CardTitle>Breakdown by model</CardTitle>
-            <CardDescription>
-              Sorted by total tokens. Costs are estimates based on what your gateway
-              recorded, not bills.
-            </CardDescription>
+          <CardHeader className="flex flex-row items-start justify-between gap-4">
+            <div className="space-y-1">
+              <CardTitle>Breakdown by model</CardTitle>
+              <CardDescription>
+                Sorted by total tokens. Costs are estimates based on what your
+                gateway recorded, not bills.
+              </CardDescription>
+            </div>
+            <a
+              href={`/api/export?period=${period}`}
+              className="rounded-md border bg-background px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted"
+              download
+            >
+              Export CSV
+            </a>
           </CardHeader>
           <CardContent>
             <Table>
@@ -211,7 +222,75 @@ export default async function Page({
           </CardContent>
         </Card>
       </section>
+
+      <section className="mt-8">
+        <Card>
+          <CardHeader>
+            <CardTitle>Recent sessions</CardTitle>
+            <CardDescription>Latest 10 in this period — click to inspect.</CardDescription>
+          </CardHeader>
+          <CardContent className="p-0">
+            <RecentSessions records={recent} />
+          </CardContent>
+        </Card>
+      </section>
     </main>
+  );
+}
+
+function RecentSessions({ records }: { records: UsageRecord[] }) {
+  if (records.length === 0) {
+    return (
+      <p className="px-6 py-4 text-sm text-muted-foreground">
+        No sessions in this period.
+      </p>
+    );
+  }
+  return (
+    <ul className="divide-y">
+      {records.map((r) => {
+        const total =
+          r.inputTokens +
+          r.outputTokens +
+          r.cacheReadTokens +
+          r.cacheWriteTokens +
+          r.reasoningTokens;
+        const href = `/sessions/${encodeURIComponent(r.id)}`;
+        const when = new Date(r.startedAt).toLocaleString(undefined, {
+          month: "short",
+          day: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+        });
+        return (
+          <li key={r.id}>
+            <Link
+              href={href}
+              className="flex items-center gap-4 px-6 py-3 transition-colors hover:bg-muted/40"
+            >
+              <Badge variant="outline" className="shrink-0">
+                {r.provider}
+              </Badge>
+              <span className="min-w-0 flex-1 truncate text-sm">
+                {r.title ?? "(untitled session)"}
+              </span>
+              <span className="hidden shrink-0 font-mono text-xs text-muted-foreground sm:inline">
+                {r.model ?? "?"}
+              </span>
+              <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
+                {when}
+              </span>
+              <span className="w-20 shrink-0 text-right text-sm tabular-nums">
+                {formatTokens(total)}
+              </span>
+              <span className="w-20 shrink-0 text-right text-sm tabular-nums">
+                {r.costUsd == null ? "—" : formatUsd(r.costUsd, { precise: true })}
+              </span>
+            </Link>
+          </li>
+        );
+      })}
+    </ul>
   );
 }
 

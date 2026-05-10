@@ -1,0 +1,17 @@
+{
+  "$schema": "Edit data/prices.json (in this same dir) to override these defaults. All numbers are USD per single token.",
+  "version": 1,
+  "rules": [
+    { "match": "^gpt-5\\.5",   "input": 0.000005,    "output": 0.00002,   "cacheRead": 0.0000005 },
+    { "match": "^gpt-5\\.4",   "input": 0.000003,    "output": 0.000012,  "cacheRead": 0.0000003 },
+    { "match": "^gpt-5",       "input": 0.000003,    "output": 0.000012,  "cacheRead": 0.0000003 },
+    { "match": "^o4-mini",     "input": 0.0000011,   "output": 0.0000044, "cacheRead": 0.000000275 },
+    { "match": "^o4",          "input": 0.000005,    "output": 0.00002,   "cacheRead": 0.00000125 },
+    { "match": "opus",         "input": 0.000015,    "output": 0.000075,  "cacheRead": 0.0000015,  "cacheWrite": 0.00001875 },
+    { "match": "sonnet",       "input": 0.000003,    "output": 0.000015,  "cacheRead": 0.0000003,  "cacheWrite": 0.00000375 },
+    { "match": "haiku",        "input": 0.0000008,   "output": 0.000004,  "cacheRead": 0.00000008, "cacheWrite": 0.000001 },
+    { "match": "deepseek-reasoner", "input": 0.00000055, "output": 0.00000219, "cacheRead": 0.00000014 },
+    { "match": "deepseek",     "input": 0.00000027,  "output": 0.0000011, "cacheRead": 0.00000007 },
+    { "match": "gemini.*pro",  "input": 0.00000125,  "output": 0.000005,  "cacheRead": 0.0000003125 }
+  ]
+}
