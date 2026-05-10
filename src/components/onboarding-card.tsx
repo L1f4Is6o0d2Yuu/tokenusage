@@ -1,4 +1,6 @@
 import { InstallAgentButton } from "./install-agent-button";
+import { interp } from "@/i18n/interp";
+import type { Dictionary } from "@/i18n/types";
 import {
   Card,
   CardContent,
@@ -7,32 +9,27 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
-// Shown on the dashboard when the user has logged in but no usage records
-// have been ingested yet. Two-step onboarding: click "Generate install
-// command" → paste in a terminal. The browser cannot run the install
-// directly (OS sandbox), so the terminal step is unavoidable; everything
-// else is a single click.
-export function OnboardingCard({ username }: { username: string; publicUrl?: string }) {
+export function OnboardingCard({
+  username,
+  t,
+  installT,
+}: {
+  username: string;
+  t: Dictionary["onboarding"];
+  installT: Dictionary["install"];
+}) {
   return (
     <Card className="mt-6 border-emerald-500/40 bg-emerald-500/5">
       <CardHeader>
-        <CardTitle>Welcome, {username} — let&apos;s get your data flowing</CardTitle>
-        <CardDescription>
-          tokenusage doesn&apos;t see anything yet. Two steps and you&apos;re done.
-        </CardDescription>
+        <CardTitle>{interp(t.welcome, { name: username })}</CardTitle>
+        <CardDescription>{t.description}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-5 text-sm">
-        <Step n={1} title="Click below, copy the command, paste it in a terminal">
-          <InstallAgentButton />
+        <Step n={1} title={t.step1Title}>
+          <InstallAgentButton t={installT} />
         </Step>
-        <Step n={2} title="That&apos;s it">
-          <span className="text-muted-foreground">
-            The installer registers a background service (launchd on Mac /
-            systemd on Linux) that auto-starts on login and syncs in the
-            background. Click <strong>Sync now</strong> on the dashboard any
-            time you want fresh data, or <strong>Pause tracking</strong> to
-            disable uploads without uninstalling.
-          </span>
+        <Step n={2} title={t.step2Title}>
+          <span className="text-muted-foreground">{t.step2Body}</span>
         </Step>
       </CardContent>
     </Card>
@@ -42,12 +39,10 @@ export function OnboardingCard({ username }: { username: string; publicUrl?: str
 function Step({
   n,
   title,
-  subtitle,
   children,
 }: {
   n: number;
   title: string;
-  subtitle?: string;
   children: React.ReactNode;
 }) {
   return (
@@ -58,7 +53,6 @@ function Step({
         </span>
         {title}
       </div>
-      {subtitle && <p className="mt-1 text-xs text-muted-foreground">{subtitle}</p>}
       <div className="mt-2">{children}</div>
     </div>
   );

@@ -3,13 +3,22 @@
 import { useActionState } from "react";
 import { loginAction } from "@/app/auth-actions";
 
-export function LoginForm() {
+export function LoginForm({
+  labels,
+}: {
+  labels: {
+    identifier: string;
+    password: string;
+    submit: string;
+    submitting: string;
+  };
+}) {
   const [state, action, pending] = useActionState(loginAction, {});
   return (
     <form action={action} className="space-y-4">
       <div>
         <label className="text-xs text-muted-foreground" htmlFor="username">
-          Email or username
+          {labels.identifier}
         </label>
         <input
           id="username"
@@ -22,7 +31,7 @@ export function LoginForm() {
       </div>
       <div>
         <label className="text-xs text-muted-foreground" htmlFor="password">
-          Password
+          {labels.password}
         </label>
         <input
           id="password"
@@ -43,7 +52,7 @@ export function LoginForm() {
         disabled={pending}
         className="w-full rounded-md bg-foreground px-4 py-2 text-sm font-medium text-background hover:opacity-90 disabled:opacity-60"
       >
-        {pending ? "Signing in…" : "Sign in"}
+        {pending ? labels.submitting : labels.submit}
       </button>
     </form>
   );

@@ -5,6 +5,7 @@ import { isMultiUserMode } from "@/lib/server-db";
 import { getPublicUrl } from "@/lib/public-url";
 import { createInviteAction, revokeInviteAction } from "./actions";
 import { SubmitButton } from "@/components/submit-button";
+import { getDictionary, readLocale } from "@/i18n";
 import {
   Card,
   CardContent,
@@ -22,9 +23,9 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 
-function formatDate(ms: number | null): string {
+function formatDate(ms: number | null, locale: string): string {
   if (ms == null) return "—";
-  return new Date(ms).toLocaleString();
+  return new Date(ms).toLocaleString(locale);
 }
 
 export default async function UsersPage({
@@ -32,8 +33,6 @@ export default async function UsersPage({
 }: {
   searchParams: Promise<{ new?: string }>;
 }) {
-  // /users only makes sense in multi-user mode. In single-user mode there's
-  // no concept of invites — short-circuit straight to the dashboard.
   if (!isMultiUserMode()) redirect("/");
 
   const user = await readCurrentUser();
@@ -44,6 +43,9 @@ export default async function UsersPage({
   const users = listUsers();
   const invites = listInvites();
   const origin = await getPublicUrl();
+  const locale = await readLocale();
+  const dict = await getDictionary(locale);
+  const t = dict.usersPage;
 
   return (
     <main className="mx-auto w-full max-w-4xl px-6 py-10">
@@ -51,23 +53,18 @@ export default async function UsersPage({
         href="/"
         className="mb-6 inline-flex text-sm text-muted-foreground hover:text-foreground"
       >
-        ← Back to dashboard
+        {dict.session.back}
       </Link>
       <header className="mb-6">
-        <h1 className="text-2xl font-semibold tracking-tight">Users & invites</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Admin-only. Invites are one-time signup links — share with the person
-          you want to add, and they choose their own email and password.
-        </p>
+        <h1 className="text-2xl font-semibold tracking-tight">{t.title}</h1>
+        <p className="mt-1 text-sm text-muted-foreground">{t.description}</p>
       </header>
 
       {newInvite && (
         <Card className="mb-6 border-emerald-500/40 bg-emerald-500/5">
           <CardHeader>
-            <CardTitle className="text-base">Invite link created</CardTitle>
-            <CardDescription>
-              Send this URL to the invitee. Single-use; expires in 14 days.
-            </CardDescription>
+            <CardTitle className="text-base">{t.inviteCreatedTitle}</CardTitle>
+            <CardDescription>{t.inviteCreatedDescription}</CardDescription>
           </CardHeader>
           <CardContent>
             <code className="block w-full break-all rounded border bg-background px-3 py-2 font-mono text-sm">
@@ -79,119 +76,131 @@ export default async function UsersPage({
 
       <Card>
         <CardHeader>
-          <CardTitle>Generate invite</CardTitle>
-          <CardDescription>
-            Optional note helps you remember who it's for (e.g. "Bob's laptop").
-          </CardDescription>
+          <CardTitle>{t.generateInviteTitle}</CardTitle>
+          <CardDescription>{t.generateInviteDescription}</CardDescription>
         </CardHeader>
         <CardContent>
-          <form action={createInviteAction} className="flex items-end gap-3">
+          <form
+            action={createInviteAction}
+            className="flex flex-col gap-3 sm:flex-row sm:items-end"
+          >
             <div className="flex-1">
               <label htmlFor="note" className="text-xs text-muted-foreground">
-                Note
+                {t.note}
               </label>
               <input
                 id="note"
                 name="note"
-                placeholder="e.g. Bob"
+                placeholder={t.notePlaceholder}
                 className="mt-1 w-full rounded border bg-background px-3 py-2 text-sm"
               />
             </div>
-            <SubmitButton pendingText="Creating…">Create invite</SubmitButton>
+            <SubmitButton pendingText={t.creating}>{t.createInvite}</SubmitButton>
           </form>
         </CardContent>
       </Card>
 
       <Card className="mt-6">
         <CardHeader>
-          <CardTitle>Invites</CardTitle>
+          <CardTitle>{t.invitesTitle}</CardTitle>
         </CardHeader>
         <CardContent>
           {invites.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No invites yet.</p>
+            <p className="text-sm text-muted-foreground">{t.noInvites}</p>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Note</TableHead>
-                  <TableHead>Created</TableHead>
-                  <TableHead>Expires</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right" />
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {invites.map((inv) => {
-                  const used = inv.usedAt != null;
-                  const expired = !used && inv.expiresAt < Date.now();
-                  return (
-                    <TableRow key={inv.id}>
-                      <TableCell className="font-medium">{inv.note ?? "—"}</TableCell>
-                      <TableCell className="text-xs text-muted-foreground tabular-nums">
-                        {formatDate(inv.createdAt)}
-                      </TableCell>
-                      <TableCell className="text-xs text-muted-foreground tabular-nums">
-                        {formatDate(inv.expiresAt)}
-                      </TableCell>
-                      <TableCell>
-                        {used ? (
-                          <Badge variant="outline">used</Badge>
-                        ) : expired ? (
-                          <Badge variant="outline" className="text-amber-700 dark:text-amber-300">
-                            expired
-                          </Badge>
-                        ) : (
-                          <Badge>open</Badge>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {!used && (
-                          <form action={revokeInviteAction}>
-                            <input type="hidden" name="id" value={inv.id} />
-                            <SubmitButton variant="danger" pendingText="Revoking…">
-                              Revoke
-                            </SubmitButton>
-                          </form>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>{t.columnNote}</TableHead>
+                    <TableHead>{t.columnCreated}</TableHead>
+                    <TableHead>{t.columnExpires}</TableHead>
+                    <TableHead>{t.columnStatus}</TableHead>
+                    <TableHead className="text-right" />
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {invites.map((inv) => {
+                    const used = inv.usedAt != null;
+                    const expired = !used && inv.expiresAt < Date.now();
+                    return (
+                      <TableRow key={inv.id}>
+                        <TableCell className="font-medium">
+                          {inv.note ?? "—"}
+                        </TableCell>
+                        <TableCell className="text-xs text-muted-foreground tabular-nums">
+                          {formatDate(inv.createdAt, locale)}
+                        </TableCell>
+                        <TableCell className="text-xs text-muted-foreground tabular-nums">
+                          {formatDate(inv.expiresAt, locale)}
+                        </TableCell>
+                        <TableCell>
+                          {used ? (
+                            <Badge variant="outline">{t.statusUsed}</Badge>
+                          ) : expired ? (
+                            <Badge
+                              variant="outline"
+                              className="text-amber-700 dark:text-amber-300"
+                            >
+                              {t.statusExpired}
+                            </Badge>
+                          ) : (
+                            <Badge>{t.statusOpen}</Badge>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {!used && (
+                            <form action={revokeInviteAction}>
+                              <input type="hidden" name="id" value={inv.id} />
+                              <SubmitButton variant="danger" pendingText={t.revoking}>
+                                {t.revoke}
+                              </SubmitButton>
+                            </form>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
           )}
         </CardContent>
       </Card>
 
       <Card className="mt-6">
         <CardHeader>
-          <CardTitle>Members</CardTitle>
+          <CardTitle>{t.membersTitle}</CardTitle>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Username</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Joined</TableHead>
-                <TableHead />
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {users.map((u) => (
-                <TableRow key={u.id}>
-                  <TableCell className="font-medium">{u.username}</TableCell>
-                  <TableCell className="text-xs text-muted-foreground">{u.email ?? "—"}</TableCell>
-                  <TableCell className="text-xs text-muted-foreground tabular-nums">
-                    {formatDate(u.createdAt)}
-                  </TableCell>
-                  <TableCell>
-                    {u.isAdmin && <Badge variant="outline">admin</Badge>}
-                  </TableCell>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{t.columnUsername}</TableHead>
+                  <TableHead>{t.columnEmail}</TableHead>
+                  <TableHead>{t.columnJoined}</TableHead>
+                  <TableHead />
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {users.map((u) => (
+                  <TableRow key={u.id}>
+                    <TableCell className="font-medium">{u.username}</TableCell>
+                    <TableCell className="text-xs text-muted-foreground">
+                      {u.email ?? "—"}
+                    </TableCell>
+                    <TableCell className="text-xs text-muted-foreground tabular-nums">
+                      {formatDate(u.createdAt, locale)}
+                    </TableCell>
+                    <TableCell>
+                      {u.isAdmin && <Badge variant="outline">{t.badgeAdmin}</Badge>}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
     </main>

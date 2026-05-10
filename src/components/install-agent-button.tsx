@@ -2,21 +2,11 @@
 
 import { useState, useTransition } from "react";
 import { cn } from "@/lib/utils";
-
-// One-click install flow. The button:
-//   1. Hits POST /api/install-command which auto-creates an API token and
-//      returns ready-to-paste install commands.
-//   2. Reveals the recommended (Homebrew) command inline with a [Copy]
-//      button, plus a toggle for the alternative (curl|sh) for users
-//      without Homebrew.
-//
-// We intentionally don't auto-create the token on page load — only when
-// the user clicks — so dashboards aren't littered with stale tokens for
-// people who never actually ran the install.
+import type { Dictionary } from "@/i18n/types";
 
 type Commands = { brew: string; curl: string };
 
-export function InstallAgentButton() {
+export function InstallAgentButton({ t }: { t: Dictionary["install"] }) {
   const [pending, startTransition] = useTransition();
   const [data, setData] = useState<Commands | null>(null);
   const [mode, setMode] = useState<"brew" | "curl">("brew");
@@ -29,17 +19,17 @@ export function InstallAgentButton() {
       try {
         const res = await fetch("/api/install-command", { method: "POST" });
         if (!res.ok) {
-          setError("Failed to generate install command. Refresh and try again.");
+          setError(t.failedToGenerate);
           return;
         }
         const json = (await res.json()) as { ok: boolean; commands?: Commands };
         if (!json.ok || !json.commands) {
-          setError("Server returned an unexpected response.");
+          setError(t.serverError);
           return;
         }
         setData(json.commands);
       } catch {
-        setError("Network error.");
+        setError(t.networkError);
       }
     });
   }
@@ -51,7 +41,7 @@ export function InstallAgentButton() {
       setCopied(true);
       setTimeout(() => setCopied(false), 2200);
     } catch {
-      setError("Couldn't copy to clipboard. Select the command manually.");
+      setError(t.clipboardError);
     }
   }
 
@@ -67,7 +57,7 @@ export function InstallAgentButton() {
             "disabled:cursor-not-allowed disabled:opacity-60"
           )}
         >
-          {pending ? "Generating…" : "Generate install command"}
+          {pending ? t.generating : t.generateCommand}
         </button>
         {error && (
           <p className="mt-2 text-xs text-red-700 dark:text-red-300">{error}</p>
@@ -78,7 +68,7 @@ export function InstallAgentButton() {
 
   return (
     <div className="space-y-2">
-      <div className="flex gap-2 text-xs">
+      <div className="flex flex-wrap gap-2 text-xs">
         <button
           type="button"
           onClick={() => {
@@ -92,7 +82,7 @@ export function InstallAgentButton() {
               : "border-border bg-background text-muted-foreground hover:text-foreground"
           )}
         >
-          Homebrew (recommended)
+          {t.tabBrew}
         </button>
         <button
           type="button"
@@ -107,27 +97,25 @@ export function InstallAgentButton() {
               : "border-border bg-background text-muted-foreground hover:text-foreground"
           )}
         >
-          curl | sh
+          {t.tabCurl}
         </button>
       </div>
       <pre className="overflow-x-auto rounded border bg-muted px-4 py-3 font-mono text-xs leading-relaxed">
         <code>{data[mode]}</code>
       </pre>
-      <div className="flex items-center gap-3">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
         <button
           type="button"
           onClick={copy}
           className={cn(
-            "rounded-md border bg-background px-3 py-1.5 text-xs font-medium hover:bg-muted",
+            "self-start rounded-md border bg-background px-3 py-1.5 text-xs font-medium hover:bg-muted",
             copied && "border-emerald-500 text-emerald-700 dark:text-emerald-300"
           )}
         >
-          {copied ? "Copied ✓" : "Copy command"}
+          {copied ? t.copied : t.copyCommand}
         </button>
         <p className="text-xs text-muted-foreground">
-          {mode === "brew"
-            ? "Installs the tokenusage CLI via Homebrew, then registers the agent as a background service."
-            : "Bash installer — works on any Mac or Linux without Homebrew."}
+          {mode === "brew" ? t.pasteHintBrew : t.pasteHintCurl}
         </p>
       </div>
       {error && (

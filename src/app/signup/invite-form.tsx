@@ -3,14 +3,26 @@
 import { useActionState } from "react";
 import { redeemInviteAction } from "@/app/auth-actions";
 
-export function InviteForm({ invite }: { invite: string }) {
+export function InviteForm({
+  invite,
+  labels,
+}: {
+  invite: string;
+  labels: {
+    email: string;
+    username: string;
+    password: string;
+    submit: string;
+    submitting: string;
+  };
+}) {
   const [state, action, pending] = useActionState(redeemInviteAction, {});
   return (
     <form action={action} className="space-y-4">
       <input type="hidden" name="invite" value={invite} />
       <div>
         <label className="text-xs text-muted-foreground" htmlFor="email">
-          Email
+          {labels.email}
         </label>
         <input
           id="email"
@@ -24,7 +36,7 @@ export function InviteForm({ invite }: { invite: string }) {
       </div>
       <div>
         <label className="text-xs text-muted-foreground" htmlFor="username">
-          Username (optional — defaults to your email's local part)
+          {labels.username}
         </label>
         <input
           id="username"
@@ -35,7 +47,7 @@ export function InviteForm({ invite }: { invite: string }) {
       </div>
       <div>
         <label className="text-xs text-muted-foreground" htmlFor="password">
-          Password (min 8 chars)
+          {labels.password}
         </label>
         <input
           id="password"
@@ -57,7 +69,7 @@ export function InviteForm({ invite }: { invite: string }) {
         disabled={pending}
         className="w-full rounded-md bg-foreground px-4 py-2 text-sm font-medium text-background hover:opacity-90 disabled:opacity-60"
       >
-        {pending ? "Joining…" : "Join"}
+        {pending ? labels.submitting : labels.submit}
       </button>
     </form>
   );
