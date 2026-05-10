@@ -12,17 +12,13 @@ import {
   SESSION_COOKIE,
 } from "@/lib/auth";
 import { isFirstRun, isMultiUserMode } from "@/lib/server-db";
+import { cookieOptions } from "@/lib/cookie-opts";
 
 const ONE_MONTH = 60 * 60 * 24 * 30;
 
 function setSessionCookie(token: string) {
   return cookies().then((c) =>
-    c.set(SESSION_COOKIE, token, {
-      path: "/",
-      httpOnly: true,
-      sameSite: "lax",
-      maxAge: ONE_MONTH,
-    })
+    c.set(SESSION_COOKIE, token, cookieOptions(ONE_MONTH))
   );
 }
 
