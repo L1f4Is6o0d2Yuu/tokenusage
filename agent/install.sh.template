@@ -1,0 +1,107 @@
+#!/bin/bash
+# tokenusage agent installer — generated at runtime by /install.sh.
+# Sets up a launchd (Mac) or systemd --user (Linux) service that runs
+# the agent loop in the background, restarted on crash, started at login.
+#
+# Re-running this script is safe — it stops any existing agent, rewrites
+# the config, and reloads.
+
+set -euo pipefail
+
+SERVER="__SERVER__"
+TOKEN="__TOKEN__"
+
+if ! command -v curl >/dev/null; then
+  echo "error: curl not found" >&2
+  exit 1
+fi
+if ! command -v tar >/dev/null; then
+  echo "error: tar not found" >&2
+  exit 1
+fi
+
+mkdir -p "$HOME/.tokenusage"
+chmod 700 "$HOME/.tokenusage"
+
+cat > "$HOME/.tokenusage/config.env" <<CONFIG
+SERVER="$SERVER"
+TOKEN="$TOKEN"
+CONFIG
+chmod 600 "$HOME/.tokenusage/config.env"
+
+curl -fsSL "$SERVER/api/agent-script" -o "$HOME/.tokenusage/agent.sh"
+chmod +x "$HOME/.tokenusage/agent.sh"
+
+case "$(uname -s)" in
+  Darwin)
+    PLIST="$HOME/Library/LaunchAgents/com.tokenusage.agent.plist"
+    mkdir -p "$(dirname "$PLIST")"
+    cat > "$PLIST" <<PLIST_BODY
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>com.tokenusage.agent</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string>
+    <string>$HOME/.tokenusage/agent.sh</string>
+  </array>
+  <key>RunAtLoad</key><true/>
+  <key>KeepAlive</key><true/>
+  <key>StandardOutPath</key><string>$HOME/.tokenusage/agent.log</string>
+  <key>StandardErrorPath</key><string>$HOME/.tokenusage/agent.log</string>
+  <key>WorkingDirectory</key><string>$HOME</string>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>HOME</key><string>$HOME</string>
+    <key>PATH</key><string>/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+  </dict>
+</dict>
+</plist>
+PLIST_BODY
+    launchctl unload "$PLIST" 2>/dev/null || true
+    launchctl load "$PLIST"
+    echo "✓ tokenusage agent installed (launchd)."
+    echo "  Logs:    tail -f ~/.tokenusage/agent.log"
+    echo "  Stop:    launchctl unload $PLIST"
+    echo "  Restart: launchctl kickstart -k gui/\$UID/com.tokenusage.agent"
+    ;;
+  Linux)
+    UNIT_DIR="$HOME/.config/systemd/user"
+    mkdir -p "$UNIT_DIR"
+    cat > "$UNIT_DIR/tokenusage-agent.service" <<UNIT
+[Unit]
+Description=tokenusage agent
+After=network.target
+
+[Service]
+ExecStart=/bin/bash $HOME/.tokenusage/agent.sh
+Restart=always
+RestartSec=5
+StandardOutput=append:$HOME/.tokenusage/agent.log
+StandardError=append:$HOME/.tokenusage/agent.log
+
+[Install]
+WantedBy=default.target
+UNIT
+    systemctl --user daemon-reload
+    systemctl --user enable --now tokenusage-agent
+    echo "✓ tokenusage agent installed (systemd --user)."
+    echo "  Logs:    journalctl --user -u tokenusage-agent -f"
+    echo "  Stop:    systemctl --user stop tokenusage-agent"
+    echo "  Restart: systemctl --user restart tokenusage-agent"
+    echo ""
+    echo "  Note: on a headless Linux box, also run"
+    echo "        sudo loginctl enable-linger \$(id -un)"
+    echo "  so the agent keeps running after you log out."
+    ;;
+  *)
+    echo "Unsupported OS: $(uname -s). Running agent in foreground (Ctrl-C to stop)."
+    exec "$HOME/.tokenusage/agent.sh"
+    ;;
+esac
+
+echo ""
+echo "First sync starting now. Visit $SERVER and the dashboard should fill in"
+echo "within seconds. Click 'Sync now' any time you want fresh data."

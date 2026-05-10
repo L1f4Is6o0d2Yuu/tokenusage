@@ -130,46 +130,47 @@ export const claudeCodeAdapter: ProviderAdapter = {
   },
 
   async load(): Promise<UsageRecord[]> {
-    const dir = resolveDir();
-    if (!existsSync(dir)) return [];
-    const files = await listSessionFiles(dir);
-
-    // Parse all session files in parallel. Total volume is bounded by the
-    // user's local claude-code history; first-page render takes a beat the
-    // first time, then Next.js's request-scoped memoization handles repeats.
-    const accs = await Promise.all(
-      files.map((f) => readSessionFile(f.file, f.slug).catch(() => null))
-    );
-
-    return accs.flatMap((a): UsageRecord[] => {
-      if (!a) return [];
-      if (a.firstTs == null) return [];
-      const cost = estimateCost(a.model, {
-        input: a.inputTokens,
-        output: a.outputTokens,
-        cacheRead: a.cacheReadTokens,
-        cacheWrite: a.cacheWriteTokens,
-        reasoning: 0,
-      });
-      return [
-        {
-          id: `claude-code:${a.sessionId}`,
-          provider: "claude-code",
-          source: projectLabel(a.projectSlug),
-          model: a.model,
-          startedAt: a.firstTs,
-          endedAt: a.lastTs,
-          inputTokens: a.inputTokens,
-          outputTokens: a.outputTokens,
-          cacheReadTokens: a.cacheReadTokens,
-          cacheWriteTokens: a.cacheWriteTokens,
-          reasoningTokens: 0,
-          costUsd: cost,
-          costStatus: cost == null ? "unpriced" : "estimated",
-          apiCallCount: a.apiCalls,
-          title: a.title,
-        },
-      ];
-    });
+    return parseClaudeCodeFromDir(resolveDir());
   },
 };
+
+// Pure parser used both by the local adapter and by /api/upload.
+// `dir` mirrors the layout of `~/.claude/projects/` — one folder per project
+// (named with a slugified absolute path), each containing `<sessionId>.jsonl`.
+export async function parseClaudeCodeFromDir(dir: string): Promise<UsageRecord[]> {
+  if (!existsSync(dir)) return [];
+  const files = await listSessionFiles(dir);
+  const accs = await Promise.all(
+    files.map((f) => readSessionFile(f.file, f.slug).catch(() => null))
+  );
+  return accs.flatMap((a): UsageRecord[] => {
+    if (!a) return [];
+    if (a.firstTs == null) return [];
+    const cost = estimateCost(a.model, {
+      input: a.inputTokens,
+      output: a.outputTokens,
+      cacheRead: a.cacheReadTokens,
+      cacheWrite: a.cacheWriteTokens,
+      reasoning: 0,
+    });
+    return [
+      {
+        id: `claude-code:${a.sessionId}`,
+        provider: "claude-code",
+        source: projectLabel(a.projectSlug),
+        model: a.model,
+        startedAt: a.firstTs,
+        endedAt: a.lastTs,
+        inputTokens: a.inputTokens,
+        outputTokens: a.outputTokens,
+        cacheReadTokens: a.cacheReadTokens,
+        cacheWriteTokens: a.cacheWriteTokens,
+        reasoningTokens: 0,
+        costUsd: cost,
+        costStatus: cost == null ? "unpriced" : "estimated",
+        apiCallCount: a.apiCalls,
+        title: a.title,
+      },
+    ];
+  });
+}

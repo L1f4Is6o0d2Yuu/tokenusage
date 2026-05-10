@@ -1,8 +1,8 @@
-// Renders the copy-paste install + run command for the agent. If `token` is
-// provided, it's baked in; otherwise we emit a placeholder for the user to
-// edit. Shared between the /tokens page (with token filled in) and the
-// dashboard empty state (with placeholder).
-
+// Renders the one-liner that installs the agent. If `token` is provided,
+// it's baked into the URL; otherwise we emit a placeholder for the user
+// to edit before pasting. The script behind the URL detects the OS,
+// installs a launchd / systemd service, and triggers an immediate
+// upload — no Node, no npm, just curl + tar (built into Mac/Linux).
 export function AgentInstallSnippet({
   publicUrl,
   token,
@@ -11,11 +11,7 @@ export function AgentInstallSnippet({
   token?: string;
 }) {
   const tokenArg = token ?? "tu_YOUR_TOKEN_HERE";
-  const cmd = `mkdir tokenusage-agent && cd tokenusage-agent
-curl -O ${publicUrl}/api/agent
-mv agent ./tokenusage-agent.mjs 2>/dev/null || mv tokenusage-agent.mjs ./tokenusage-agent.mjs
-npm init -y && npm install better-sqlite3
-node tokenusage-agent.mjs --server ${publicUrl} --token ${tokenArg}`;
+  const cmd = `curl -fsSL "${publicUrl}/install.sh?token=${tokenArg}" | sh`;
   return (
     <pre className="overflow-x-auto rounded border bg-muted px-4 py-3 font-mono text-xs leading-relaxed">
       <code>{cmd}</code>

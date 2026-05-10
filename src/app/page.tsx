@@ -9,11 +9,13 @@ import { requireUser } from "@/lib/auth-guard";
 import { logoutAction } from "@/app/auth-actions";
 import { getPublicUrl } from "@/lib/public-url";
 import { countServerRecords } from "@/lib/adapters";
+import { getUserSyncState, getLatestAgentSeenAt } from "@/lib/sync-state";
 import { PeriodTabs } from "@/components/period-tabs";
 import { UsageTrend } from "@/components/usage-trend";
 import { LocaleSwitcher } from "@/components/locale-switcher";
 import { ThemeSwitcher } from "@/components/theme-switcher";
 import { OnboardingCard } from "@/components/onboarding-card";
+import { AgentStatusBar } from "@/components/agent-status-bar";
 import { getDictionary, readLocale } from "@/i18n";
 import { interp } from "@/i18n/interp";
 import {
@@ -83,6 +85,14 @@ export default async function Page({
     mode === "multi" && currentUser != null && countServerRecords(currentUser.id) === 0;
   const publicUrl = showOnboarding ? await getPublicUrl() : "";
 
+  // Live sync status pill — only meaningful in multi-user mode.
+  const syncState =
+    mode === "multi" && currentUser != null ? getUserSyncState(currentUser.id) : null;
+  const agentSeenAt =
+    mode === "multi" && currentUser != null
+      ? getLatestAgentSeenAt(currentUser.id)
+      : null;
+
   return (
     <main className="mx-auto w-full max-w-6xl px-6 py-10">
       <header className="mb-8 flex flex-wrap items-end justify-between gap-4">
@@ -130,6 +140,14 @@ export default async function Page({
         fellBack={fellBackToSample}
         t={t.banner}
       />
+
+      {syncState && (
+        <AgentStatusBar
+          lastSyncedAt={syncState.lastUploadedAt}
+          agentSeenAt={agentSeenAt}
+          intervalSeconds={syncState.syncIntervalSeconds}
+        />
+      )}
 
       {showOnboarding && currentUser && (
         <OnboardingCard username={currentUser.username} publicUrl={publicUrl} />

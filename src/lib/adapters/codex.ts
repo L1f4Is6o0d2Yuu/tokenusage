@@ -107,51 +107,70 @@ export const codexAdapter: ProviderAdapter = {
   },
 
   async load(): Promise<UsageRecord[]> {
-    const dir = resolveDir();
-    const threads = readThreads(dir);
-    if (threads.length === 0) return [];
-
-    // Parse JSONLs in parallel — each is small (tens of KB to a few MB).
-    const records = await Promise.all(
-      threads.map(async (t): Promise<UsageRecord> => {
-        const breakdown = await lastTokenCount(t.rollout_path);
-        const input = breakdown?.input ?? 0;
-        const output = breakdown?.output ?? 0;
-        const cacheRead = breakdown?.cacheRead ?? 0;
-        const reasoning = breakdown?.reasoning ?? 0;
-
-        // If no JSONL breakdown, fall back to bucketing the sqlite total into output.
-        // Better than dropping the record entirely.
-        const fallback = breakdown ? 0 : t.tokens_used;
-
-        const cost = estimateCost(t.model, {
-          input,
-          output: output + fallback,
-          cacheRead,
-          cacheWrite: 0,
-          reasoning,
-        });
-
-        return {
-          id: `codex:${t.id}`,
-          provider: "codex",
-          source: t.source,
-          model: t.model,
-          startedAt: t.created_at * 1000,
-          endedAt: t.updated_at ? t.updated_at * 1000 : null,
-          inputTokens: input,
-          outputTokens: output + fallback,
-          cacheReadTokens: cacheRead,
-          cacheWriteTokens: 0,
-          reasoningTokens: reasoning,
-          costUsd: cost,
-          costStatus: cost == null ? "unpriced" : "estimated",
-          apiCallCount: 0,
-          title: t.title,
-        };
-      })
-    );
-
-    return records;
+    return parseCodexFromDir(resolveDir());
   },
 };
+
+// Pure parser used both by the local adapter and by /api/upload (which
+// extracts uploaded tar.gz to a temp dir and points us at it).
+//
+// `dir` should contain `state_5.sqlite` and a `sessions/` subdirectory in
+// the same shape as `~/.codex/`. The `rollout_path` recorded in the DB is
+// usually an absolute host path; we re-anchor it onto `dir` by taking
+// everything after `/sessions/`.
+export async function parseCodexFromDir(dir: string): Promise<UsageRecord[]> {
+  const threads = readThreads(dir);
+  if (threads.length === 0) return [];
+  const sessionsDir = path.join(dir, "sessions");
+
+  const records = await Promise.all(
+    threads.map(async (t): Promise<UsageRecord> => {
+      const localPath = reanchorRolloutPath(t.rollout_path, sessionsDir);
+      const breakdown = await lastTokenCount(localPath);
+      const input = breakdown?.input ?? 0;
+      const output = breakdown?.output ?? 0;
+      const cacheRead = breakdown?.cacheRead ?? 0;
+      const reasoning = breakdown?.reasoning ?? 0;
+      const fallback = breakdown ? 0 : t.tokens_used;
+
+      const cost = estimateCost(t.model, {
+        input,
+        output: output + fallback,
+        cacheRead,
+        cacheWrite: 0,
+        reasoning,
+      });
+
+      return {
+        id: `codex:${t.id}`,
+        provider: "codex",
+        source: t.source,
+        model: t.model,
+        startedAt: t.created_at * 1000,
+        endedAt: t.updated_at ? t.updated_at * 1000 : null,
+        inputTokens: input,
+        outputTokens: output + fallback,
+        cacheReadTokens: cacheRead,
+        cacheWriteTokens: 0,
+        reasoningTokens: reasoning,
+        costUsd: cost,
+        costStatus: cost == null ? "unpriced" : "estimated",
+        apiCallCount: 0,
+        title: t.title,
+      };
+    })
+  );
+
+  return records;
+}
+
+function reanchorRolloutPath(rolloutPath: string, sessionsDir: string): string {
+  // Local case: original path exists, just return it.
+  if (fs.existsSync(rolloutPath)) return rolloutPath;
+  // Uploaded case: peel off the `…/sessions/` prefix and rejoin onto the
+  // extracted dir.
+  const idx = rolloutPath.indexOf("/sessions/");
+  if (idx === -1) return rolloutPath;
+  const tail = rolloutPath.slice(idx + "/sessions/".length);
+  return path.join(sessionsDir, tail);
+}
