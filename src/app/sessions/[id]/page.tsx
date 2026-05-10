@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { loadRecords } from "@/lib/adapters";
 import { formatInt, formatTokens, formatUsd } from "@/lib/format";
 import { getDictionary, readLocale } from "@/i18n";
+import { interp } from "@/i18n/interp";
 import {
   Card,
   CardContent,
@@ -94,7 +95,7 @@ export default async function SessionDetail({
           value={formatDuration(r.startedAt, r.endedAt)}
           hint={
             r.endedAt
-              ? t.session.endedAt(formatTs(r.endedAt, locale))
+              ? interp(t.session.endedAt, { when: formatTs(r.endedAt, locale) })
               : t.session.stillOpen
           }
         />

@@ -1,12 +1,16 @@
 import Link from "next/link";
+import { cookies } from "next/headers";
 import { loadRecords } from "@/lib/adapters";
-import { aggregate, filterByPeriod } from "@/lib/aggregate";
+import { aggregate, filterByPeriod, pickGranularity } from "@/lib/aggregate";
 import { type CustomRange, type Period, type UsageRecord } from "@/lib/types";
 import { formatInt, formatTokens, formatUsd } from "@/lib/format";
+import { isTheme, THEME_COOKIE, type Theme } from "@/lib/theme";
 import { PeriodTabs } from "@/components/period-tabs";
 import { UsageTrend } from "@/components/usage-trend";
 import { LocaleSwitcher } from "@/components/locale-switcher";
+import { ThemeSwitcher } from "@/components/theme-switcher";
 import { getDictionary, readLocale } from "@/i18n";
+import { interp } from "@/i18n/interp";
 import {
   Card,
   CardContent,
@@ -25,7 +29,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import type { Dictionary } from "@/i18n/types";
 
-const VALID_PERIODS: Period[] = ["today", "24h", "7d", "30d", "all", "custom"];
+const VALID_PERIODS: Period[] = ["today", "24h", "7d", "30d", "month", "year", "all", "custom"];
 
 function parsePeriod(raw: string | string[] | undefined): Period {
   if (typeof raw === "string" && (VALID_PERIODS as string[]).includes(raw)) {
@@ -55,10 +59,14 @@ export default async function Page({
 
   const locale = await readLocale();
   const t = await getDictionary(locale);
+  const cookieStore = await cookies();
+  const themeRaw = cookieStore.get(THEME_COOKIE)?.value;
+  const theme: Theme = isTheme(themeRaw) ? themeRaw : "system";
 
   const { records, sources, fellBackToSample } = await loadRecords();
   const scoped = filterByPeriod(records, period, customRange);
-  const agg = aggregate(scoped);
+  const granularity = pickGranularity(scoped, period);
+  const agg = aggregate(scoped, granularity);
   const recent = [...scoped].sort((a, b) => b.startedAt - a.startedAt).slice(0, 10);
 
   return (
@@ -69,7 +77,10 @@ export default async function Page({
           <p className="mt-1 text-sm text-muted-foreground">{t.header.tagline}</p>
         </div>
         <div className="flex flex-col items-end gap-3">
-          <LocaleSwitcher active={locale} label={t.language.label} />
+          <div className="flex items-center gap-4">
+            <ThemeSwitcher active={theme} labels={t.theme} />
+            <LocaleSwitcher active={locale} label={t.language.label} />
+          </div>
           <PeriodTabs active={period} custom={customRange} t={t.period} />
         </div>
       </header>
@@ -93,7 +104,7 @@ export default async function Page({
         <SummaryCard
           label={t.cards.totalTokens}
           value={formatTokens(agg.totals.totalTokens)}
-          hint={t.cards.sessions(formatInt(agg.totals.records))}
+          hint={interp(t.cards.sessions, { n: formatInt(agg.totals.records) })}
         />
         <SummaryCard
           label={t.cards.inputOutput}
@@ -105,16 +116,20 @@ export default async function Page({
         <SummaryCard
           label={t.cards.cacheRead}
           value={formatTokens(agg.totals.cacheReadTokens)}
-          hint={t.cards.written(formatTokens(agg.totals.cacheWriteTokens))}
+          hint={interp(t.cards.written, { f: formatTokens(agg.totals.cacheWriteTokens) })}
         />
       </section>
 
       <section className="mt-8 grid gap-4 lg:grid-cols-3">
         <Card className="lg:col-span-2">
           <CardHeader>
-            <CardTitle>{t.trend.title}</CardTitle>
+            <CardTitle>
+              {granularity === "month" ? t.trend.titleMonth : t.trend.titleDay}
+            </CardTitle>
             <CardDescription>
-              {t.trend.description(t.period[period].toLowerCase())}
+              {interp(t.trend.description, {
+                period: t.period[period].toLowerCase(),
+              })}
             </CardDescription>
           </CardHeader>
           <CardContent>

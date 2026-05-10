@@ -30,6 +30,8 @@ export const LOCALE_NAMES: Record<Locale, string> = {
   ru: "Русский",
 };
 
+// Strings with {placeholders} get filled in via interp() at call site.
+// JSON-friendly so contributors can edit translations without touching TS.
 export type Dictionary = {
   meta: {
     title: string;
@@ -41,11 +43,19 @@ export type Dictionary = {
   language: {
     label: string;
   };
+  theme: {
+    label: string;
+    light: string;
+    dark: string;
+    system: string;
+  };
   period: {
     today: string;
     "24h": string;
     "7d": string;
     "30d": string;
+    month: string;
+    year: string;
     all: string;
     custom: string;
     from: string;
@@ -65,12 +75,13 @@ export type Dictionary = {
     estimated: string;
     partialCost: string;
     nonCache: string;
-    sessions: (n: string) => string;
-    written: (formatted: string) => string;
+    sessions: string; // "{n} sessions"
+    written: string; // "{f} written"
   };
   trend: {
-    title: string;
-    description: (period: string) => string;
+    titleDay: string;
+    titleMonth: string;
+    description: string; // "... — {period}"
     empty: string;
     yTokens: string;
     yCost: string;
@@ -112,7 +123,7 @@ export type Dictionary = {
     started: string;
     duration: string;
     stillOpen: string;
-    endedAt: (when: string) => string;
+    endedAt: string; // "ended {when}"
     breakdownTitle: string;
     breakdownDescription: string;
     fields: {

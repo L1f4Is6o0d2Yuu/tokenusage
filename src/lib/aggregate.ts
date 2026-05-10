@@ -2,13 +2,13 @@ import type {
   Aggregation,
   CustomRange,
   DailyPoint,
+  Granularity,
   ModelBreakdownRow,
   Period,
   UsageRecord,
 } from "@/lib/types";
 
 function parseLocalDate(s: string, endOfDay = false): number | null {
-  // YYYY-MM-DD interpreted as local-time start (or end) of day.
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
   if (!m) return null;
   const d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
@@ -26,6 +26,14 @@ export function periodWindow(
   if (period === "today") {
     const start = new Date(now);
     start.setHours(0, 0, 0, 0);
+    return { start: start.getTime(), end: nowMs };
+  }
+  if (period === "month") {
+    const start = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+    return { start: start.getTime(), end: nowMs };
+  }
+  if (period === "year") {
+    const start = new Date(now.getFullYear(), 0, 1, 0, 0, 0, 0);
     return { start: start.getTime(), end: nowMs };
   }
   if (period === "custom") {
@@ -50,16 +58,39 @@ export function filterByPeriod(
   });
 }
 
-function dayKey(ts: number): string {
-  // Local-day bucketing — matches what users see on their machine.
+// Decide bucket size for the trend chart. Day buckets are great up to ~3
+// months; beyond that the x-axis becomes unreadable, so flip to month buckets.
+export function pickGranularity(
+  records: UsageRecord[],
+  period: Period
+): Granularity {
+  if (period === "year") return "month";
+  if (period === "all") {
+    if (records.length === 0) return "day";
+    let min = records[0].startedAt;
+    let max = records[0].startedAt;
+    for (const r of records) {
+      if (r.startedAt < min) min = r.startedAt;
+      if (r.startedAt > max) max = r.startedAt;
+    }
+    return max - min > 90 * 24 * 60 * 60 * 1000 ? "month" : "day";
+  }
+  return "day";
+}
+
+function bucketKey(ts: number, g: Granularity): string {
   const d = new Date(ts);
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, "0");
+  if (g === "month") return `${y}-${m}-01`;
   const day = String(d.getDate()).padStart(2, "0");
   return `${y}-${m}-${day}`;
 }
 
-export function aggregate(records: UsageRecord[]): Aggregation {
+export function aggregate(
+  records: UsageRecord[],
+  granularity: Granularity = "day"
+): Aggregation {
   const totals = {
     records: records.length,
     inputTokens: 0,
@@ -73,7 +104,7 @@ export function aggregate(records: UsageRecord[]): Aggregation {
   };
 
   const modelMap = new Map<string, ModelBreakdownRow>();
-  const dayMap = new Map<string, DailyPoint>();
+  const bucketMap = new Map<string, DailyPoint>();
 
   for (const r of records) {
     const totalTokens =
@@ -121,18 +152,18 @@ export function aggregate(records: UsageRecord[]): Aggregation {
     if (r.costUsd != null) row.costUsd += r.costUsd;
     else if (totalTokens > 0) row.costKnown = false;
 
-    const k = dayKey(r.startedAt);
-    let p = dayMap.get(k);
+    const k = bucketKey(r.startedAt, granularity);
+    let p = bucketMap.get(k);
     if (!p) {
       p = { date: k, totalTokens: 0, costUsd: 0 };
-      dayMap.set(k, p);
+      bucketMap.set(k, p);
     }
     p.totalTokens += totalTokens;
     if (r.costUsd != null) p.costUsd += r.costUsd;
   }
 
   const byModel = [...modelMap.values()].sort((a, b) => b.totalTokens - a.totalTokens);
-  const byDay = [...dayMap.values()].sort((a, b) => a.date.localeCompare(b.date));
+  const byDay = [...bucketMap.values()].sort((a, b) => a.date.localeCompare(b.date));
 
   return { totals, byModel, byDay };
 }

@@ -3,7 +3,7 @@ import { loadRecords } from "@/lib/adapters";
 import { aggregate, filterByPeriod } from "@/lib/aggregate";
 import type { CustomRange, Period } from "@/lib/types";
 
-const VALID: Period[] = ["today", "24h", "7d", "30d", "all", "custom"];
+const VALID: Period[] = ["today", "24h", "7d", "30d", "month", "year", "all", "custom"];
 
 function parsePeriod(raw: string | null): Period {
   if (raw && (VALID as string[]).includes(raw)) return raw as Period;
