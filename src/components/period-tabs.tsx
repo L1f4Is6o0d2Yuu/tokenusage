@@ -3,7 +3,7 @@ import type { CustomRange, Period } from "@/lib/types";
 import type { Dictionary } from "@/i18n/types";
 import { cn } from "@/lib/utils";
 
-const ORDER: Period[] = ["today", "24h", "7d", "30d", "all", "custom"];
+const ORDER: Period[] = ["today", "24h", "7d", "30d", "month", "year", "all", "custom"];
 
 export function PeriodTabs({
   active,

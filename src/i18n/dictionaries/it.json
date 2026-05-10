@@ -1,0 +1,133 @@
+{
+  "meta": {
+    "title": "tokenusage",
+    "description": "Dashboard locale di utilizzo dei token per strumenti di IA per programmare"
+  },
+  "header": {
+    "tagline": "Spesa in token tra i tuoi strumenti IA — sola lettura, locale prima di tutto."
+  },
+  "language": { "label": "Lingua" },
+  "theme": {
+    "label": "Tema",
+    "light": "Chiaro",
+    "dark": "Scuro",
+    "system": "Sistema"
+  },
+  "period": {
+    "today": "Oggi",
+    "24h": "Ultime 24 h",
+    "7d": "Ultimi 7 giorni",
+    "30d": "Ultimi 30 giorni",
+    "month": "Questo mese",
+    "year": "Quest'anno",
+    "all": "Tutto",
+    "custom": "Personalizzato",
+    "from": "dal",
+    "to": "al",
+    "apply": "Applica"
+  },
+  "banner": {
+    "readingFrom": "Origine",
+    "noData": "Nessuna fonte dati trovata.",
+    "sampleBadge": "dati di esempio"
+  },
+  "cards": {
+    "totalSpend": "Spesa totale",
+    "totalTokens": "Token totali",
+    "inputOutput": "Input / Output",
+    "cacheRead": "Lettura cache",
+    "estimated": "stimato",
+    "partialCost": "dati di costo parziali",
+    "nonCache": "senza cache",
+    "sessions": "{n} sessioni",
+    "written": "{f} scritti"
+  },
+  "trend": {
+    "titleDay": "Andamento giornaliero",
+    "titleMonth": "Andamento mensile",
+    "description": "Token (sx) / costo USD (dx) — {period}",
+    "empty": "Nessun dato nel periodo selezionato.",
+    "yTokens": "Token",
+    "yCost": "Costo"
+  },
+  "topModels": {
+    "title": "Modelli principali",
+    "description": "Per token totali",
+    "empty": "Nessun utilizzo in questo periodo."
+  },
+  "breakdown": {
+    "title": "Dettaglio per modello",
+    "description": "Ordinato per token totali. I costi sono stime dal gateway, non fatture.",
+    "columns": {
+      "provider": "Provider",
+      "model": "Modello",
+      "sessions": "Sessioni",
+      "input": "Input",
+      "output": "Output",
+      "cacheRW": "Cache L/S",
+      "reasoning": "Reasoning",
+      "total": "Totale",
+      "cost": "Costo"
+    },
+    "empty": "Nessun utilizzo in questo periodo.",
+    "editPrices": "Modifica prezzi",
+    "exportCsv": "Esporta CSV"
+  },
+  "recent": {
+    "title": "Sessioni recenti",
+    "description": "Ultime 10 in questo periodo — clicca per dettagli.",
+    "empty": "Nessuna sessione in questo periodo.",
+    "untitled": "(sessione senza titolo)"
+  },
+  "session": {
+    "back": "← Torna alla dashboard",
+    "untitled": "(sessione senza titolo)",
+    "totalTokens": "Token totali",
+    "cost": "Costo",
+    "started": "Inizio",
+    "duration": "Durata",
+    "stillOpen": "ancora aperta",
+    "endedAt": "terminata {when}",
+    "breakdownTitle": "Dettaglio dei token",
+    "breakdownDescription": "Catturato dall'adattatore origine alla chiusura della sessione.",
+    "fields": {
+      "input": "Input",
+      "output": "Output",
+      "reasoning": "Reasoning",
+      "cacheRead": "Lettura cache",
+      "cacheWrite": "Scrittura cache",
+      "apiCalls": "Chiamate API"
+    },
+    "costStatus": {
+      "estimated": "stimato",
+      "unpriced": "non prezzato",
+      "unknown": "sconosciuto"
+    }
+  },
+  "prices": {
+    "back": "← Torna alla dashboard",
+    "title": "Tabella prezzi",
+    "description": "Modifica i prezzi per modello. Valori in USD per 1M token. Match è una regex case-insensitive.",
+    "badges": {
+      "override": "override attivo",
+      "defaults": "predefiniti",
+      "missing": "nessun file prezzi"
+    },
+    "saved": "Salvato. Le stime saranno aggiornate al prossimo caricamento.",
+    "resetDone": "Override rimosso. Torno ai valori predefiniti.",
+    "rulesTitle": "Regole",
+    "rulesDescription": "Le regole sono valutate in ordine — vince la prima coincidenza. Lascia match vuoto per rimuovere; l'ultima riga vuota serve per aggiungere.",
+    "columns": {
+      "match": "Match (regex)",
+      "input": "Input",
+      "output": "Output",
+      "cacheRead": "Cache L",
+      "cacheWrite": "Cache S",
+      "reasoning": "Reasoning"
+    },
+    "save": "Salva override",
+    "resetTitle": "Reimposta",
+    "resetDescription": "Elimina data/prices.json e torna a data/prices.default.json.",
+    "resetButton": "Reimposta ai predefiniti"
+  }
+}

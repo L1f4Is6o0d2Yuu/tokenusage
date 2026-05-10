@@ -5,17 +5,17 @@ import { DEFAULT_LOCALE, LOCALES, type Dictionary, type Locale } from "./types";
 export const LOCALE_COOKIE = "tokenusage-locale";
 
 const dictionaryLoaders: Record<Locale, () => Promise<{ default: Dictionary }>> = {
-  en: () => import("./dictionaries/en"),
-  "zh-CN": () => import("./dictionaries/zh-CN"),
-  "zh-TW": () => import("./dictionaries/zh-TW"),
-  ja: () => import("./dictionaries/ja"),
-  ko: () => import("./dictionaries/ko"),
-  fr: () => import("./dictionaries/fr"),
-  de: () => import("./dictionaries/de"),
-  es: () => import("./dictionaries/es"),
-  pt: () => import("./dictionaries/pt"),
-  it: () => import("./dictionaries/it"),
-  ru: () => import("./dictionaries/ru"),
+  en: () => import("./dictionaries/en.json"),
+  "zh-CN": () => import("./dictionaries/zh-CN.json"),
+  "zh-TW": () => import("./dictionaries/zh-TW.json"),
+  ja: () => import("./dictionaries/ja.json"),
+  ko: () => import("./dictionaries/ko.json"),
+  fr: () => import("./dictionaries/fr.json"),
+  de: () => import("./dictionaries/de.json"),
+  es: () => import("./dictionaries/es.json"),
+  pt: () => import("./dictionaries/pt.json"),
+  it: () => import("./dictionaries/it.json"),
+  ru: () => import("./dictionaries/ru.json"),
 };
 
 function isLocale(v: string | undefined): v is Locale {
@@ -24,13 +24,14 @@ function isLocale(v: string | undefined): v is Locale {
 
 function pickFromAcceptLanguage(header: string | null): Locale | null {
   if (!header) return null;
-  // Accept-Language: zh-CN,zh;q=0.9,en;q=0.8
   for (const part of header.split(",")) {
     const tag = part.split(";")[0].trim();
     if (isLocale(tag)) return tag;
-    // Allow generic mapping zh → zh-CN
     if (tag === "zh") return "zh-CN";
-    if (tag.startsWith("zh-")) return tag.toLowerCase().includes("tw") || tag.toLowerCase().includes("hk") ? "zh-TW" : "zh-CN";
+    if (tag.startsWith("zh-"))
+      return tag.toLowerCase().includes("tw") || tag.toLowerCase().includes("hk")
+        ? "zh-TW"
+        : "zh-CN";
     const base = tag.split("-")[0];
     if (isLocale(base)) return base as Locale;
   }

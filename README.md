@@ -4,7 +4,7 @@ A local-first dashboard that shows how many tokens — and how many dollars — 
 
 ![tokenusage dashboard](docs/screenshot.png)
 
-> Status: **v0.6**. Three adapters (Hermes / Codex CLI / Claude Code), per-session detail pages, CSV export, custom date range, an inline price-table editor at `/prices`, and 11-language UI (English, 简体中文, 繁體中文, 日本語, 한국어, Français, Deutsch, Español, Português, Italiano, Русский). Screenshot above is from the bundled synthetic sample data.
+> Status: **v0.7**. Three adapters (Hermes / Codex CLI / Claude Code), per-session detail pages, CSV export, custom date range plus this-month / this-year shortcuts, an inline price-table editor at `/prices`, light/dark/system theme toggle, and 11-language UI sourced from JSON (English, 简体中文, 繁體中文, 日本語, 한국어, Français, Deutsch, Español, Português, Italiano, Русский). Screenshot above is from the bundled synthetic sample data.
 
 ## Features
 
@@ -74,8 +74,11 @@ Cost figures come from whatever your gateway recorded at the time of the request
 - [x] Custom date range picker (period=custom + from/to URL params)
 - [x] Inline price-table editor in the UI (`/prices`)
 - [x] 11-language UI with cookie-persisted locale switcher
+- [x] Translations stored as plain JSON in `src/i18n/dictionaries/*.json` (no TS knowledge required to contribute)
+- [x] Light / dark / system theme toggle (cookie-driven, no flash)
+- [x] This-month / this-year period shortcuts; trend chart auto-buckets by month when the window exceeds 90 days
+- [ ] Multi-user / shared-deployment mode — planned: central server + per-machine agents (B-route)
 - [ ] Add/remove individual rule rows without rewriting the whole table
-- [ ] Multi-user / shared-deployment mode (everything is single-tenant local right now)
 
 ## License
 
