@@ -1,0 +1,152 @@
+import Link from "next/link";
+import { requireUser } from "@/lib/auth-guard";
+import { listTokens } from "@/lib/auth";
+import { createTokenAction, revokeTokenAction } from "./actions";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+
+function formatDate(ms: number | null): string {
+  if (ms == null) return "—";
+  return new Date(ms).toLocaleString();
+}
+
+export default async function TokensPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ new?: string }>;
+}) {
+  const user = await requireUser();
+  if (!user) {
+    return (
+      <main className="mx-auto w-full max-w-3xl px-6 py-10">
+        <p className="text-sm text-muted-foreground">
+          API tokens are only available in multi-user (server) mode.
+        </p>
+      </main>
+    );
+  }
+  const { new: newToken } = await searchParams;
+  const tokens = listTokens(user.id);
+
+  return (
+    <main className="mx-auto w-full max-w-3xl px-6 py-10">
+      <Link
+        href="/"
+        className="mb-6 inline-flex text-sm text-muted-foreground hover:text-foreground"
+      >
+        ← Back to dashboard
+      </Link>
+      <header className="mb-6">
+        <h1 className="text-2xl font-semibold tracking-tight">API tokens</h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Each token authenticates one agent (e.g. one machine reporting Hermes /
+          Codex / Claude Code usage to this server). Tokens are scoped to{" "}
+          <span className="font-mono">{user.username}</span>.
+        </p>
+      </header>
+
+      {newToken && (
+        <Card className="mb-6 border-emerald-500/40 bg-emerald-500/5">
+          <CardHeader>
+            <CardTitle className="text-base">Token created</CardTitle>
+            <CardDescription>
+              Copy it now — this is the only time it will be displayed.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <code className="block w-full break-all rounded border bg-background px-3 py-2 font-mono text-sm">
+              {newToken}
+            </code>
+          </CardContent>
+        </Card>
+      )}
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Create a token</CardTitle>
+          <CardDescription>Give it a name so you remember which machine.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form action={createTokenAction} className="flex items-end gap-3">
+            <div className="flex-1">
+              <label htmlFor="name" className="text-xs text-muted-foreground">
+                Name
+              </label>
+              <input
+                id="name"
+                name="name"
+                placeholder="laptop"
+                className="mt-1 w-full rounded border bg-background px-3 py-2 font-mono text-sm"
+              />
+            </div>
+            <button
+              type="submit"
+              className="rounded-md bg-foreground px-4 py-2 text-sm font-medium text-background hover:opacity-90"
+            >
+              Create token
+            </button>
+          </form>
+        </CardContent>
+      </Card>
+
+      <Card className="mt-6">
+        <CardHeader>
+          <CardTitle>Existing tokens</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {tokens.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No tokens yet.</p>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Created</TableHead>
+                  <TableHead>Last used</TableHead>
+                  <TableHead className="text-right" />
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {tokens.map((tk) => (
+                  <TableRow key={tk.id}>
+                    <TableCell className="font-medium">{tk.name}</TableCell>
+                    <TableCell className="text-xs text-muted-foreground tabular-nums">
+                      {formatDate(tk.createdAt)}
+                    </TableCell>
+                    <TableCell className="text-xs text-muted-foreground tabular-nums">
+                      {formatDate(tk.lastUsedAt)}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <form action={revokeTokenAction}>
+                        <input type="hidden" name="id" value={tk.id} />
+                        <button
+                          type="submit"
+                          className="rounded-md border border-amber-600 bg-background px-3 py-1 text-xs font-medium text-amber-700 hover:bg-amber-50 dark:text-amber-300"
+                        >
+                          Revoke
+                        </button>
+                      </form>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+    </main>
+  );
+}

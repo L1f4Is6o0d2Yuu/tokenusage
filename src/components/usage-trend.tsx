@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import {
   CartesianGrid,
   Line,
@@ -12,14 +13,38 @@ import {
 import type { DailyPoint } from "@/lib/types";
 import { formatTokens, formatUsd } from "@/lib/format";
 
-export function UsageTrend({ data }: { data: DailyPoint[] }) {
+// Recharts measures its parent's width on mount via ResizeObserver. When the
+// chart is rendered during SSR the initial paint can show stale or partial
+// geometry, and any animation that fires before the resize observation
+// completes will draw against the wrong width — that's why headless
+// screenshots used to capture a half-empty curve.
+//
+// Gating render on a post-hydration `useEffect` flag means the chart only
+// ever mounts on the client, after layout. Animation is then safe to keep on.
+export function UsageTrend({
+  data,
+  labels,
+}: {
+  data: DailyPoint[];
+  labels: { tokens: string; cost: string; empty: string };
+}) {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   if (data.length === 0) {
     return (
       <div className="flex h-64 items-center justify-center text-sm text-muted-foreground">
-        No data in the selected period.
+        {labels.empty}
       </div>
     );
   }
+
+  if (!mounted) {
+    return <div className="h-64 w-full" aria-hidden />;
+  }
+
   return (
     <div className="h-64 w-full">
       <ResponsiveContainer width="100%" height="100%">
@@ -53,8 +78,8 @@ export function UsageTrend({ data }: { data: DailyPoint[] }) {
             }}
             formatter={(value, name) => {
               const n = typeof value === "number" ? value : Number(value);
-              if (name === "totalTokens") return [formatTokens(n), "Tokens"];
-              if (name === "costUsd") return [formatUsd(n, { precise: true }), "Cost"];
+              if (name === "totalTokens") return [formatTokens(n), labels.tokens];
+              if (name === "costUsd") return [formatUsd(n, { precise: true }), labels.cost];
               return [String(value), String(name)];
             }}
           />
@@ -65,7 +90,7 @@ export function UsageTrend({ data }: { data: DailyPoint[] }) {
             stroke="var(--chart-1)"
             strokeWidth={2}
             dot={false}
-            isAnimationActive={false}
+            animationDuration={600}
             name="totalTokens"
           />
           <Line
@@ -75,7 +100,7 @@ export function UsageTrend({ data }: { data: DailyPoint[] }) {
             stroke="var(--chart-2)"
             strokeWidth={2}
             dot={false}
-            isAnimationActive={false}
+            animationDuration={600}
             name="costUsd"
           />
         </LineChart>

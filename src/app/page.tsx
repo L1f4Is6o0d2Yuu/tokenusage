@@ -1,9 +1,18 @@
+import Link from "next/link";
+import { cookies } from "next/headers";
 import { loadRecords } from "@/lib/adapters";
-import { aggregate, filterByPeriod } from "@/lib/aggregate";
-import { PERIOD_LABELS, type Period } from "@/lib/types";
+import { aggregate, filterByPeriod, pickGranularity } from "@/lib/aggregate";
+import { type CustomRange, type Period, type UsageRecord } from "@/lib/types";
 import { formatInt, formatTokens, formatUsd } from "@/lib/format";
+import { isTheme, THEME_COOKIE, type Theme } from "@/lib/theme";
+import { requireUser } from "@/lib/auth-guard";
+import { logoutAction } from "@/app/auth-actions";
 import { PeriodTabs } from "@/components/period-tabs";
 import { UsageTrend } from "@/components/usage-trend";
+import { LocaleSwitcher } from "@/components/locale-switcher";
+import { ThemeSwitcher } from "@/components/theme-switcher";
+import { getDictionary, readLocale } from "@/i18n";
+import { interp } from "@/i18n/interp";
 import {
   Card,
   CardContent,
@@ -20,8 +29,9 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import type { Dictionary } from "@/i18n/types";
 
-const VALID_PERIODS: Period[] = ["today", "24h", "7d", "30d", "all"];
+const VALID_PERIODS: Period[] = ["today", "24h", "7d", "30d", "month", "year", "all", "custom"];
 
 function parsePeriod(raw: string | string[] | undefined): Period {
   if (typeof raw === "string" && (VALID_PERIODS as string[]).includes(raw)) {
@@ -30,78 +40,134 @@ function parsePeriod(raw: string | string[] | undefined): Period {
   return "7d";
 }
 
+function parseCustomRange(
+  from: string | string[] | undefined,
+  to: string | string[] | undefined
+): CustomRange | undefined {
+  const f = typeof from === "string" && /^\d{4}-\d{2}-\d{2}$/.test(from) ? from : null;
+  const t = typeof to === "string" && /^\d{4}-\d{2}-\d{2}$/.test(to) ? to : null;
+  if (!f && !t) return undefined;
+  return { from: f ?? "", to: t ?? "" };
+}
+
 export default async function Page({
   searchParams,
 }: {
-  searchParams: Promise<{ period?: string }>;
+  searchParams: Promise<{ period?: string; from?: string; to?: string }>;
 }) {
-  const { period: rawPeriod } = await searchParams;
+  const { period: rawPeriod, from, to } = await searchParams;
   const period = parsePeriod(rawPeriod);
+  const customRange = period === "custom" ? parseCustomRange(from, to) : undefined;
+
+  const currentUser = await requireUser();
+  const locale = await readLocale();
+  const t = await getDictionary(locale);
+  const cookieStore = await cookies();
+  const themeRaw = cookieStore.get(THEME_COOKIE)?.value;
+  const theme: Theme = isTheme(themeRaw) ? themeRaw : "system";
 
   const { records, sources, fellBackToSample } = await loadRecords();
-  const scoped = filterByPeriod(records, period);
-  const agg = aggregate(scoped);
+  const scoped = filterByPeriod(records, period, customRange);
+  const granularity = pickGranularity(scoped, period);
+  const agg = aggregate(scoped, granularity);
+  const recent = [...scoped].sort((a, b) => b.startedAt - a.startedAt).slice(0, 10);
 
   return (
     <main className="mx-auto w-full max-w-6xl px-6 py-10">
       <header className="mb-8 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">tokenusage</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Token spend across your AI tooling — read-only, local-first.
-          </p>
+          <h1 className="text-2xl font-semibold tracking-tight">{t.meta.title}</h1>
+          <p className="mt-1 text-sm text-muted-foreground">{t.header.tagline}</p>
         </div>
-        <PeriodTabs active={period} />
+        <div className="flex flex-col items-end gap-3">
+          <div className="flex items-center gap-4">
+            {currentUser && (
+              <div className="flex items-center gap-2 text-xs">
+                <Link
+                  href="/tokens"
+                  className="font-mono text-foreground hover:underline"
+                >
+                  {currentUser.username}
+                </Link>
+                <form action={logoutAction}>
+                  <button
+                    type="submit"
+                    className="text-muted-foreground hover:text-foreground"
+                  >
+                    sign out
+                  </button>
+                </form>
+              </div>
+            )}
+            <ThemeSwitcher active={theme} labels={t.theme} />
+            <LocaleSwitcher active={locale} label={t.language.label} />
+          </div>
+          <PeriodTabs active={period} custom={customRange} t={t.period} />
+        </div>
       </header>
 
-      <SourceBanner sources={sources} fellBack={fellBackToSample} />
+      <SourceBanner
+        sources={sources}
+        fellBack={fellBackToSample}
+        t={t.banner}
+      />
 
       <section className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <SummaryCard
-          label="Total spend"
+          label={t.cards.totalSpend}
           value={
             agg.totals.costKnown
               ? formatUsd(agg.totals.costUsd, { precise: true })
               : `~${formatUsd(agg.totals.costUsd, { precise: true })}`
           }
-          hint={agg.totals.costKnown ? "estimated" : "partial cost data"}
+          hint={agg.totals.costKnown ? t.cards.estimated : t.cards.partialCost}
         />
         <SummaryCard
-          label="Total tokens"
+          label={t.cards.totalTokens}
           value={formatTokens(agg.totals.totalTokens)}
-          hint={`${formatInt(agg.totals.records)} sessions`}
+          hint={interp(t.cards.sessions, { n: formatInt(agg.totals.records) })}
         />
         <SummaryCard
-          label="Input / Output"
+          label={t.cards.inputOutput}
           value={`${formatTokens(agg.totals.inputTokens)} / ${formatTokens(
             agg.totals.outputTokens
           )}`}
-          hint="non-cache"
+          hint={t.cards.nonCache}
         />
         <SummaryCard
-          label="Cache read"
+          label={t.cards.cacheRead}
           value={formatTokens(agg.totals.cacheReadTokens)}
-          hint={`${formatTokens(agg.totals.cacheWriteTokens)} written`}
+          hint={interp(t.cards.written, { f: formatTokens(agg.totals.cacheWriteTokens) })}
         />
       </section>
 
       <section className="mt-8 grid gap-4 lg:grid-cols-3">
         <Card className="lg:col-span-2">
           <CardHeader>
-            <CardTitle>Daily trend</CardTitle>
+            <CardTitle>
+              {granularity === "month" ? t.trend.titleMonth : t.trend.titleDay}
+            </CardTitle>
             <CardDescription>
-              Tokens (left) and USD cost (right) per local day —{" "}
-              {PERIOD_LABELS[period].toLowerCase()}
+              {interp(t.trend.description, {
+                period: t.period[period].toLowerCase(),
+              })}
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <UsageTrend data={agg.byDay} />
+            <UsageTrend
+              data={agg.byDay}
+              labels={{
+                tokens: t.trend.yTokens,
+                cost: t.trend.yCost,
+                empty: t.trend.empty,
+              }}
+            />
           </CardContent>
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle>Top models</CardTitle>
-            <CardDescription>By total tokens</CardDescription>
+            <CardTitle>{t.topModels.title}</CardTitle>
+            <CardDescription>{t.topModels.description}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             {agg.byModel.slice(0, 5).map((m) => {
@@ -122,7 +188,7 @@ export default async function Page({
                     />
                   </div>
                   <div className="flex justify-between text-xs text-muted-foreground">
-                    <span>{formatTokens(m.totalTokens)} tokens</span>
+                    <span>{formatTokens(m.totalTokens)}</span>
                     <span>
                       {m.costKnown
                         ? formatUsd(m.costUsd, { precise: true })
@@ -133,7 +199,7 @@ export default async function Page({
               );
             })}
             {agg.byModel.length === 0 && (
-              <p className="text-sm text-muted-foreground">No usage in this period.</p>
+              <p className="text-sm text-muted-foreground">{t.topModels.empty}</p>
             )}
           </CardContent>
         </Card>
@@ -141,26 +207,44 @@ export default async function Page({
 
       <section className="mt-8">
         <Card>
-          <CardHeader>
-            <CardTitle>Breakdown by model</CardTitle>
-            <CardDescription>
-              Sorted by total tokens. Costs are estimates based on what your gateway
-              recorded, not bills.
-            </CardDescription>
+          <CardHeader className="flex flex-row items-start justify-between gap-4">
+            <div className="space-y-1">
+              <CardTitle>{t.breakdown.title}</CardTitle>
+              <CardDescription>{t.breakdown.description}</CardDescription>
+            </div>
+            <div className="flex shrink-0 items-center gap-2">
+              <Link
+                href="/prices"
+                className="rounded-md border bg-background px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted"
+              >
+                {t.breakdown.editPrices}
+              </Link>
+              <a
+                href={
+                  period === "custom" && customRange
+                    ? `/api/export?period=custom&from=${customRange.from}&to=${customRange.to}`
+                    : `/api/export?period=${period}`
+                }
+                className="rounded-md border bg-background px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted"
+                download
+              >
+                {t.breakdown.exportCsv}
+              </a>
+            </div>
           </CardHeader>
           <CardContent>
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Provider</TableHead>
-                  <TableHead>Model</TableHead>
-                  <TableHead className="text-right">Sessions</TableHead>
-                  <TableHead className="text-right">Input</TableHead>
-                  <TableHead className="text-right">Output</TableHead>
-                  <TableHead className="text-right">Cache R/W</TableHead>
-                  <TableHead className="text-right">Reasoning</TableHead>
-                  <TableHead className="text-right">Total</TableHead>
-                  <TableHead className="text-right">Cost</TableHead>
+                  <TableHead>{t.breakdown.columns.provider}</TableHead>
+                  <TableHead>{t.breakdown.columns.model}</TableHead>
+                  <TableHead className="text-right">{t.breakdown.columns.sessions}</TableHead>
+                  <TableHead className="text-right">{t.breakdown.columns.input}</TableHead>
+                  <TableHead className="text-right">{t.breakdown.columns.output}</TableHead>
+                  <TableHead className="text-right">{t.breakdown.columns.cacheRW}</TableHead>
+                  <TableHead className="text-right">{t.breakdown.columns.reasoning}</TableHead>
+                  <TableHead className="text-right">{t.breakdown.columns.total}</TableHead>
+                  <TableHead className="text-right">{t.breakdown.columns.cost}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -202,7 +286,7 @@ export default async function Page({
                       colSpan={9}
                       className="text-center text-sm text-muted-foreground"
                     >
-                      No usage in this period.
+                      {t.breakdown.empty}
                     </TableCell>
                   </TableRow>
                 )}
@@ -211,7 +295,79 @@ export default async function Page({
           </CardContent>
         </Card>
       </section>
+
+      <section className="mt-8">
+        <Card>
+          <CardHeader>
+            <CardTitle>{t.recent.title}</CardTitle>
+            <CardDescription>{t.recent.description}</CardDescription>
+          </CardHeader>
+          <CardContent className="p-0">
+            <RecentSessions records={recent} t={t.recent} locale={locale} />
+          </CardContent>
+        </Card>
+      </section>
     </main>
+  );
+}
+
+function RecentSessions({
+  records,
+  t,
+  locale,
+}: {
+  records: UsageRecord[];
+  t: Dictionary["recent"];
+  locale: string;
+}) {
+  if (records.length === 0) {
+    return <p className="px-6 py-4 text-sm text-muted-foreground">{t.empty}</p>;
+  }
+  return (
+    <ul className="divide-y">
+      {records.map((r) => {
+        const total =
+          r.inputTokens +
+          r.outputTokens +
+          r.cacheReadTokens +
+          r.cacheWriteTokens +
+          r.reasoningTokens;
+        const href = `/sessions/${encodeURIComponent(r.id)}`;
+        const when = new Date(r.startedAt).toLocaleString(locale, {
+          month: "short",
+          day: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+        });
+        return (
+          <li key={r.id}>
+            <Link
+              href={href}
+              className="flex items-center gap-4 px-6 py-3 transition-colors hover:bg-muted/40"
+            >
+              <Badge variant="outline" className="shrink-0">
+                {r.provider}
+              </Badge>
+              <span className="min-w-0 flex-1 truncate text-sm">
+                {r.title ?? t.untitled}
+              </span>
+              <span className="hidden shrink-0 font-mono text-xs text-muted-foreground sm:inline">
+                {r.model ?? "?"}
+              </span>
+              <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
+                {when}
+              </span>
+              <span className="w-20 shrink-0 text-right text-sm tabular-nums">
+                {formatTokens(total)}
+              </span>
+              <span className="w-20 shrink-0 text-right text-sm tabular-nums">
+                {r.costUsd == null ? "—" : formatUsd(r.costUsd, { precise: true })}
+              </span>
+            </Link>
+          </li>
+        );
+      })}
+    </ul>
   );
 }
 
@@ -242,9 +398,11 @@ type BannerSource = { adapter: { label: string }; recordCount: number; sourcePat
 function SourceBanner({
   sources,
   fellBack,
+  t,
 }: {
   sources: BannerSource[];
   fellBack: boolean;
+  t: Dictionary["banner"];
 }) {
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border bg-muted/40 px-4 py-2 text-xs text-muted-foreground">
@@ -257,10 +415,10 @@ function SourceBanner({
           }
         />
         {sources.length === 0 ? (
-          <span>No data sources found.</span>
+          <span>{t.noData}</span>
         ) : (
           <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
-            <span>Reading from</span>
+            <span>{t.readingFrom}</span>
             {sources.map((s, i) => (
               <span key={s.adapter.label} className="flex items-center gap-1">
                 <span className="font-mono text-foreground">{s.adapter.label}</span>
@@ -276,7 +434,7 @@ function SourceBanner({
       <div className="flex items-center gap-3">
         {fellBack && (
           <Badge variant="outline" className="text-amber-700 dark:text-amber-300">
-            sample data
+            {t.sampleBadge}
           </Badge>
         )}
       </div>
