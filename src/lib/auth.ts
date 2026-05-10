@@ -11,6 +11,8 @@ const SCRYPT_PARAMS = { N: 16384, r: 8, p: 1 } as const;
 export type User = {
   id: number;
   username: string;
+  email: string | null;
+  isAdmin: boolean;
 };
 
 // ---- password hashing (scrypt, built into node:crypto, no native deps) ----
@@ -73,20 +75,26 @@ export async function readCurrentUser(): Promise<User | null> {
   try {
     const row = db
       .prepare(
-        `SELECT u.id AS id, u.username AS username, s.expires_at AS expires_at
+        `SELECT u.id AS id, u.username AS username, u.email AS email,
+                u.is_admin AS is_admin, s.expires_at AS expires_at
          FROM auth_sessions s
          JOIN users u ON u.id = s.user_id
          WHERE s.token_hash = ?`
       )
       .get(hashToken(token)) as
-      | { id: number; username: string; expires_at: number }
+      | { id: number; username: string; email: string | null; is_admin: number; expires_at: number }
       | undefined;
     if (!row) return null;
     if (row.expires_at < Date.now()) {
       db.prepare(`DELETE FROM auth_sessions WHERE token_hash = ?`).run(hashToken(token));
       return null;
     }
-    return { id: row.id, username: row.username };
+    return {
+      id: row.id,
+      username: row.username,
+      email: row.email,
+      isAdmin: row.is_admin === 1,
+    };
   } finally {
     db.close();
   }
@@ -94,31 +102,211 @@ export async function readCurrentUser(): Promise<User | null> {
 
 // ---- user creation / login ----
 
-export function createUser(username: string, password: string): User {
+export type CreateUserInput = {
+  username: string;
+  email?: string | null;
+  password: string;
+  isAdmin?: boolean;
+};
+
+export function createUser(input: CreateUserInput): User {
   const db = openServerDb();
   try {
     const info = db
       .prepare(
-        `INSERT INTO users (username, password_hash, created_at) VALUES (?, ?, ?)`
+        `INSERT INTO users (username, email, password_hash, is_admin, created_at)
+         VALUES (?, ?, ?, ?, ?)`
       )
-      .run(username, hashPassword(password), Date.now());
-    return { id: Number(info.lastInsertRowid), username };
+      .run(
+        input.username,
+        input.email ?? null,
+        hashPassword(input.password),
+        input.isAdmin ? 1 : 0,
+        Date.now()
+      );
+    return {
+      id: Number(info.lastInsertRowid),
+      username: input.username,
+      email: input.email ?? null,
+      isAdmin: !!input.isAdmin,
+    };
   } finally {
     db.close();
   }
 }
 
-export function authenticate(username: string, password: string): User | null {
+// Login by either username or email — whichever the user typed in. Passwords
+// are still always required.
+export function authenticate(identifier: string, password: string): User | null {
   const db = openServerDb();
   try {
     const row = db
-      .prepare(`SELECT id, username, password_hash FROM users WHERE username = ?`)
-      .get(username) as
-      | { id: number; username: string; password_hash: string }
+      .prepare(
+        `SELECT id, username, email, is_admin, password_hash
+         FROM users WHERE username = ? OR email = ? LIMIT 1`
+      )
+      .get(identifier, identifier) as
+      | {
+          id: number;
+          username: string;
+          email: string | null;
+          is_admin: number;
+          password_hash: string;
+        }
       | undefined;
     if (!row) return null;
     if (!verifyPassword(password, row.password_hash)) return null;
-    return { id: row.id, username: row.username };
+    return {
+      id: row.id,
+      username: row.username,
+      email: row.email,
+      isAdmin: row.is_admin === 1,
+    };
+  } finally {
+    db.close();
+  }
+}
+
+// ---- invite tokens (admin → invitee one-time signup link) ----
+
+const INVITE_TTL_MS = 14 * 24 * 60 * 60 * 1000;
+
+export type InviteRow = {
+  id: number;
+  createdAt: number;
+  expiresAt: number;
+  usedAt: number | null;
+  note: string | null;
+};
+
+export function createInvite(adminUserId: number, note: string | null): {
+  id: number;
+  plaintext: string;
+} {
+  const plaintext = "tui_" + crypto.randomBytes(24).toString("hex");
+  const db = openServerDb();
+  try {
+    const now = Date.now();
+    const info = db
+      .prepare(
+        `INSERT INTO invite_tokens (token_hash, created_by, created_at, expires_at, note)
+         VALUES (?, ?, ?, ?, ?)`
+      )
+      .run(hashToken(plaintext), adminUserId, now, now + INVITE_TTL_MS, note);
+    return { id: Number(info.lastInsertRowid), plaintext };
+  } finally {
+    db.close();
+  }
+}
+
+export function listInvites(): InviteRow[] {
+  const db = openServerDb();
+  try {
+    return db
+      .prepare(
+        `SELECT id, created_at AS createdAt, expires_at AS expiresAt,
+                used_at AS usedAt, note
+         FROM invite_tokens ORDER BY created_at DESC`
+      )
+      .all() as InviteRow[];
+  } finally {
+    db.close();
+  }
+}
+
+export function revokeInvite(id: number): void {
+  const db = openServerDb();
+  try {
+    db.prepare(`DELETE FROM invite_tokens WHERE id = ? AND used_at IS NULL`).run(id);
+  } finally {
+    db.close();
+  }
+}
+
+// Validate a plaintext invite without consuming it. Used by the redemption
+// page to decide whether to render the form or an error.
+export function lookupInvite(plaintext: string):
+  | { ok: true; id: number; expiresAt: number }
+  | { ok: false; reason: "not-found" | "expired" | "used" } {
+  const db = openServerDb();
+  try {
+    const row = db
+      .prepare(
+        `SELECT id, expires_at AS expiresAt, used_at AS usedAt
+         FROM invite_tokens WHERE token_hash = ?`
+      )
+      .get(hashToken(plaintext)) as
+      | { id: number; expiresAt: number; usedAt: number | null }
+      | undefined;
+    if (!row) return { ok: false, reason: "not-found" };
+    if (row.usedAt != null) return { ok: false, reason: "used" };
+    if (row.expiresAt < Date.now()) return { ok: false, reason: "expired" };
+    return { ok: true, id: row.id, expiresAt: row.expiresAt };
+  } finally {
+    db.close();
+  }
+}
+
+// Atomic redemption: validate + create user + mark invite used in one txn.
+// Throws on conflict (duplicate username/email or invalid token).
+export function redeemInvite(
+  plaintext: string,
+  username: string,
+  email: string,
+  password: string
+): User {
+  const db = openServerDb();
+  try {
+    const txn = db.transaction(() => {
+      const inv = db
+        .prepare(
+          `SELECT id, expires_at AS expiresAt, used_at AS usedAt
+           FROM invite_tokens WHERE token_hash = ?`
+        )
+        .get(hashToken(plaintext)) as
+        | { id: number; expiresAt: number; usedAt: number | null }
+        | undefined;
+      if (!inv) throw new Error("invite not found");
+      if (inv.usedAt != null) throw new Error("invite already used");
+      if (inv.expiresAt < Date.now()) throw new Error("invite expired");
+
+      const info = db
+        .prepare(
+          `INSERT INTO users (username, email, password_hash, is_admin, created_at)
+           VALUES (?, ?, ?, 0, ?)`
+        )
+        .run(username, email, hashPassword(password), Date.now());
+      const userId = Number(info.lastInsertRowid);
+      db.prepare(
+        `UPDATE invite_tokens SET used_at = ?, used_by_user_id = ? WHERE id = ?`
+      ).run(Date.now(), userId, inv.id);
+      return { id: userId, username, email, isAdmin: false };
+    });
+    return txn();
+  } finally {
+    db.close();
+  }
+}
+
+export function listUsers(): Array<{
+  id: number;
+  username: string;
+  email: string | null;
+  isAdmin: boolean;
+  createdAt: number;
+}> {
+  const db = openServerDb();
+  try {
+    return db
+      .prepare(
+        `SELECT id, username, email, is_admin AS isAdmin, created_at AS createdAt
+         FROM users ORDER BY created_at ASC`
+      )
+      .all()
+      .map((r) => {
+        const row = r as { id: number; username: string; email: string | null; isAdmin: number; createdAt: number };
+        return { ...row, isAdmin: row.isAdmin === 1 };
+      });
   } finally {
     db.close();
   }
@@ -181,20 +369,26 @@ export function authenticateApiToken(plaintext: string): User | null {
   try {
     const row = db
       .prepare(
-        `SELECT u.id AS id, u.username AS username, t.id AS token_id
+        `SELECT u.id AS id, u.username AS username, u.email AS email,
+                u.is_admin AS is_admin, t.id AS token_id
          FROM api_tokens t
          JOIN users u ON u.id = t.user_id
          WHERE t.token_hash = ?`
       )
       .get(hashToken(plaintext)) as
-      | { id: number; username: string; token_id: number }
+      | { id: number; username: string; email: string | null; is_admin: number; token_id: number }
       | undefined;
     if (!row) return null;
     db.prepare(`UPDATE api_tokens SET last_used_at = ? WHERE id = ?`).run(
       Date.now(),
       row.token_id
     );
-    return { id: row.id, username: row.username };
+    return {
+      id: row.id,
+      username: row.username,
+      email: row.email,
+      isAdmin: row.is_admin === 1,
+    };
   } finally {
     db.close();
   }

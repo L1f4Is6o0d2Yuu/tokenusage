@@ -30,6 +30,11 @@ export function isMultiUserMode(): boolean {
 
 let migrated = false;
 
+function hasColumn(db: Database.Database, table: string, column: string): boolean {
+  const rows = db.prepare(`PRAGMA table_info(${table})`).all() as Array<{ name: string }>;
+  return rows.some((r) => r.name === column);
+}
+
 function migrate(db: Database.Database): void {
   db.exec(`
     CREATE TABLE IF NOT EXISTS users (
@@ -79,7 +84,36 @@ function migrate(db: Database.Database): void {
       UNIQUE(user_id, provider, external_id)
     );
     CREATE INDEX IF NOT EXISTS idx_sessions_user_started ON sessions_data(user_id, started_at DESC);
+
+    CREATE TABLE IF NOT EXISTS invite_tokens (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      token_hash TEXT NOT NULL UNIQUE,
+      created_by INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      created_at INTEGER NOT NULL,
+      expires_at INTEGER NOT NULL,
+      used_at INTEGER,
+      used_by_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+      note TEXT
+    );
+    CREATE INDEX IF NOT EXISTS idx_invite_tokens_creator ON invite_tokens(created_by);
   `);
+
+  // v0.9 migration: add email column to existing users tables.
+  if (!hasColumn(db, "users", "email")) {
+    db.exec(`ALTER TABLE users ADD COLUMN email TEXT`);
+    db.exec(
+      `CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email_unique
+         ON users(email) WHERE email IS NOT NULL`
+    );
+  }
+  // v0.9: tag the first admin so we can show admin-only UI later.
+  if (!hasColumn(db, "users", "is_admin")) {
+    db.exec(`ALTER TABLE users ADD COLUMN is_admin INTEGER NOT NULL DEFAULT 0`);
+    // Existing first user becomes admin retroactively.
+    db.exec(
+      `UPDATE users SET is_admin = 1 WHERE id = (SELECT MIN(id) FROM users)`
+    );
+  }
 }
 
 export function openServerDb(): Database.Database {
