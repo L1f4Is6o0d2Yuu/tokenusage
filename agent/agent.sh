@@ -89,11 +89,18 @@ while true; do
     INTERVAL_SECONDS=$NEW_INTERVAL
   fi
 
+  PAUSED=$(printf '%s' "$RESP" | sed -nE 's/.*"paused":(true|false).*/\1/p')
   SYNC=$(printf '%s' "$RESP" | sed -nE 's/.*"sync":(true|false).*/\1/p')
   NOW=$(date +%s)
   ELAPSED=$((NOW - LAST_UPLOAD))
 
-  if [ "$SYNC" = "true" ]; then
+  if [ "$PAUSED" = "true" ]; then
+    # Tracking is paused from the dashboard. Stay alive (so we still
+    # update last_used_at via the next /api/sync-wait poll, which is how
+    # the dashboard sees the agent as "online but paused"), but don't
+    # upload. Loop back immediately and let the long-poll do the waiting.
+    echo "[$(ts)] tracking paused — skipping upload"
+  elif [ "$SYNC" = "true" ]; then
     upload
   elif [ "$ELAPSED" -ge "$INTERVAL_SECONDS" ]; then
     upload

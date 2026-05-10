@@ -28,19 +28,27 @@ export async function GET(req: NextRequest): Promise<Response> {
   // If the user already clicked "Sync now" since the last successful upload,
   // return immediately so the agent picks up the request. We use the upload
   // timestamp as the "consumed" marker — uploading clears the implicit flag.
+  // (We also short-circuit when paused, so the dashboard's pause toggle is
+  // reflected in the agent's behaviour without waiting for the long-poll
+  // to time out.)
   if (
-    state.syncRequestedAt != null &&
-    (state.lastUploadedAt == null || state.syncRequestedAt > state.lastUploadedAt)
+    state.paused ||
+    (state.syncRequestedAt != null &&
+      (state.lastUploadedAt == null || state.syncRequestedAt > state.lastUploadedAt))
   ) {
     return Response.json({
-      sync: true,
+      sync: !state.paused && state.syncRequestedAt != null,
+      paused: state.paused,
       intervalSeconds: state.syncIntervalSeconds,
     });
   }
 
   const triggered = await waitSync(user.id, holdMs);
+  // Re-read state after the hold — the user may have paused while we waited.
+  const after = getUserSyncState(user.id);
   return Response.json({
-    sync: triggered,
-    intervalSeconds: state.syncIntervalSeconds,
+    sync: triggered && !after.paused,
+    paused: after.paused,
+    intervalSeconds: after.syncIntervalSeconds,
   });
 }

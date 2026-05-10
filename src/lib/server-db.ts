@@ -127,6 +127,13 @@ function migrate(db: Database.Database): void {
   if (!hasColumn(db, "users", "last_uploaded_at")) {
     db.exec(`ALTER TABLE users ADD COLUMN last_uploaded_at INTEGER`);
   }
+
+  // v0.12: pause/resume tracking from the dashboard.
+  if (!hasColumn(db, "users", "agent_paused")) {
+    db.exec(
+      `ALTER TABLE users ADD COLUMN agent_paused INTEGER NOT NULL DEFAULT 0`
+    );
+  }
 }
 
 export function openServerDb(): Database.Database {
