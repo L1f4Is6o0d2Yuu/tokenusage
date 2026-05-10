@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { loadRecords } from "@/lib/adapters";
+import { requireUser } from "@/lib/auth-guard";
 import { formatInt, formatTokens, formatUsd } from "@/lib/format";
 import { getDictionary, readLocale } from "@/i18n";
 import { interp } from "@/i18n/interp";
@@ -44,6 +45,7 @@ export default async function SessionDetail({
   const { id: rawId } = await params;
   const id = decodeURIComponent(rawId);
 
+  await requireUser();
   const locale = await readLocale();
   const t = await getDictionary(locale);
 

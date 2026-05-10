@@ -2,6 +2,7 @@ import Link from "next/link";
 import { readActivePrices } from "@/lib/pricing";
 import { savePricesAction, resetPricesAction } from "./actions";
 import { getDictionary } from "@/i18n";
+import { requireUser } from "@/lib/auth-guard";
 import {
   Card,
   CardContent,
@@ -33,6 +34,7 @@ export default async function PricesPage({
   searchParams: Promise<{ saved?: string; reset?: string }>;
 }) {
   const { saved, reset } = await searchParams;
+  await requireUser();
   const t = (await getDictionary()).prices;
   const { rules, source, sourcePath } = readActivePrices();
 

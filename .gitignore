@@ -46,3 +46,7 @@ next-env.d.ts
 
 # user price overrides — defaults ship as data/prices.default.json
 /data/prices.json
+
+# multi-user mode server DB — never commit, contains user credentials
+/data/server.db
+/data/server.db-*

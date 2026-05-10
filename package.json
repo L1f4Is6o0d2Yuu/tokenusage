@@ -1,13 +1,14 @@
 {
   "name": "tokenusage",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "sample": "node scripts/generate-sample.mjs"
+    "sample": "node scripts/generate-sample.mjs",
+    "agent": "node agent/index.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.4.1",
