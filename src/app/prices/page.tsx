@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { readActivePrices } from "@/lib/pricing";
 import { savePricesAction, resetPricesAction } from "./actions";
+import { getDictionary } from "@/i18n";
 import {
   Card,
   CardContent,
@@ -17,6 +18,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import type { Dictionary } from "@/i18n/types";
 
 const PER_M = 1_000_000;
 
@@ -31,9 +33,9 @@ export default async function PricesPage({
   searchParams: Promise<{ saved?: string; reset?: string }>;
 }) {
   const { saved, reset } = await searchParams;
+  const t = (await getDictionary()).prices;
   const { rules, source, sourcePath } = readActivePrices();
 
-  // Render existing rules + one blank row at the end for "add new".
   const rows = [...rules, { match: "", input: 0, output: 0 }];
 
   return (
@@ -42,43 +44,35 @@ export default async function PricesPage({
         href="/"
         className="mb-6 inline-flex text-sm text-muted-foreground hover:text-foreground"
       >
-        ← Back to dashboard
+        {t.back}
       </Link>
       <header className="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Price table</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Edit per-model token prices. All values are in <span className="font-mono">USD per 1M tokens</span>. Match is a case-insensitive regex against the model name.
-          </p>
+          <h1 className="text-2xl font-semibold tracking-tight">{t.title}</h1>
+          <p className="mt-1 text-sm text-muted-foreground">{t.description}</p>
         </div>
-        <SourceBadge source={source} path={sourcePath} />
+        <SourceBadge source={source} path={sourcePath} t={t.badges} />
       </header>
 
-      {saved && (
-        <Banner tone="success">Saved. Cost estimates refresh on next dashboard load.</Banner>
-      )}
-      {reset && (
-        <Banner tone="info">Override removed. Falling back to bundled defaults.</Banner>
-      )}
+      {saved && <Banner tone="success">{t.saved}</Banner>}
+      {reset && <Banner tone="info">{t.resetDone}</Banner>}
 
       <Card>
         <CardHeader>
-          <CardTitle>Rules</CardTitle>
-          <CardDescription>
-            Rules are matched in order — first match wins. Leave a row's <em>match</em> blank to drop it. The last (blank) row is for adding a new rule.
-          </CardDescription>
+          <CardTitle>{t.rulesTitle}</CardTitle>
+          <CardDescription>{t.rulesDescription}</CardDescription>
         </CardHeader>
         <CardContent>
           <form action={savePricesAction}>
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="min-w-40">Match (regex)</TableHead>
-                  <TableHead className="text-right">Input</TableHead>
-                  <TableHead className="text-right">Output</TableHead>
-                  <TableHead className="text-right">Cache R</TableHead>
-                  <TableHead className="text-right">Cache W</TableHead>
-                  <TableHead className="text-right">Reasoning</TableHead>
+                  <TableHead className="min-w-40">{t.columns.match}</TableHead>
+                  <TableHead className="text-right">{t.columns.input}</TableHead>
+                  <TableHead className="text-right">{t.columns.output}</TableHead>
+                  <TableHead className="text-right">{t.columns.cacheRead}</TableHead>
+                  <TableHead className="text-right">{t.columns.cacheWrite}</TableHead>
+                  <TableHead className="text-right">{t.columns.reasoning}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -88,7 +82,7 @@ export default async function PricesPage({
                       <input
                         name={`rule[${i}].match`}
                         defaultValue={r.match}
-                        placeholder="e.g. ^gpt-5"
+                        placeholder="^gpt-5"
                         className="w-full rounded border bg-background px-2 py-1 font-mono text-sm"
                       />
                     </TableCell>
@@ -106,7 +100,7 @@ export default async function PricesPage({
                 type="submit"
                 className="rounded-md bg-foreground px-4 py-2 text-sm font-medium text-background hover:opacity-90"
               >
-                Save override
+                {t.save}
               </button>
             </div>
           </form>
@@ -116,10 +110,8 @@ export default async function PricesPage({
       {source === "override" && (
         <Card className="mt-6">
           <CardHeader>
-            <CardTitle className="text-base">Reset</CardTitle>
-            <CardDescription>
-              Delete <span className="font-mono">data/prices.json</span> and fall back to <span className="font-mono">data/prices.default.json</span>.
-            </CardDescription>
+            <CardTitle className="text-base">{t.resetTitle}</CardTitle>
+            <CardDescription>{t.resetDescription}</CardDescription>
           </CardHeader>
           <CardContent>
             <form action={resetPricesAction}>
@@ -127,7 +119,7 @@ export default async function PricesPage({
                 type="submit"
                 className="rounded-md border border-amber-600 bg-background px-4 py-2 text-sm font-medium text-amber-700 hover:bg-amber-50 dark:text-amber-300"
               >
-                Reset to defaults
+                {t.resetButton}
               </button>
             </form>
           </CardContent>
@@ -156,27 +148,29 @@ function PriceCell({ name, value }: { name: string; value: number | undefined })
 function SourceBadge({
   source,
   path,
+  t,
 }: {
   source: "override" | "default" | "missing";
   path: string;
+  t: Dictionary["prices"]["badges"];
 }) {
   if (source === "override")
     return (
       <div className="flex items-center gap-2 text-xs text-muted-foreground">
-        <Badge>override active</Badge>
+        <Badge>{t.override}</Badge>
         <span className="font-mono">{path}</span>
       </div>
     );
   if (source === "default")
     return (
       <div className="flex items-center gap-2 text-xs text-muted-foreground">
-        <Badge variant="outline">defaults</Badge>
+        <Badge variant="outline">{t.defaults}</Badge>
         <span className="font-mono">{path}</span>
       </div>
     );
   return (
     <Badge variant="outline" className="text-amber-700 dark:text-amber-300">
-      no price file
+      {t.missing}
     </Badge>
   );
 }

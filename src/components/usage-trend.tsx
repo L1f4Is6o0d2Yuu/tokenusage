@@ -21,7 +21,13 @@ import { formatTokens, formatUsd } from "@/lib/format";
 //
 // Gating render on a post-hydration `useEffect` flag means the chart only
 // ever mounts on the client, after layout. Animation is then safe to keep on.
-export function UsageTrend({ data }: { data: DailyPoint[] }) {
+export function UsageTrend({
+  data,
+  labels,
+}: {
+  data: DailyPoint[];
+  labels: { tokens: string; cost: string; empty: string };
+}) {
   const [mounted, setMounted] = useState(false);
   useEffect(() => {
     setMounted(true);
@@ -30,7 +36,7 @@ export function UsageTrend({ data }: { data: DailyPoint[] }) {
   if (data.length === 0) {
     return (
       <div className="flex h-64 items-center justify-center text-sm text-muted-foreground">
-        No data in the selected period.
+        {labels.empty}
       </div>
     );
   }
@@ -72,8 +78,8 @@ export function UsageTrend({ data }: { data: DailyPoint[] }) {
             }}
             formatter={(value, name) => {
               const n = typeof value === "number" ? value : Number(value);
-              if (name === "totalTokens") return [formatTokens(n), "Tokens"];
-              if (name === "costUsd") return [formatUsd(n, { precise: true }), "Cost"];
+              if (name === "totalTokens") return [formatTokens(n), labels.tokens];
+              if (name === "costUsd") return [formatUsd(n, { precise: true }), labels.cost];
               return [String(value), String(name)];
             }}
           />

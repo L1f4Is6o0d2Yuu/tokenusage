@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { PERIOD_LABELS, type CustomRange, type Period } from "@/lib/types";
+import type { CustomRange, Period } from "@/lib/types";
+import type { Dictionary } from "@/i18n/types";
 import { cn } from "@/lib/utils";
 
 const ORDER: Period[] = ["today", "24h", "7d", "30d", "all", "custom"];
@@ -7,9 +8,11 @@ const ORDER: Period[] = ["today", "24h", "7d", "30d", "all", "custom"];
 export function PeriodTabs({
   active,
   custom,
+  t,
 }: {
   active: Period;
   custom?: CustomRange;
+  t: Dictionary["period"];
 }) {
   return (
     <div className="flex flex-col items-end gap-2">
@@ -32,7 +35,7 @@ export function PeriodTabs({
                   : "text-muted-foreground hover:text-foreground"
               )}
             >
-              {PERIOD_LABELS[p]}
+              {t[p]}
             </Link>
           );
         })}
@@ -45,7 +48,7 @@ export function PeriodTabs({
         >
           <input type="hidden" name="period" value="custom" />
           <label className="flex items-center gap-1">
-            from
+            {t.from}
             <input
               type="date"
               name="from"
@@ -54,7 +57,7 @@ export function PeriodTabs({
             />
           </label>
           <label className="flex items-center gap-1">
-            to
+            {t.to}
             <input
               type="date"
               name="to"
@@ -66,7 +69,7 @@ export function PeriodTabs({
             type="submit"
             className="rounded-md border bg-background px-3 py-1 text-xs font-medium text-foreground hover:bg-muted"
           >
-            Apply
+            {t.apply}
           </button>
         </form>
       )}

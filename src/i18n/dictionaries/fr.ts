@@ -1,0 +1,132 @@
+import type { Dictionary } from "../types";
+
+const fr: Dictionary = {
+  meta: {
+    title: "tokenusage",
+    description: "Tableau de bord local d'utilisation des tokens pour outils de codage IA",
+  },
+  header: {
+    tagline: "Dépenses en tokens sur tous vos outils IA — lecture seule, local d'abord.",
+  },
+  language: { label: "Langue" },
+  period: {
+    today: "Aujourd'hui",
+    "24h": "Dernières 24 h",
+    "7d": "7 derniers jours",
+    "30d": "30 derniers jours",
+    all: "Tout",
+    custom: "Personnalisé",
+    from: "du",
+    to: "au",
+    apply: "Appliquer",
+  },
+  banner: {
+    readingFrom: "Source",
+    noData: "Aucune source de données trouvée.",
+    sampleBadge: "données d'exemple",
+  },
+  cards: {
+    totalSpend: "Dépense totale",
+    totalTokens: "Tokens totaux",
+    inputOutput: "Entrée / Sortie",
+    cacheRead: "Lecture cache",
+    estimated: "estimé",
+    partialCost: "données de coût partielles",
+    nonCache: "hors cache",
+    sessions: (n) => `${n} sessions`,
+    written: (f) => `${f} écrits`,
+  },
+  trend: {
+    title: "Tendance quotidienne",
+    description: (p) => `Par jour local — ${p} (axe gauche tokens, droite USD)`,
+    empty: "Aucune donnée sur la période sélectionnée.",
+    yTokens: "Tokens",
+    yCost: "Coût",
+  },
+  topModels: {
+    title: "Modèles les plus utilisés",
+    description: "Par tokens totaux",
+    empty: "Aucune utilisation sur cette période.",
+  },
+  breakdown: {
+    title: "Détail par modèle",
+    description:
+      "Trié par tokens totaux. Les coûts sont des estimations issues de la passerelle, pas des factures.",
+    columns: {
+      provider: "Fournisseur",
+      model: "Modèle",
+      sessions: "Sessions",
+      input: "Entrée",
+      output: "Sortie",
+      cacheRW: "Cache L/É",
+      reasoning: "Raisonnement",
+      total: "Total",
+      cost: "Coût",
+    },
+    empty: "Aucune utilisation sur cette période.",
+    editPrices: "Modifier les prix",
+    exportCsv: "Exporter en CSV",
+  },
+  recent: {
+    title: "Sessions récentes",
+    description: "10 dernières de cette période — cliquez pour inspecter.",
+    empty: "Aucune session sur cette période.",
+    untitled: "(session sans titre)",
+  },
+  session: {
+    back: "← Retour au tableau de bord",
+    untitled: "(session sans titre)",
+    totalTokens: "Tokens totaux",
+    cost: "Coût",
+    started: "Début",
+    duration: "Durée",
+    stillOpen: "encore ouverte",
+    endedAt: (w) => `terminée ${w}`,
+    breakdownTitle: "Détail des tokens",
+    breakdownDescription: "Capturé par l'adaptateur source à la fermeture de la session.",
+    fields: {
+      input: "Entrée",
+      output: "Sortie",
+      reasoning: "Raisonnement",
+      cacheRead: "Lecture cache",
+      cacheWrite: "Écriture cache",
+      apiCalls: "Appels API",
+    },
+    costStatus: {
+      estimated: "estimé",
+      unpriced: "non tarifé",
+      unknown: "inconnu",
+    },
+  },
+  prices: {
+    back: "← Retour au tableau de bord",
+    title: "Table des prix",
+    description:
+      "Modifiez les prix par modèle. Toutes les valeurs sont en USD par 1M tokens. Match est une regex insensible à la casse.",
+    badges: {
+      override: "remplacement actif",
+      defaults: "valeurs par défaut",
+      missing: "aucun fichier de prix",
+    },
+    saved: "Enregistré. Les estimations seront actualisées au prochain chargement.",
+    resetDone: "Remplacement supprimé. Retour aux valeurs par défaut.",
+    rulesTitle: "Règles",
+    rulesDescription:
+      "Les règles sont évaluées en ordre — la première qui correspond gagne. Laissez le champ match vide pour supprimer ; la dernière ligne vide sert à ajouter.",
+    columns: {
+      match: "Match (regex)",
+      input: "Entrée",
+      output: "Sortie",
+      cacheRead: "Cache L",
+      cacheWrite: "Cache É",
+      reasoning: "Raisonnement",
+    },
+    save: "Enregistrer le remplacement",
+    resetTitle: "Réinitialiser",
+    resetDescription:
+      "Supprime data/prices.json et revient à data/prices.default.json.",
+    resetButton: "Réinitialiser aux valeurs par défaut",
+  },
+};
+
+export default fr;

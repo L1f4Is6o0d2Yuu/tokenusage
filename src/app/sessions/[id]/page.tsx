@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { loadRecords } from "@/lib/adapters";
 import { formatInt, formatTokens, formatUsd } from "@/lib/format";
+import { getDictionary, readLocale } from "@/i18n";
 import {
   Card,
   CardContent,
@@ -10,10 +11,11 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import type { Dictionary } from "@/i18n/types";
 
-function formatTs(ms: number | null): string {
+function formatTs(ms: number | null, locale: string): string {
   if (ms == null) return "—";
-  return new Date(ms).toLocaleString();
+  return new Date(ms).toLocaleString(locale);
 }
 
 function formatDuration(start: number, end: number | null): string {
@@ -27,6 +29,12 @@ function formatDuration(start: number, end: number | null): string {
   return `${(m / 60).toFixed(1)}h`;
 }
 
+function statusLabel(s: string | null, t: Dictionary["session"]["costStatus"]): string {
+  if (s === "estimated") return t.estimated;
+  if (s === "unpriced") return t.unpriced;
+  return t.unknown;
+}
+
 export default async function SessionDetail({
   params,
 }: {
@@ -34,6 +42,9 @@ export default async function SessionDetail({
 }) {
   const { id: rawId } = await params;
   const id = decodeURIComponent(rawId);
+
+  const locale = await readLocale();
+  const t = await getDictionary(locale);
 
   const { records } = await loadRecords();
   const r = records.find((x) => x.id === id);
@@ -52,7 +63,7 @@ export default async function SessionDetail({
         href="/"
         className="mb-6 inline-flex text-sm text-muted-foreground hover:text-foreground"
       >
-        ← Back to dashboard
+        {t.session.back}
       </Link>
       <header className="mb-6 space-y-2">
         <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
@@ -62,43 +73,47 @@ export default async function SessionDetail({
           <span>· {r.id}</span>
         </div>
         <h1 className="text-2xl font-semibold tracking-tight">
-          {r.title ?? "(untitled session)"}
+          {r.title ?? t.session.untitled}
         </h1>
       </header>
 
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Stat label="Total tokens" value={formatTokens(totalTokens)} hint={formatInt(totalTokens)} />
         <Stat
-          label="Cost"
-          value={
-            r.costUsd == null
-              ? "—"
-              : formatUsd(r.costUsd, { precise: true })
-          }
-          hint={r.costStatus ?? "unknown"}
+          label={t.session.totalTokens}
+          value={formatTokens(totalTokens)}
+          hint={formatInt(totalTokens)}
         />
-        <Stat label="Started" value={formatTs(r.startedAt)} />
         <Stat
-          label="Duration"
+          label={t.session.cost}
+          value={r.costUsd == null ? "—" : formatUsd(r.costUsd, { precise: true })}
+          hint={statusLabel(r.costStatus, t.session.costStatus)}
+        />
+        <Stat label={t.session.started} value={formatTs(r.startedAt, locale)} />
+        <Stat
+          label={t.session.duration}
           value={formatDuration(r.startedAt, r.endedAt)}
-          hint={r.endedAt ? `ended ${formatTs(r.endedAt)}` : "still open"}
+          hint={
+            r.endedAt
+              ? t.session.endedAt(formatTs(r.endedAt, locale))
+              : t.session.stillOpen
+          }
         />
       </section>
 
       <section className="mt-6">
         <Card>
           <CardHeader>
-            <CardTitle>Token breakdown</CardTitle>
-            <CardDescription>Captured by the source adapter at session close.</CardDescription>
+            <CardTitle>{t.session.breakdownTitle}</CardTitle>
+            <CardDescription>{t.session.breakdownDescription}</CardDescription>
           </CardHeader>
           <CardContent>
             <dl className="grid grid-cols-2 gap-x-8 gap-y-3 text-sm sm:grid-cols-3">
-              <KV label="Input" value={formatInt(r.inputTokens)} />
-              <KV label="Output" value={formatInt(r.outputTokens)} />
-              <KV label="Reasoning" value={formatInt(r.reasoningTokens)} />
-              <KV label="Cache read" value={formatInt(r.cacheReadTokens)} />
-              <KV label="Cache write" value={formatInt(r.cacheWriteTokens)} />
-              <KV label="API calls" value={formatInt(r.apiCallCount)} />
+              <KV label={t.session.fields.input} value={formatInt(r.inputTokens)} />
+              <KV label={t.session.fields.output} value={formatInt(r.outputTokens)} />
+              <KV label={t.session.fields.reasoning} value={formatInt(r.reasoningTokens)} />
+              <KV label={t.session.fields.cacheRead} value={formatInt(r.cacheReadTokens)} />
+              <KV label={t.session.fields.cacheWrite} value={formatInt(r.cacheWriteTokens)} />
+              <KV label={t.session.fields.apiCalls} value={formatInt(r.apiCallCount)} />
             </dl>
           </CardContent>
         </Card>
