@@ -114,6 +114,19 @@ function migrate(db: Database.Database): void {
       `UPDATE users SET is_admin = 1 WHERE id = (SELECT MIN(id) FROM users)`
     );
   }
+
+  // v0.11: per-user sync settings + observability columns.
+  if (!hasColumn(db, "users", "sync_interval_seconds")) {
+    db.exec(
+      `ALTER TABLE users ADD COLUMN sync_interval_seconds INTEGER NOT NULL DEFAULT 300`
+    );
+  }
+  if (!hasColumn(db, "users", "sync_requested_at")) {
+    db.exec(`ALTER TABLE users ADD COLUMN sync_requested_at INTEGER`);
+  }
+  if (!hasColumn(db, "users", "last_uploaded_at")) {
+    db.exec(`ALTER TABLE users ADD COLUMN last_uploaded_at INTEGER`);
+  }
 }
 
 export function openServerDb(): Database.Database {

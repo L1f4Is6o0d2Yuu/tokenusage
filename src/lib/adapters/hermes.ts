@@ -87,25 +87,30 @@ export const hermesAdapter: ProviderAdapter = {
   },
 
   async load(): Promise<UsageRecord[]> {
-    const dbPath = resolvePath();
-    if (!fs.existsSync(dbPath)) return [];
-    const db = open(dbPath);
-    try {
-      const rows = db
-        .prepare(
-          `SELECT
-             id, source, model, started_at, ended_at,
-             input_tokens, output_tokens,
-             cache_read_tokens, cache_write_tokens, reasoning_tokens,
-             estimated_cost_usd, actual_cost_usd, cost_status,
-             api_call_count, title
-           FROM sessions
-           ORDER BY started_at DESC`
-        )
-        .all() as SessionRow[];
-      return rows.map(rowToRecord);
-    } finally {
-      db.close();
-    }
+    return parseHermesFromPath(resolvePath());
   },
 };
+
+// Pure parser used both by the local adapter and by /api/upload (which
+// extracts uploaded tar.gz to a temp dir and points us at it).
+export function parseHermesFromPath(dbPath: string): UsageRecord[] {
+  if (!fs.existsSync(dbPath)) return [];
+  const db = open(dbPath);
+  try {
+    const rows = db
+      .prepare(
+        `SELECT
+           id, source, model, started_at, ended_at,
+           input_tokens, output_tokens,
+           cache_read_tokens, cache_write_tokens, reasoning_tokens,
+           estimated_cost_usd, actual_cost_usd, cost_status,
+           api_call_count, title
+         FROM sessions
+         ORDER BY started_at DESC`
+      )
+      .all() as SessionRow[];
+    return rows.map(rowToRecord);
+  } finally {
+    db.close();
+  }
+}

@@ -36,21 +36,23 @@ export function OnboardingCard({
             Open /tokens →
           </Link>{" "}
           <span className="text-muted-foreground">
-            Name it after the machine you&apos;ll run the agent on (e.g.{" "}
+            Name it after the machine you&apos;ll install the agent on (e.g.{" "}
             <span className="font-mono">laptop</span>).
           </span>
         </Step>
         <Step
           n={2}
-          title="On that machine, run this — Node 22+ required"
-          subtitle="Replace YOUR_TOKEN_HERE with the plaintext from step 1."
+          title="On that machine, paste this in a terminal"
+          subtitle="No Node / npm / Docker needed — just curl and tar (built into Mac and Linux). Replace YOUR_TOKEN_HERE with the token from step 1."
         >
           <AgentInstallSnippet publicUrl={publicUrl} />
         </Step>
-        <Step n={3} title="Reload this page">
+        <Step n={3} title="Done — never touch the terminal again">
           <span className="text-muted-foreground">
-            Your sessions appear within seconds. To keep them fresh, schedule the
-            agent via cron — see the README for an example.
+            The installer registers a background service (launchd on Mac /
+            systemd on Linux) that auto-starts on login and syncs in the
+            background. Click <strong>Sync now</strong> on the dashboard any
+            time you want fresh data.
           </span>
         </Step>
       </CardContent>

@@ -2,9 +2,10 @@ import Link from "next/link";
 import { requireUser } from "@/lib/auth-guard";
 import { listTokens } from "@/lib/auth";
 import { getPublicUrl } from "@/lib/public-url";
-import { createTokenAction, revokeTokenAction } from "./actions";
+import { createTokenAction, revokeTokenAction, setSyncIntervalAction } from "./actions";
 import { SubmitButton } from "@/components/submit-button";
 import { AgentInstallSnippet } from "@/components/agent-install-snippet";
+import { getUserSyncState } from "@/lib/sync-state";
 import {
   Card,
   CardContent,
@@ -26,10 +27,19 @@ function formatDate(ms: number | null): string {
   return new Date(ms).toLocaleString();
 }
 
+const INTERVAL_OPTIONS = [
+  { value: 60, label: "1 minute" },
+  { value: 300, label: "5 minutes (default)" },
+  { value: 600, label: "10 minutes" },
+  { value: 1800, label: "30 minutes" },
+  { value: 3600, label: "1 hour" },
+  { value: 86400, label: "Manual only (24h heartbeat)" },
+];
+
 export default async function TokensPage({
   searchParams,
 }: {
-  searchParams: Promise<{ new?: string }>;
+  searchParams: Promise<{ new?: string; settings?: string }>;
 }) {
   const user = await requireUser();
   if (!user) {
@@ -41,9 +51,10 @@ export default async function TokensPage({
       </main>
     );
   }
-  const { new: newToken } = await searchParams;
+  const { new: newToken, settings } = await searchParams;
   const tokens = listTokens(user.id);
   const publicUrl = await getPublicUrl();
+  const syncState = getUserSyncState(user.id);
 
   return (
     <main className="mx-auto w-full max-w-3xl px-6 py-10">
@@ -77,13 +88,54 @@ export default async function TokensPage({
             <div>
               <p className="mb-2 text-xs text-muted-foreground">
                 On the machine that has your Hermes / Codex / Claude Code data,
-                run this (Node 22+ required):
+                paste this in a terminal — installs the agent as a background
+                service (launchd on Mac / systemd on Linux), uploads your
+                history immediately, and keeps syncing.
               </p>
               <AgentInstallSnippet publicUrl={publicUrl} token={newToken} />
             </div>
           </CardContent>
         </Card>
       )}
+
+      {settings === "saved" && (
+        <div className="mb-6 rounded-md border border-emerald-500/30 bg-emerald-500/10 px-4 py-2 text-sm text-emerald-800 dark:text-emerald-200">
+          Sync interval saved.
+        </div>
+      )}
+
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle>Sync settings</CardTitle>
+          <CardDescription>
+            How often the agent uploads on its own. The dashboard's <em>Sync
+            now</em> button always responds within a couple of seconds
+            regardless — this only controls the background heartbeat cadence.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form action={setSyncIntervalAction} className="flex items-end gap-3">
+            <div className="flex-1">
+              <label htmlFor="interval" className="text-xs text-muted-foreground">
+                Heartbeat interval
+              </label>
+              <select
+                id="interval"
+                name="interval"
+                defaultValue={syncState.syncIntervalSeconds}
+                className="mt-1 w-full rounded border bg-background px-3 py-2 text-sm"
+              >
+                {INTERVAL_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <SubmitButton pendingText="Saving…">Save</SubmitButton>
+          </form>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
