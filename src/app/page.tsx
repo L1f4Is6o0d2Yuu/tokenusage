@@ -5,6 +5,8 @@ import { aggregate, filterByPeriod, pickGranularity } from "@/lib/aggregate";
 import { type CustomRange, type Period, type UsageRecord } from "@/lib/types";
 import { formatInt, formatTokens, formatUsd } from "@/lib/format";
 import { isTheme, THEME_COOKIE, type Theme } from "@/lib/theme";
+import { requireUser } from "@/lib/auth-guard";
+import { logoutAction } from "@/app/auth-actions";
 import { PeriodTabs } from "@/components/period-tabs";
 import { UsageTrend } from "@/components/usage-trend";
 import { LocaleSwitcher } from "@/components/locale-switcher";
@@ -57,6 +59,7 @@ export default async function Page({
   const period = parsePeriod(rawPeriod);
   const customRange = period === "custom" ? parseCustomRange(from, to) : undefined;
 
+  const currentUser = await requireUser();
   const locale = await readLocale();
   const t = await getDictionary(locale);
   const cookieStore = await cookies();
@@ -78,6 +81,24 @@ export default async function Page({
         </div>
         <div className="flex flex-col items-end gap-3">
           <div className="flex items-center gap-4">
+            {currentUser && (
+              <div className="flex items-center gap-2 text-xs">
+                <Link
+                  href="/tokens"
+                  className="font-mono text-foreground hover:underline"
+                >
+                  {currentUser.username}
+                </Link>
+                <form action={logoutAction}>
+                  <button
+                    type="submit"
+                    className="text-muted-foreground hover:text-foreground"
+                  >
+                    sign out
+                  </button>
+                </form>
+              </div>
+            )}
             <ThemeSwitcher active={theme} labels={t.theme} />
             <LocaleSwitcher active={locale} label={t.language.label} />
           </div>
