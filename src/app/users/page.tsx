@@ -2,6 +2,7 @@ import { headers } from "next/headers";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { readCurrentUser, listUsers, listInvites } from "@/lib/auth";
+import { isMultiUserMode } from "@/lib/server-db";
 import { createInviteAction, revokeInviteAction } from "./actions";
 import {
   Card,
@@ -41,6 +42,10 @@ export default async function UsersPage({
 }: {
   searchParams: Promise<{ new?: string }>;
 }) {
+  // /users only makes sense in multi-user mode. In single-user mode there's
+  // no concept of invites — short-circuit straight to the dashboard.
+  if (!isMultiUserMode()) redirect("/");
+
   const user = await readCurrentUser();
   if (!user) redirect("/login");
   if (!user.isAdmin) redirect("/");
