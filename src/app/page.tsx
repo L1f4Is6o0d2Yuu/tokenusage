@@ -7,7 +7,6 @@ import { formatInt, formatTokens, formatUsd } from "@/lib/format";
 import { isTheme, THEME_COOKIE, type Theme } from "@/lib/theme";
 import { requireUser } from "@/lib/auth-guard";
 import { logoutAction } from "@/app/auth-actions";
-import { getPublicUrl } from "@/lib/public-url";
 import { countServerRecords } from "@/lib/adapters";
 import { getUserSyncState, getLatestAgentSeenAt } from "@/lib/sync-state";
 import { PeriodTabs } from "@/components/period-tabs";
@@ -83,7 +82,6 @@ export default async function Page({
   // count so the user doesn't think "no data this week" is the empty state.
   const showOnboarding =
     mode === "multi" && currentUser != null && countServerRecords(currentUser.id) === 0;
-  const publicUrl = showOnboarding ? await getPublicUrl() : "";
 
   // Live sync status pill — only meaningful in multi-user mode.
   const syncState =
@@ -95,13 +93,13 @@ export default async function Page({
 
   return (
     <main className="mx-auto w-full max-w-6xl px-6 py-10">
-      <header className="mb-8 flex flex-wrap items-end justify-between gap-4">
+      <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">{t.meta.title}</h1>
           <p className="mt-1 text-sm text-muted-foreground">{t.header.tagline}</p>
         </div>
-        <div className="flex flex-col items-end gap-3">
-          <div className="flex items-center gap-4">
+        <div className="flex w-full flex-col gap-3 sm:w-auto sm:items-end">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
             {currentUser && (
               <div className="flex items-center gap-2 text-xs">
                 <Link
@@ -115,7 +113,7 @@ export default async function Page({
                     href="/users"
                     className="text-muted-foreground hover:text-foreground"
                   >
-                    Users
+                    {t.navHeader.users}
                   </Link>
                 )}
                 <form action={logoutAction}>
@@ -123,7 +121,7 @@ export default async function Page({
                     type="submit"
                     className="text-muted-foreground hover:text-foreground"
                   >
-                    Sign out
+                    {t.navHeader.signOut}
                   </button>
                 </form>
               </div>
@@ -147,11 +145,16 @@ export default async function Page({
           agentSeenAt={agentSeenAt}
           intervalSeconds={syncState.syncIntervalSeconds}
           paused={syncState.paused}
+          t={t.agent}
         />
       )}
 
       {showOnboarding && currentUser && (
-        <OnboardingCard username={currentUser.username} publicUrl={publicUrl} />
+        <OnboardingCard
+          username={currentUser.username}
+          t={t.onboarding}
+          installT={t.install}
+        />
       )}
 
       <section className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -249,12 +252,12 @@ export default async function Page({
 
       <section className="mt-8">
         <Card>
-          <CardHeader className="flex flex-row items-start justify-between gap-4">
+          <CardHeader className="flex flex-col items-start gap-4 sm:flex-row sm:justify-between">
             <div className="space-y-1">
               <CardTitle>{t.breakdown.title}</CardTitle>
               <CardDescription>{t.breakdown.description}</CardDescription>
             </div>
-            <div className="flex shrink-0 items-center gap-2">
+            <div className="flex shrink-0 flex-wrap items-center gap-2">
               <Link
                 href="/prices"
                 className="rounded-md border bg-background px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted"
@@ -274,7 +277,7 @@ export default async function Page({
               </a>
             </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>

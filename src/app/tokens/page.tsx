@@ -7,6 +7,8 @@ import { SubmitButton } from "@/components/submit-button";
 import { AgentInstallSnippet } from "@/components/agent-install-snippet";
 import { InstallAgentButton } from "@/components/install-agent-button";
 import { getUserSyncState } from "@/lib/sync-state";
+import { getDictionary, readLocale } from "@/i18n";
+import { interp } from "@/i18n/interp";
 import {
   Card,
   CardContent,
@@ -22,20 +24,23 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import type { Dictionary } from "@/i18n/types";
 
-function formatDate(ms: number | null): string {
+function formatDate(ms: number | null, locale: string): string {
   if (ms == null) return "—";
-  return new Date(ms).toLocaleString();
+  return new Date(ms).toLocaleString(locale);
 }
 
-const INTERVAL_OPTIONS = [
-  { value: 60, label: "1 minute" },
-  { value: 300, label: "5 minutes (default)" },
-  { value: 600, label: "10 minutes" },
-  { value: 1800, label: "30 minutes" },
-  { value: 3600, label: "1 hour" },
-  { value: 86400, label: "Manual only (24h heartbeat)" },
-];
+function intervalOptions(t: Dictionary["tokensPage"]["intervalOptions"]) {
+  return [
+    { value: 60, label: t.m1 },
+    { value: 300, label: t.m5 },
+    { value: 600, label: t.m10 },
+    { value: 1800, label: t.m30 },
+    { value: 3600, label: t.h1 },
+    { value: 86400, label: t.manual },
+  ];
+}
 
 export default async function TokensPage({
   searchParams,
@@ -43,12 +48,13 @@ export default async function TokensPage({
   searchParams: Promise<{ new?: string; settings?: string }>;
 }) {
   const user = await requireUser();
+  const locale = await readLocale();
+  const t = (await getDictionary(locale)).tokensPage;
+  const installT = (await getDictionary(locale)).install;
   if (!user) {
     return (
       <main className="mx-auto w-full max-w-3xl px-6 py-10">
-        <p className="text-sm text-muted-foreground">
-          API tokens are only available in multi-user (server) mode.
-        </p>
+        <p className="text-sm text-muted-foreground">{t.title}</p>
       </main>
     );
   }
@@ -56,6 +62,7 @@ export default async function TokensPage({
   const tokens = listTokens(user.id);
   const publicUrl = await getPublicUrl();
   const syncState = getUserSyncState(user.id);
+  const options = intervalOptions(t.intervalOptions);
 
   return (
     <main className="mx-auto w-full max-w-3xl px-6 py-10">
@@ -63,24 +70,20 @@ export default async function TokensPage({
         href="/"
         className="mb-6 inline-flex text-sm text-muted-foreground hover:text-foreground"
       >
-        ← Back to dashboard
+        {(await getDictionary(locale)).session.back}
       </Link>
       <header className="mb-6">
-        <h1 className="text-2xl font-semibold tracking-tight">API tokens</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">{t.title}</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Each token authenticates one agent (e.g. one machine reporting Hermes /
-          Codex / Claude Code usage to this server). Tokens are scoped to{" "}
-          <span className="font-mono">{user.username}</span>.
+          {interp(t.description, { user: user.username })}
         </p>
       </header>
 
       {newToken && (
         <Card className="mb-6 border-emerald-500/40 bg-emerald-500/5">
           <CardHeader>
-            <CardTitle className="text-base">Token created</CardTitle>
-            <CardDescription>
-              Copy it now — this is the only time it will be displayed.
-            </CardDescription>
+            <CardTitle className="text-base">{t.tokenCreatedTitle}</CardTitle>
+            <CardDescription>{t.tokenCreatedDescription}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <code className="block w-full break-all rounded border bg-background px-3 py-2 font-mono text-sm">
@@ -88,10 +91,7 @@ export default async function TokensPage({
             </code>
             <div>
               <p className="mb-2 text-xs text-muted-foreground">
-                On the machine that has your Hermes / Codex / Claude Code data,
-                paste this in a terminal — installs the agent as a background
-                service (launchd on Mac / systemd on Linux), uploads your
-                history immediately, and keeps syncing.
+                {t.tokenCreatedHint}
               </p>
               <AgentInstallSnippet publicUrl={publicUrl} token={newToken} />
             </div>
@@ -101,24 +101,23 @@ export default async function TokensPage({
 
       {settings === "saved" && (
         <div className="mb-6 rounded-md border border-emerald-500/30 bg-emerald-500/10 px-4 py-2 text-sm text-emerald-800 dark:text-emerald-200">
-          Sync interval saved.
+          {t.settingsSavedToast}
         </div>
       )}
 
       <Card className="mb-6">
         <CardHeader>
-          <CardTitle>Sync settings</CardTitle>
-          <CardDescription>
-            How often the agent uploads on its own. The dashboard's <em>Sync
-            now</em> button always responds within a couple of seconds
-            regardless — this only controls the background heartbeat cadence.
-          </CardDescription>
+          <CardTitle>{t.syncSettingsTitle}</CardTitle>
+          <CardDescription>{t.syncSettingsDescription}</CardDescription>
         </CardHeader>
         <CardContent>
-          <form action={setSyncIntervalAction} className="flex items-end gap-3">
+          <form
+            action={setSyncIntervalAction}
+            className="flex flex-col gap-3 sm:flex-row sm:items-end"
+          >
             <div className="flex-1">
               <label htmlFor="interval" className="text-xs text-muted-foreground">
-                Heartbeat interval
+                {t.heartbeatInterval}
               </label>
               <select
                 id="interval"
@@ -126,36 +125,36 @@ export default async function TokensPage({
                 defaultValue={syncState.syncIntervalSeconds}
                 className="mt-1 w-full rounded border bg-background px-3 py-2 text-sm"
               >
-                {INTERVAL_OPTIONS.map((opt) => (
+                {options.map((opt) => (
                   <option key={opt.value} value={opt.value}>
                     {opt.label}
                   </option>
                 ))}
               </select>
             </div>
-            <SubmitButton pendingText="Saving…">Save</SubmitButton>
+            <SubmitButton pendingText={t.saving}>{t.save}</SubmitButton>
           </form>
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle>Add a machine</CardTitle>
-          <CardDescription>
-            One token per machine you want to track. Click below to generate
-            the install command in one step.
-          </CardDescription>
+          <CardTitle>{t.addMachineTitle}</CardTitle>
+          <CardDescription>{t.addMachineDescription}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <InstallAgentButton />
+          <InstallAgentButton t={installT} />
           <details className="group">
             <summary className="cursor-pointer text-xs text-muted-foreground hover:text-foreground">
-              Advanced — name the token manually
+              {t.advancedToggle}
             </summary>
-            <form action={createTokenAction} className="mt-3 flex items-end gap-3">
+            <form
+              action={createTokenAction}
+              className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-end"
+            >
               <div className="flex-1">
                 <label htmlFor="name" className="text-xs text-muted-foreground">
-                  Name
+                  {t.name}
                 </label>
                 <input
                   id="name"
@@ -164,7 +163,7 @@ export default async function TokensPage({
                   className="mt-1 w-full rounded border bg-background px-3 py-2 font-mono text-sm"
                 />
               </div>
-              <SubmitButton pendingText="Creating…">Create token</SubmitButton>
+              <SubmitButton pendingText={t.creating}>{t.createToken}</SubmitButton>
             </form>
           </details>
         </CardContent>
@@ -172,43 +171,45 @@ export default async function TokensPage({
 
       <Card className="mt-6">
         <CardHeader>
-          <CardTitle>Existing tokens</CardTitle>
+          <CardTitle>{t.existingTokens}</CardTitle>
         </CardHeader>
         <CardContent>
           {tokens.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No tokens yet.</p>
+            <p className="text-sm text-muted-foreground">{t.noTokens}</p>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Created</TableHead>
-                  <TableHead>Last used</TableHead>
-                  <TableHead className="text-right" />
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {tokens.map((tk) => (
-                  <TableRow key={tk.id}>
-                    <TableCell className="font-medium">{tk.name}</TableCell>
-                    <TableCell className="text-xs text-muted-foreground tabular-nums">
-                      {formatDate(tk.createdAt)}
-                    </TableCell>
-                    <TableCell className="text-xs text-muted-foreground tabular-nums">
-                      {formatDate(tk.lastUsedAt)}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <form action={revokeTokenAction}>
-                        <input type="hidden" name="id" value={tk.id} />
-                        <SubmitButton variant="danger" pendingText="Revoking…">
-                          Revoke
-                        </SubmitButton>
-                      </form>
-                    </TableCell>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>{t.columnName}</TableHead>
+                    <TableHead>{t.columnCreated}</TableHead>
+                    <TableHead>{t.columnLastUsed}</TableHead>
+                    <TableHead className="text-right" />
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {tokens.map((tk) => (
+                    <TableRow key={tk.id}>
+                      <TableCell className="font-medium">{tk.name}</TableCell>
+                      <TableCell className="text-xs text-muted-foreground tabular-nums">
+                        {formatDate(tk.createdAt, locale)}
+                      </TableCell>
+                      <TableCell className="text-xs text-muted-foreground tabular-nums">
+                        {formatDate(tk.lastUsedAt, locale)}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <form action={revokeTokenAction}>
+                          <input type="hidden" name="id" value={tk.id} />
+                          <SubmitButton variant="danger" pendingText={t.revoking}>
+                            {t.revoke}
+                          </SubmitButton>
+                        </form>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           )}
         </CardContent>
       </Card>

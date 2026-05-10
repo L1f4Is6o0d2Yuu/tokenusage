@@ -15,8 +15,8 @@ export function PeriodTabs({
   t: Dictionary["period"];
 }) {
   return (
-    <div className="flex flex-col items-end gap-2">
-      <nav className="inline-flex rounded-md border bg-card p-1 text-sm">
+    <div className="flex w-full max-w-full flex-col items-stretch gap-2 sm:items-end">
+      <nav className="flex flex-nowrap overflow-x-auto rounded-md border bg-card p-1 text-sm scrollbar-none">
         {ORDER.map((p) => {
           const isActive = p === active;
           const href =
@@ -29,7 +29,7 @@ export function PeriodTabs({
               href={href}
               scroll={false}
               className={cn(
-                "rounded px-3 py-1.5 transition-colors",
+                "shrink-0 rounded px-3 py-1.5 transition-colors",
                 isActive
                   ? "bg-foreground text-background"
                   : "text-muted-foreground hover:text-foreground"
@@ -44,7 +44,7 @@ export function PeriodTabs({
         <form
           action="/"
           method="GET"
-          className="flex items-center gap-2 text-xs text-muted-foreground"
+          className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground"
         >
           <input type="hidden" name="period" value="custom" />
           <label className="flex items-center gap-1">

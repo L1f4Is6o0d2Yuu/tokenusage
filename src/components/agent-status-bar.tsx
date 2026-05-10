@@ -2,24 +2,20 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { cn } from "@/lib/utils";
-
-// A live status pill for the multi-user dashboard. Shows whether the user's
-// agent is currently checked in and how recently the data was synced. The
-// "Sync now" button hits /api/sync-now which immediately releases the held
-// long-poll connection on the agent — fresh data lands on the server in
-// 1-2 seconds, and we reload after a short delay to render it.
+import { interp } from "@/i18n/interp";
+import type { Dictionary } from "@/i18n/types";
 
 const AGENT_LIVE_THRESHOLD_MS = 90 * 1000;
 const RELOAD_DELAY_MS = 4_000;
 
 function ago(target: number, now: number): string {
   const sec = Math.max(0, Math.floor((now - target) / 1000));
-  if (sec < 60) return `${sec}s ago`;
+  if (sec < 60) return `${sec}s`;
   const min = Math.floor(sec / 60);
-  if (min < 60) return `${min}m ago`;
+  if (min < 60) return `${min}m`;
   const hr = Math.floor(min / 60);
-  if (hr < 24) return `${hr}h ago`;
-  return `${Math.floor(hr / 24)}d ago`;
+  if (hr < 24) return `${hr}h`;
+  return `${Math.floor(hr / 24)}d`;
 }
 
 export function AgentStatusBar({
@@ -27,11 +23,13 @@ export function AgentStatusBar({
   agentSeenAt,
   intervalSeconds,
   paused,
+  t,
 }: {
   lastSyncedAt: number | null;
   agentSeenAt: number | null;
   intervalSeconds: number;
   paused: boolean;
+  t: Dictionary["agent"];
 }) {
   const [now, setNow] = useState<number | null>(null);
   const [pending, startTransition] = useTransition();
@@ -40,8 +38,8 @@ export function AgentStatusBar({
 
   useEffect(() => {
     setNow(Date.now());
-    const t = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(t);
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
   }, []);
 
   const agentLive =
@@ -72,8 +70,6 @@ export function AgentStatusBar({
       } catch {
         // best-effort
       }
-      // Reload promptly so the new state is reflected. The server already
-      // pinged the agent's long-poll connection so it knows too.
       window.location.reload();
     });
   }
@@ -82,34 +78,36 @@ export function AgentStatusBar({
   if (!installed) {
     leftPill = (
       <Pill color="gray" dot>
-        Agent not installed
+        {t.statusNotInstalled}
       </Pill>
     );
   } else if (paused) {
     leftPill = (
       <Pill color="gray" dot>
-        Tracking paused
+        {t.statusPaused}
         {agentSeenAt != null && agentLive && (
-          <span className="ml-1 text-muted-foreground">· agent online</span>
+          <span className="ml-1 text-muted-foreground">· {t.onlineSuffix}</span>
         )}
       </Pill>
     );
   } else if (agentLive) {
     leftPill = (
       <Pill color="emerald" dot>
-        Agent live
+        {t.statusLive}
         {agentSeenAt != null && now != null && (
-          <span className="ml-1 text-muted-foreground">· seen {ago(agentSeenAt, now)}</span>
+          <span className="ml-1 text-muted-foreground">
+            · {interp(t.seenAgo, { when: ago(agentSeenAt, now) })}
+          </span>
         )}
       </Pill>
     );
   } else {
     leftPill = (
       <Pill color="amber" dot>
-        Agent offline
+        {t.statusOffline}
         {agentSeenAt != null && now != null && (
           <span className="ml-1 text-muted-foreground">
-            · last seen {ago(agentSeenAt, now)}
+            · {interp(t.lastSeenAgo, { when: ago(agentSeenAt, now) })}
           </span>
         )}
       </Pill>
@@ -117,10 +115,10 @@ export function AgentStatusBar({
   }
 
   const lastSyncedLabel =
-    everSynced && now != null ? ago(lastSyncedAt as number, now) : "never";
+    everSynced && now != null ? ago(lastSyncedAt as number, now) : t.never;
   const intervalLabel =
     intervalSeconds >= 86400
-      ? "manual only"
+      ? t.manualOnly
       : intervalSeconds >= 3600
         ? `${intervalSeconds / 3600}h`
         : intervalSeconds >= 60
@@ -128,14 +126,14 @@ export function AgentStatusBar({
           : `${intervalSeconds}s`;
 
   return (
-    <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-md border bg-card px-4 py-2 text-xs">
-      <div className="flex flex-wrap items-center gap-3">
+    <div className="mt-4 flex flex-col gap-3 rounded-md border bg-card px-4 py-2 text-xs sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
         {leftPill}
         <span className="text-muted-foreground">
-          Last synced <span className="text-foreground">{lastSyncedLabel}</span>
+          {t.lastSyncedLabel} <span className="text-foreground">{lastSyncedLabel}</span>
         </span>
         <span className="text-muted-foreground">
-          Heartbeat <span className="text-foreground">{intervalLabel}</span>
+          {t.heartbeatLabel} <span className="text-foreground">{intervalLabel}</span>
         </span>
       </div>
       <div className="flex items-center gap-2">
@@ -154,11 +152,11 @@ export function AgentStatusBar({
           >
             {toggling
               ? paused
-                ? "Resuming…"
-                : "Pausing…"
+                ? t.resuming
+                : t.pausing
               : paused
-                ? "Resume tracking"
-                : "Pause tracking"}
+                ? t.resumeTracking
+                : t.pauseTracking}
           </button>
         )}
         <button
@@ -169,9 +167,9 @@ export function AgentStatusBar({
             "rounded-md border bg-background px-3 py-1.5 text-xs font-medium hover:bg-muted",
             "disabled:cursor-not-allowed disabled:opacity-60"
           )}
-          title={paused ? "Resume tracking first" : undefined}
+          title={paused ? t.resumeFirstHint : undefined}
         >
-          {requested ? "Syncing…" : "Sync now"}
+          {requested ? t.syncing : t.syncNow}
         </button>
       </div>
     </div>

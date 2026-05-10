@@ -166,4 +166,133 @@ export type Dictionary = {
     resetDescription: string;
     resetButton: string;
   };
+  // ---- v0.15: previously-hardcoded English in dashboard chrome ----
+  navHeader: {
+    users: string;
+    signOut: string;
+  };
+  agent: {
+    statusLive: string;
+    statusPaused: string;
+    statusOffline: string;
+    statusNotInstalled: string;
+    onlineSuffix: string;
+    seenAgo: string; // "seen {when}"
+    lastSeenAgo: string; // "last seen {when}"
+    lastSyncedLabel: string;
+    never: string;
+    heartbeatLabel: string;
+    manualOnly: string;
+    syncNow: string;
+    syncing: string;
+    pauseTracking: string;
+    pausing: string;
+    resumeTracking: string;
+    resuming: string;
+    resumeFirstHint: string;
+  };
+  install: {
+    generateCommand: string;
+    generating: string;
+    failedToGenerate: string;
+    serverError: string;
+    networkError: string;
+    clipboardError: string;
+    copyCommand: string;
+    copied: string;
+    pasteHintBrew: string;
+    pasteHintCurl: string;
+    tabBrew: string;
+    tabCurl: string;
+  };
+  onboarding: {
+    welcome: string; // "Welcome, {name} — let's get your data flowing"
+    description: string;
+    step1Title: string;
+    step2Title: string;
+    step2Body: string;
+  };
+  tokensPage: {
+    title: string;
+    description: string;
+    tokenCreatedTitle: string;
+    tokenCreatedDescription: string;
+    tokenCreatedHint: string;
+    settingsSavedToast: string;
+    syncSettingsTitle: string;
+    syncSettingsDescription: string;
+    heartbeatInterval: string;
+    save: string;
+    saving: string;
+    addMachineTitle: string;
+    addMachineDescription: string;
+    advancedToggle: string;
+    name: string;
+    createToken: string;
+    creating: string;
+    existingTokens: string;
+    noTokens: string;
+    columnName: string;
+    columnCreated: string;
+    columnLastUsed: string;
+    revoke: string;
+    revoking: string;
+    intervalOptions: {
+      m1: string;
+      m5: string;
+      m10: string;
+      m30: string;
+      h1: string;
+      manual: string;
+    };
+  };
+  usersPage: {
+    title: string;
+    description: string;
+    inviteCreatedTitle: string;
+    inviteCreatedDescription: string;
+    generateInviteTitle: string;
+    generateInviteDescription: string;
+    note: string;
+    notePlaceholder: string;
+    createInvite: string;
+    creating: string;
+    invitesTitle: string;
+    noInvites: string;
+    columnNote: string;
+    columnCreated: string;
+    columnExpires: string;
+    columnStatus: string;
+    statusOpen: string;
+    statusUsed: string;
+    statusExpired: string;
+    revoke: string;
+    revoking: string;
+    membersTitle: string;
+    columnUsername: string;
+    columnEmail: string;
+    columnJoined: string;
+    badgeAdmin: string;
+  };
+  authForms: {
+    signIn: string;
+    signingIn: string;
+    createAdmin: string;
+    creatingAdmin: string;
+    join: string;
+    joining: string;
+    emailOrUsername: string;
+    username: string;
+    email: string;
+    emailOptional: string;
+    password: string;
+    passwordWith8Min: string;
+    usernameOptionalWithDefault: string;
+    signupTitle: string;
+    loginTitle: string;
+    inviteTitle: string;
+    inviteUsed: string;
+    inviteExpired: string;
+    inviteInvalid: string;
+  };
 };
