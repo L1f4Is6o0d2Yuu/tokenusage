@@ -1,0 +1,12 @@
+.git
+.next
+node_modules
+data/server.db
+data/server.db-*
+data/prices.json
+.env*
+.DS_Store
+*.log
+docs/screenshot.png
+README.md
+LICENSE

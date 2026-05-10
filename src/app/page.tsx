@@ -89,6 +89,14 @@ export default async function Page({
                 >
                   {currentUser.username}
                 </Link>
+                {currentUser.isAdmin && (
+                  <Link
+                    href="/users"
+                    className="text-muted-foreground hover:text-foreground"
+                  >
+                    users
+                  </Link>
+                )}
                 <form action={logoutAction}>
                   <button
                     type="submit"

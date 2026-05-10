@@ -4,7 +4,7 @@ A local-first dashboard that shows how many tokens — and how many dollars — 
 
 ![tokenusage dashboard](docs/screenshot.png)
 
-> Status: **v0.8**. Runs in two modes: **single-user** (the original — reads your local Hermes / Codex / Claude Code data straight from disk) or **multi-user** (central server + per-machine agents, with usernames + password auth, API tokens, and a `/api/ingest` endpoint). Plus everything from v0.7: per-session detail pages, CSV export, custom date range, this-month / this-year shortcuts, inline price editor at `/prices`, light/dark/system theme, 11-language UI from JSON. Screenshot above is from the bundled synthetic sample data.
+> Status: **v0.9**. Adds production deployment artifacts (Dockerfile + docker-compose + Caddy auto-HTTPS), an admin-only invite-link flow at `/users` so additional accounts can sign up themselves with email + password, a `/api/health` endpoint, and an `is_admin` flag retroactively granted to the first user. Building on v0.8's two-mode architecture (single-user reading local files vs multi-user central server + per-machine agents) and everything from v0.4–v0.7: session detail pages, CSV export, custom date range, this-month/year, inline price editor, theme toggle, 11-language UI from JSON.
 
 ## Features
 
@@ -37,24 +37,49 @@ If none are present it falls back to the bundled synthetic sample database, so t
 
 ## Multi-user mode (server + agents)
 
-For sharing one dashboard across multiple machines (your home server hosts it, each laptop pushes its data in), run the dashboard as a server and install the agent on each machine you want to track.
+For sharing one dashboard across multiple machines — your home server hosts it, each laptop pushes its data in.
 
-### Server side
+### Production deployment (recommended): docker-compose with auto-HTTPS
+
+1. Point a domain at your server (`A` / `AAAA` record).
+2. Clone the repo, copy the env example, set the domain:
+
+   ```bash
+   git clone https://github.com/L1f4Is6o0d2Yuu/tokenusage
+   cd tokenusage
+   cp .env.example .env
+   # edit .env, set TOKENUSAGE_DOMAIN=your.domain.example
+   ```
+
+3. Bring up the stack:
+
+   ```bash
+   docker compose up -d --build
+   ```
+
+   Caddy obtains a Let's Encrypt cert automatically. Hit <https://your.domain.example/> and you'll be redirected to `/signup` to create the admin account.
+
+4. Health check: <https://your.domain.example/api/health> should return `{"ok": true, ...}`.
+
+The server DB lives in the named Docker volume `tokenusage_data` (mounted at `/data/server.db` inside the container). Back it up with `docker compose run --rm app cp /data/server.db /data/server.db.bak` or by snapshotting the volume host-side.
+
+### Bare-metal alternative
+
+If you'd rather not use Docker:
 
 ```bash
-git clone https://github.com/L1f4Is6o0d2Yuu/tokenusage
-cd tokenusage
+git clone https://github.com/L1f4Is6o0d2Yuu/tokenusage && cd tokenusage
 pnpm install
 pnpm build && pnpm start    # or `pnpm dev` while iterating
 ```
 
-On first hit to <http://localhost:3000>, you're redirected to `/signup` to create the admin account. After that, every page requires login.
+On first hit to <http://localhost:3000>, you're redirected to `/signup` to create the admin account.
 
-The server's data lives in `data/server.db` (gitignored). Override the path with:
+Override the DB path with `TOKENUSAGE_SERVER_DB=/var/lib/tokenusage/server.db pnpm start`. Put a reverse proxy (nginx / Caddy / Cloudflare Tunnel) in front for HTTPS.
 
-```bash
-TOKENUSAGE_SERVER_DB=/var/lib/tokenusage/server.db pnpm start
-```
+### Inviting additional users
+
+The first signup is the admin. After that, the admin opens **`/users`** (link visible in the dashboard header), generates an invite, and shares the link. The invitee opens it, picks an email + password, and joins. Invite links are single-use and expire in 14 days.
 
 ### Agent side (run on each machine that has Hermes / Codex / Claude Code data)
 
@@ -127,9 +152,12 @@ Cost figures come from whatever your gateway recorded at the time of the request
 - [x] Light / dark / system theme toggle (cookie-driven, no flash)
 - [x] This-month / this-year period shortcuts; trend chart auto-buckets by month when the window exceeds 90 days
 - [x] Multi-user / shared-deployment mode — central server + per-machine agents
-- [ ] Invite / second-user signup flow (today the first signup is the admin; further accounts require DB editing)
+- [x] Invite-link signup flow with admin-issued one-time tokens
+- [x] Dockerfile + docker-compose + Caddy auto-HTTPS deployment
+- [x] `/api/health` endpoint for uptime probes
 - [ ] OAuth (GitHub / Google) as an alternative to username + password
 - [ ] Agent watch mode (live tail) instead of cron-style polling
+- [ ] Rate limiting and audit log for `/api/ingest`
 
 ## License
 

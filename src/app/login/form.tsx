@@ -9,7 +9,7 @@ export function LoginForm() {
     <form action={action} className="space-y-4">
       <div>
         <label className="text-xs text-muted-foreground" htmlFor="username">
-          Username
+          Email or username
         </label>
         <input
           id="username"

@@ -1,0 +1,51 @@
+# Production deployment for tokenusage.
+#
+#   1. Set TOKENUSAGE_DOMAIN to the domain you've pointed at this server.
+#      Caddy will provision a TLS cert from Let's Encrypt automatically.
+#      (For local testing without a real domain: `TOKENUSAGE_DOMAIN=localhost`
+#      uses Caddy's local-CA flow; trust the cert it prints in the logs.)
+#
+#   2. `docker compose up -d --build`
+#
+#   3. Hit https://<your domain>/ and create the admin account on /signup.
+#
+# The host's `tokenusage_data` volume holds your server.db. Back it up.
+
+services:
+  app:
+    build: .
+    image: tokenusage:latest
+    restart: unless-stopped
+    environment:
+      TOKENUSAGE_SERVER_DB: /data/server.db
+      TOKENUSAGE_PUBLIC_URL: https://${TOKENUSAGE_DOMAIN:-localhost}
+    volumes:
+      - tokenusage_data:/data
+    expose:
+      - "3000"
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      TOKENUSAGE_DOMAIN: ${TOKENUSAGE_DOMAIN:-localhost}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - app
+
+volumes:
+  tokenusage_data:
+  caddy_data:
+  caddy_config:

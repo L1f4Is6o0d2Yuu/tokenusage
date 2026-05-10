@@ -1,0 +1,24 @@
+# Reverse-proxy + automatic HTTPS for tokenusage.
+# {$TOKENUSAGE_DOMAIN} comes from docker-compose's environment.
+
+{$TOKENUSAGE_DOMAIN} {
+	encode gzip
+	# Caddy auto-provisions Let's Encrypt certs for any real domain. For
+	# `localhost` it falls back to its internal CA — trust the cert that
+	# Caddy prints to logs on first start.
+	reverse_proxy app:3000
+
+	# Tighten a couple of headers. The dashboard doesn't load third-party
+	# scripts so a strict CSP is safe; Server Actions still work because
+	# they POST to the same origin.
+	header {
+		X-Content-Type-Options nosniff
+		X-Frame-Options DENY
+		Referrer-Policy same-origin
+	}
+
+	log {
+		output stdout
+		format console
+	}
+}
