@@ -296,7 +296,14 @@
     "inviteTitle": "Sei stato invitato —— scegli email e password.",
     "inviteUsed": "Invito già utilizzato.",
     "inviteExpired": "Invito scaduto. Chiedi un nuovo invito all'admin.",
-    "inviteInvalid": "Link di invito non valido."
+    "inviteInvalid": "Link di invito non valido.",
+    "forgotPasswordLink": "Password dimenticata?",
+    "inviteCodeLabel": "Codice invito",
+    "inviteCodePlaceholder": "tui_…",
+    "inviteCodeSubmit": "Continua",
+    "inviteCodeMissing": "Incolla il tuo codice invito.",
+    "haveInvite": "Hai un codice?",
+    "policyHint": "8+ caratteri con lettere e una cifra."
   },
   "nav": {
     "workspace": "Workspace",
@@ -306,5 +313,27 @@
     "prices": "Prezzi",
     "users": "Utenti",
     "about": "Info"
+  },
+  "forgotPassword": {
+    "title": "Password dimenticata",
+    "subtitle": "Inserisci l'email — l'admin deve aver marcato il tuo account.",
+    "email": "Email",
+    "submitLookup": "Continua",
+    "submittingLookup": "Verifico…",
+    "notFlagged": "Il tuo account non è ancora marcato. Chiedi all'admin.",
+    "resetTitle": "Imposta nuova password",
+    "resetSubtitle": "L'admin ha autorizzato il reset.",
+    "newPassword": "Nuova password",
+    "policyHint": "8+ caratteri con lettere e una cifra.",
+    "submitReset": "Salva e accedi",
+    "submittingReset": "Salvataggio…",
+    "backToLogin": "Torna al login"
+  },
+  "adminReset": {
+    "button": "Reset password",
+    "confirm": "Marcare questo utente per il reset?",
+    "pending": "In attesa",
+    "pendingLabel": "reset richiesto",
+    "columnReset": "Reset"
   }
 }

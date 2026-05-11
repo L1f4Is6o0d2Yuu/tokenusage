@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { readCurrentUser, listUsers, listInvites } from "@/lib/auth";
 import { isMultiUserMode } from "@/lib/server-db";
 import { getPublicUrl } from "@/lib/public-url";
-import { createInviteAction, revokeInviteAction } from "./actions";
+import { createInviteAction, revokeInviteAction, resetUserPasswordAction } from "./actions";
 import { SubmitButton } from "@/components/submit-button";
 import { CopyInviteLink } from "@/components/copy-invite-link";
 import { getDictionary, readLocale } from "@/i18n";
@@ -182,6 +182,7 @@ export default async function UsersPage({
                   <TableHead>{t.columnUsername}</TableHead>
                   <TableHead>{t.columnEmail}</TableHead>
                   <TableHead>{t.columnJoined}</TableHead>
+                  <TableHead>{dict.adminReset.columnReset}</TableHead>
                   <TableHead />
                 </TableRow>
               </TableHeader>
@@ -194,6 +195,22 @@ export default async function UsersPage({
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground tabular-nums">
                       {formatDate(u.createdAt, locale)}
+                    </TableCell>
+                    <TableCell>
+                      {u.id === user.id ? null : u.passwordResetAt ? (
+                        <Badge variant="outline" className="text-warning">
+                          {dict.adminReset.pending}
+                        </Badge>
+                      ) : u.email ? (
+                        <form action={resetUserPasswordAction}>
+                          <input type="hidden" name="userId" value={u.id} />
+                          <SubmitButton variant="outline" pendingText={`${dict.adminReset.button}…`}>
+                            {dict.adminReset.button}
+                          </SubmitButton>
+                        </form>
+                      ) : (
+                        <span className="text-xs text-fg-faint">—</span>
+                      )}
                     </TableCell>
                     <TableCell>
                       {u.isAdmin && <Badge variant="outline">{t.badgeAdmin}</Badge>}

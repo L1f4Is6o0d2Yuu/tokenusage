@@ -134,6 +134,14 @@ function migrate(db: Database.Database): void {
       `ALTER TABLE users ADD COLUMN agent_paused INTEGER NOT NULL DEFAULT 0`
     );
   }
+
+  // v0.17: admin-gated password reset. Admin flips the flag; the user can
+  // then set a new password via /forgot-password. Without the flag set,
+  // /forgot-password tells the user to ask the admin — we deliberately
+  // don't send recovery email because the server isn't wired for SMTP.
+  if (!hasColumn(db, "users", "password_reset_at")) {
+    db.exec(`ALTER TABLE users ADD COLUMN password_reset_at INTEGER`);
+  }
 }
 
 export function openServerDb(): Database.Database {

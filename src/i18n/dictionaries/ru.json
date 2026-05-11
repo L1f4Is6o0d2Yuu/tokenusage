@@ -296,7 +296,14 @@
     "inviteTitle": "Вас пригласили —— выберите email и пароль.",
     "inviteUsed": "Это приглашение уже использовано.",
     "inviteExpired": "Приглашение истекло. Попросите админа выпустить новое.",
-    "inviteInvalid": "Неверная ссылка приглашения."
+    "inviteInvalid": "Неверная ссылка приглашения.",
+    "forgotPasswordLink": "Забыли пароль?",
+    "inviteCodeLabel": "Код приглашения",
+    "inviteCodePlaceholder": "tui_…",
+    "inviteCodeSubmit": "Продолжить",
+    "inviteCodeMissing": "Вставьте код приглашения.",
+    "haveInvite": "Есть код приглашения?",
+    "policyHint": "8+ символов, буквы и цифра."
   },
   "nav": {
     "workspace": "Рабочая область",
@@ -306,5 +313,27 @@
     "prices": "Цены",
     "users": "Пользователи",
     "about": "О сервисе"
+  },
+  "forgotPassword": {
+    "title": "Забыл пароль",
+    "subtitle": "Введите email — администратор должен пометить вашу учётную запись для сброса.",
+    "email": "Email",
+    "submitLookup": "Продолжить",
+    "submittingLookup": "Проверка…",
+    "notFlagged": "Сброс ещё не одобрен. Обратитесь к администратору.",
+    "resetTitle": "Задать новый пароль",
+    "resetSubtitle": "Администратор разрешил сброс.",
+    "newPassword": "Новый пароль",
+    "policyHint": "8+ символов, буквы и цифра.",
+    "submitReset": "Сохранить и войти",
+    "submittingReset": "Сохраняю…",
+    "backToLogin": "Назад ко входу"
+  },
+  "adminReset": {
+    "button": "Сбросить пароль",
+    "confirm": "Пометить пользователя для сброса?",
+    "pending": "Ожидание",
+    "pendingLabel": "сброс запрошен",
+    "columnReset": "Сброс"
   }
 }

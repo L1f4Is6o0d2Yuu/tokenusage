@@ -296,7 +296,14 @@
     "inviteTitle": "Convidado —— escolha email e senha.",
     "inviteUsed": "Este convite já foi usado.",
     "inviteExpired": "Este convite expirou. Peça um novo ao admin.",
-    "inviteInvalid": "Link de convite inválido."
+    "inviteInvalid": "Link de convite inválido.",
+    "forgotPasswordLink": "Esqueceu a senha?",
+    "inviteCodeLabel": "Código de convite",
+    "inviteCodePlaceholder": "tui_…",
+    "inviteCodeSubmit": "Continuar",
+    "inviteCodeMissing": "Cole o seu código.",
+    "haveInvite": "Tem um código?",
+    "policyHint": "8+ caracteres com letras e um dígito."
   },
   "nav": {
     "workspace": "Workspace",
@@ -306,5 +313,27 @@
     "prices": "Preços",
     "users": "Utilizadores",
     "about": "Sobre"
+  },
+  "forgotPassword": {
+    "title": "Esqueci a senha",
+    "subtitle": "Digite o e-mail — o admin precisa ter sinalizado a sua conta.",
+    "email": "E-mail",
+    "submitLookup": "Continuar",
+    "submittingLookup": "Verificando…",
+    "notFlagged": "A sua conta ainda não foi sinalizada. Peça ao admin.",
+    "resetTitle": "Definir nova senha",
+    "resetSubtitle": "Admin liberou o reset.",
+    "newPassword": "Nova senha",
+    "policyHint": "8+ caracteres com letras e um dígito.",
+    "submitReset": "Salvar e entrar",
+    "submittingReset": "Salvando…",
+    "backToLogin": "Voltar ao login"
+  },
+  "adminReset": {
+    "button": "Repor senha",
+    "confirm": "Marcar este utilizador para reset?",
+    "pending": "Pendente",
+    "pendingLabel": "reset solicitado",
+    "columnReset": "Reset"
   }
 }

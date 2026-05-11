@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import { redeemInviteAction } from "@/app/auth-actions";
+import { PasswordField } from "@/components/password-field";
 
 export function InviteForm({
   invite,
@@ -12,6 +13,7 @@ export function InviteForm({
     email: string;
     username: string;
     password: string;
+    policyHint: string;
     submit: string;
     submitting: string;
   };
@@ -21,7 +23,7 @@ export function InviteForm({
     <form action={action} className="space-y-4">
       <input type="hidden" name="invite" value={invite} />
       <div>
-        <label className="text-xs text-muted-foreground" htmlFor="email">
+        <label className="text-xs text-fg-muted" htmlFor="email">
           {labels.email}
         </label>
         <input
@@ -31,43 +33,30 @@ export function InviteForm({
           required
           autoFocus
           autoComplete="email"
-          className="mt-1 w-full rounded border bg-background px-3 py-2 font-mono text-sm"
+          className="mt-1 w-full rounded border border-border-subtle bg-bg-input px-3 py-2 font-mono text-sm focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/40"
         />
       </div>
       <div>
-        <label className="text-xs text-muted-foreground" htmlFor="username">
+        <label className="text-xs text-fg-muted" htmlFor="username">
           {labels.username}
         </label>
         <input
           id="username"
           name="username"
           minLength={2}
-          className="mt-1 w-full rounded border bg-background px-3 py-2 font-mono text-sm"
+          className="mt-1 w-full rounded border border-border-subtle bg-bg-input px-3 py-2 font-mono text-sm focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/40"
         />
       </div>
-      <div>
-        <label className="text-xs text-muted-foreground" htmlFor="password">
-          {labels.password}
-        </label>
-        <input
-          id="password"
-          name="password"
-          type="password"
-          required
-          minLength={8}
-          autoComplete="new-password"
-          className="mt-1 w-full rounded border bg-background px-3 py-2 font-mono text-sm"
-        />
-      </div>
+      <PasswordField label={labels.password} policyLabel={labels.policyHint} />
       {state.error && (
-        <p className="rounded border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-700 dark:text-red-300">
+        <p className="rounded border border-danger/30 bg-danger/10 px-3 py-2 text-xs text-danger">
           {state.error}
         </p>
       )}
       <button
         type="submit"
         disabled={pending}
-        className="w-full rounded-md bg-foreground px-4 py-2 text-sm font-medium text-background hover:opacity-90 disabled:opacity-60"
+        className="w-full rounded-md bg-accent px-4 py-2 text-sm font-medium text-accent-fg hover:opacity-90 disabled:opacity-60"
       >
         {pending ? labels.submitting : labels.submit}
       </button>

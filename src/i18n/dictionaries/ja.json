@@ -296,7 +296,14 @@
     "inviteTitle": "招待されました —— Email とパスワードを設定してください。",
     "inviteUsed": "この招待はすでに使用されています。",
     "inviteExpired": "この招待は期限切れです。管理者に再発行を依頼してください。",
-    "inviteInvalid": "無効な招待リンクです。"
+    "inviteInvalid": "無効な招待リンクです。",
+    "forgotPasswordLink": "パスワードをお忘れですか？",
+    "inviteCodeLabel": "招待コード",
+    "inviteCodePlaceholder": "tui_…",
+    "inviteCodeSubmit": "続ける",
+    "inviteCodeMissing": "招待コードを貼り付けてください。",
+    "haveInvite": "招待コードをお持ちですか？",
+    "policyHint": "8 文字以上、英字と数字を含む。"
   },
   "nav": {
     "workspace": "ワークスペース",
@@ -306,5 +313,27 @@
     "prices": "料金",
     "users": "ユーザー",
     "about": "概要"
+  },
+  "forgotPassword": {
+    "title": "パスワードを忘れた",
+    "subtitle": "メールを入力 —— 管理者がアカウントをリセット対象に設定する必要があります。",
+    "email": "メール",
+    "submitLookup": "続ける",
+    "submittingLookup": "確認中…",
+    "notFlagged": "まだリセットの許可が出ていません。管理者に依頼してください。",
+    "resetTitle": "新しいパスワードを設定",
+    "resetSubtitle": "管理者が許可しました。新しいパスワードを設定してください。",
+    "newPassword": "新しいパスワード",
+    "policyHint": "8 文字以上、英字と数字を含む。",
+    "submitReset": "保存してログイン",
+    "submittingReset": "保存中…",
+    "backToLogin": "ログインに戻る"
+  },
+  "adminReset": {
+    "button": "パスワードをリセット",
+    "confirm": "このユーザーをリセット対象に設定しますか？",
+    "pending": "リセット待ち",
+    "pendingLabel": "リセット要求済み",
+    "columnReset": "リセット"
   }
 }

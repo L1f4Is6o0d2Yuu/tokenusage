@@ -296,7 +296,14 @@
     "inviteTitle": "Vous êtes invité —— choisissez un email et un mot de passe.",
     "inviteUsed": "Cette invitation a déjà été utilisée.",
     "inviteExpired": "Cette invitation a expiré. Demandez-en une nouvelle à l'admin.",
-    "inviteInvalid": "Lien d'invitation invalide."
+    "inviteInvalid": "Lien d'invitation invalide.",
+    "forgotPasswordLink": "Mot de passe oublié ?",
+    "inviteCodeLabel": "Code d'invitation",
+    "inviteCodePlaceholder": "tui_…",
+    "inviteCodeSubmit": "Continuer",
+    "inviteCodeMissing": "Collez votre code d'invitation pour continuer.",
+    "haveInvite": "Vous avez un code ?",
+    "policyHint": "8+ caractères avec lettres et un chiffre."
   },
   "nav": {
     "workspace": "Espace de travail",
@@ -306,5 +313,27 @@
     "prices": "Tarifs",
     "users": "Utilisateurs",
     "about": "À propos"
+  },
+  "forgotPassword": {
+    "title": "Mot de passe oublié",
+    "subtitle": "Entrez votre e-mail — l'admin doit avoir marqué votre compte pour réinitialisation.",
+    "email": "E-mail",
+    "submitLookup": "Continuer",
+    "submittingLookup": "Vérification…",
+    "notFlagged": "Votre compte n'est pas encore marqué. Demandez à l'admin.",
+    "resetTitle": "Définir un nouveau mot de passe",
+    "resetSubtitle": "L'admin a autorisé la réinitialisation.",
+    "newPassword": "Nouveau mot de passe",
+    "policyHint": "8+ caractères avec lettres et un chiffre.",
+    "submitReset": "Enregistrer et se connecter",
+    "submittingReset": "Enregistrement…",
+    "backToLogin": "Retour à la connexion"
+  },
+  "adminReset": {
+    "button": "Réinitialiser le mot de passe",
+    "confirm": "Marquer cet utilisateur pour réinitialisation ?",
+    "pending": "En attente",
+    "pendingLabel": "réinitialisation demandée",
+    "columnReset": "Réinit."
   }
 }

@@ -296,7 +296,14 @@
     "inviteTitle": "Invitado —— elige email y contraseña.",
     "inviteUsed": "Esta invitación ya se usó.",
     "inviteExpired": "Esta invitación caducó. Pide una nueva al admin.",
-    "inviteInvalid": "Enlace de invitación inválido."
+    "inviteInvalid": "Enlace de invitación inválido.",
+    "forgotPasswordLink": "¿Olvidaste tu contraseña?",
+    "inviteCodeLabel": "Código de invitación",
+    "inviteCodePlaceholder": "tui_…",
+    "inviteCodeSubmit": "Continuar",
+    "inviteCodeMissing": "Pega tu código de invitación.",
+    "haveInvite": "¿Tienes un código?",
+    "policyHint": "8+ caracteres con letras y un dígito."
   },
   "nav": {
     "workspace": "Espacio",
@@ -306,5 +313,27 @@
     "prices": "Precios",
     "users": "Usuarios",
     "about": "Acerca de"
+  },
+  "forgotPassword": {
+    "title": "Olvidé mi contraseña",
+    "subtitle": "Ingresa tu correo — el admin debe haber marcado tu cuenta.",
+    "email": "Correo",
+    "submitLookup": "Continuar",
+    "submittingLookup": "Comprobando…",
+    "notFlagged": "Tu cuenta aún no está marcada. Pide al admin.",
+    "resetTitle": "Establecer nueva contraseña",
+    "resetSubtitle": "El admin autorizó el reseteo.",
+    "newPassword": "Nueva contraseña",
+    "policyHint": "8+ caracteres con letras y un dígito.",
+    "submitReset": "Guardar e iniciar sesión",
+    "submittingReset": "Guardando…",
+    "backToLogin": "Volver al inicio de sesión"
+  },
+  "adminReset": {
+    "button": "Restablecer contraseña",
+    "confirm": "¿Marcar este usuario para reseteo?",
+    "pending": "Pendiente",
+    "pendingLabel": "reseteo solicitado",
+    "columnReset": "Reset"
   }
 }

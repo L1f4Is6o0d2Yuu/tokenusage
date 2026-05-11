@@ -294,17 +294,26 @@ export function listUsers(): Array<{
   email: string | null;
   isAdmin: boolean;
   createdAt: number;
+  passwordResetAt: number | null;
 }> {
   const db = openServerDb();
   try {
     return db
       .prepare(
-        `SELECT id, username, email, is_admin AS isAdmin, created_at AS createdAt
+        `SELECT id, username, email, is_admin AS isAdmin, created_at AS createdAt,
+                password_reset_at AS passwordResetAt
          FROM users ORDER BY created_at ASC`
       )
       .all()
       .map((r) => {
-        const row = r as { id: number; username: string; email: string | null; isAdmin: number; createdAt: number };
+        const row = r as {
+          id: number;
+          username: string;
+          email: string | null;
+          isAdmin: number;
+          createdAt: number;
+          passwordResetAt: number | null;
+        };
         return { ...row, isAdmin: row.isAdmin === 1 };
       });
   } finally {
@@ -389,6 +398,78 @@ export function authenticateApiToken(plaintext: string): User | null {
       email: row.email,
       isAdmin: row.is_admin === 1,
     };
+  } finally {
+    db.close();
+  }
+}
+
+// ---- admin-gated password reset (v0.17) ----
+//
+// Two-step flow: admin sets `password_reset_at` on a user → that user can
+// then walk through /forgot-password to set a new password. Without the flag
+// the reset page refuses, telling the user to ask the admin. We deliberately
+// avoid a self-service email-link flow because the server has no mail path.
+
+// Admin flips the flag. We don't invalidate the user's current sessions —
+// they can still log in with their old password until they reset. (The
+// flag is permission to reset, not a forced logout.)
+export function flagPasswordReset(userId: number): void {
+  const db = openServerDb();
+  try {
+    db.prepare(`UPDATE users SET password_reset_at = ? WHERE id = ?`).run(
+      Date.now(),
+      userId
+    );
+  } finally {
+    db.close();
+  }
+}
+
+export type PasswordResetLookup =
+  | { ok: true; userId: number; flaggedAt: number }
+  // "no-user" is *not* surfaced to the UI distinctly from "not-flagged" —
+  // both render the same "ask the admin" message — but we keep them
+  // separate at the data layer so server-side logs can tell them apart.
+  | { ok: false; reason: "no-user" | "not-flagged" };
+
+export function lookupPasswordReset(email: string): PasswordResetLookup {
+  const db = openServerDb();
+  try {
+    const row = db
+      .prepare(
+        `SELECT id, password_reset_at AS resetAt
+         FROM users WHERE email = ? LIMIT 1`
+      )
+      .get(email) as { id: number; resetAt: number | null } | undefined;
+    if (!row) return { ok: false, reason: "no-user" };
+    if (row.resetAt == null) return { ok: false, reason: "not-flagged" };
+    return { ok: true, userId: row.id, flaggedAt: row.resetAt };
+  } finally {
+    db.close();
+  }
+}
+
+// Atomic: re-check the flag is set, swap the hash, clear the flag, kill all
+// existing sessions. The session purge keeps an attacker who took over the
+// account temporarily from lingering after the legit owner resets.
+export function completePasswordReset(email: string, newPassword: string): boolean {
+  const db = openServerDb();
+  try {
+    const txn = db.transaction(() => {
+      const row = db
+        .prepare(
+          `SELECT id, password_reset_at AS resetAt
+           FROM users WHERE email = ? LIMIT 1`
+        )
+        .get(email) as { id: number; resetAt: number | null } | undefined;
+      if (!row || row.resetAt == null) return false;
+      db.prepare(
+        `UPDATE users SET password_hash = ?, password_reset_at = NULL WHERE id = ?`
+      ).run(hashPassword(newPassword), row.id);
+      db.prepare(`DELETE FROM auth_sessions WHERE user_id = ?`).run(row.id);
+      return true;
+    });
+    return txn();
   } finally {
     db.close();
   }
