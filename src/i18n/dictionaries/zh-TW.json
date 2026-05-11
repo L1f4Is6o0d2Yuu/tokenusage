@@ -38,6 +38,10 @@
     "totalTokens": "總 tokens",
     "inputOutput": "輸入 / 輸出",
     "cacheRead": "快取讀取",
+    "cacheHitRate": "快取命中率",
+    "cacheHit": "命中",
+    "cacheMiss": "未命中",
+    "cacheWritten": "寫入",
     "estimated": "估算",
     "partialCost": "成本資料不完整",
     "nonCache": "非快取",
@@ -80,6 +84,36 @@
     "description": "本期間最新 10 筆 — 點擊查看詳情。",
     "empty": "本期間無工作階段。",
     "untitled": "（無標題）"
+  },
+  "priceTooltip": {
+    "priceTable": "每百萬 token 價格",
+    "thisRow": "目前行",
+    "total": "估算合計",
+    "input": "輸入",
+    "output": "輸出",
+    "cacheRead": "快取讀取",
+    "cacheWrite": "快取寫入",
+    "reasoning": "推理",
+    "perM": "/M"
+  },
+  "about": {
+    "title": "tokenusage 是怎麼運作的",
+    "subtitle": "說清楚能測什麼、不能測什麼，以及金額是怎麼算出來的。",
+    "back": "← 回到看板",
+    "trackedTitle": "能測到的",
+    "trackedIntro": "下表每一行都是你機器上的真實資料來源。數字來自本地檔案——單機模式下任何資料都不會離開你的電腦。",
+    "colSource": "來源",
+    "colWhere": "在哪",
+    "colWhat": "怎麼計數",
+    "untrackedTitle": "測不到的",
+    "untrackedIntro": "這些是各廠商本身的限制，不是看板做不做的問題。",
+    "costTitle": "金額是怎麼算的",
+    "costIntro": "token 數 × 單價表（data/prices.default.json）。要改價格在 /prices，覆蓋檔案是 data/prices.json。",
+    "costNote": "估算 ≠ 帳單。各廠商實際帳單會有四捨五入、促銷、免費額度、改型號名等情況。最終金額請以廠商發票為準。",
+    "dedupTitle": "去重邏輯",
+    "dedupIntro": "Claude Code 把一次 API 回應按 content block（文字/工具呼叫/thinking）拆成多條 JSONL 行，每行帶著相同的 usage。我們按 message.id（fallback 到 requestId）去重，每次 API 呼叫只算一次。一般 session 能砍掉 30-50% 的重複 token。",
+    "privacyTitle": "隱私",
+    "privacyIntro": "單機模式完全本地——無網路、無遙測。多人模式只把用量統計（token 數、時間戳、成本）發到你自己部署的伺服器，原始對話內容永遠不會被讀取或上傳。"
   },
   "session": {
     "back": "← 返回儀表板",
@@ -134,7 +168,8 @@
   },
   "navHeader": {
     "users": "使用者",
-    "signOut": "登出"
+    "signOut": "登出",
+    "about": "說明"
   },
   "agent": {
     "statusLive": "Agent 線上",
@@ -237,7 +272,10 @@
     "columnUsername": "使用者名稱",
     "columnEmail": "Email",
     "columnJoined": "加入時間",
-    "badgeAdmin": "管理員"
+    "badgeAdmin": "管理員",
+    "copyLink": "複製連結",
+    "copied": "已複製",
+    "copyError": "複製失敗，請手動複製"
   },
   "authForms": {
     "signIn": "登入",

@@ -72,6 +72,10 @@ export type Dictionary = {
     totalTokens: string;
     inputOutput: string;
     cacheRead: string;
+    cacheHitRate: string;
+    cacheHit: string;
+    cacheMiss: string;
+    cacheWritten: string;
     estimated: string;
     partialCost: string;
     nonCache: string;
@@ -114,6 +118,36 @@ export type Dictionary = {
     description: string;
     empty: string;
     untitled: string;
+  };
+  priceTooltip: {
+    priceTable: string;
+    thisRow: string;
+    total: string;
+    input: string;
+    output: string;
+    cacheRead: string;
+    cacheWrite: string;
+    reasoning: string;
+    perM: string;
+  };
+  about: {
+    title: string;
+    subtitle: string;
+    back: string;
+    trackedTitle: string;
+    trackedIntro: string;
+    colSource: string;
+    colWhere: string;
+    colWhat: string;
+    untrackedTitle: string;
+    untrackedIntro: string;
+    costTitle: string;
+    costIntro: string;
+    costNote: string;
+    dedupTitle: string;
+    dedupIntro: string;
+    privacyTitle: string;
+    privacyIntro: string;
   };
   session: {
     back: string;
@@ -170,6 +204,7 @@ export type Dictionary = {
   navHeader: {
     users: string;
     signOut: string;
+    about: string;
   };
   agent: {
     statusLive: string;
@@ -273,6 +308,9 @@ export type Dictionary = {
     columnEmail: string;
     columnJoined: string;
     badgeAdmin: string;
+    copyLink: string;
+    copied: string;
+    copyError: string;
   };
   authForms: {
     signIn: string;

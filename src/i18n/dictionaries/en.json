@@ -38,6 +38,10 @@
     "totalTokens": "Total tokens",
     "inputOutput": "Input / Output",
     "cacheRead": "Cache read",
+    "cacheHitRate": "Cache hit rate",
+    "cacheHit": "Hit",
+    "cacheMiss": "Miss",
+    "cacheWritten": "Written",
     "estimated": "estimated",
     "partialCost": "partial cost data",
     "nonCache": "non-cache",
@@ -80,6 +84,36 @@
     "description": "Latest 10 in this period — click to inspect.",
     "empty": "No sessions in this period.",
     "untitled": "(untitled session)"
+  },
+  "priceTooltip": {
+    "priceTable": "Price per million tokens",
+    "thisRow": "This row",
+    "total": "Estimated total",
+    "input": "Input",
+    "output": "Output",
+    "cacheRead": "Cache read",
+    "cacheWrite": "Cache write",
+    "reasoning": "Reasoning",
+    "perM": "/M"
+  },
+  "about": {
+    "title": "How tokenusage works",
+    "subtitle": "What we track, what we can't, and how the dollar math works.",
+    "back": "← Back to dashboard",
+    "trackedTitle": "What we track",
+    "trackedIntro": "Each row below is a real source on your machine. Numbers come from local files — nothing leaves your computer in single-user mode.",
+    "colSource": "Source",
+    "colWhere": "Where",
+    "colWhat": "What we count",
+    "untrackedTitle": "What we can't track",
+    "untrackedIntro": "These are limitations of the providers, not the dashboard.",
+    "costTitle": "How costs are computed",
+    "costIntro": "Token counts are multiplied by a per-token price table (data/prices.default.json). Edit prices at /prices to override.",
+    "costNote": "Estimates, not invoices. Provider billing has rounding, promotions, free-tier credits, and the occasional model rename. Trust the provider invoice for final numbers.",
+    "dedupTitle": "Deduplication",
+    "dedupIntro": "Claude Code serializes one API response as multiple JSONL lines (one per content block — text / tool-use / thinking), each carrying the same usage. We dedupe by message.id (fallback requestId) so each API call counts once. In a typical session this trims 30–50% of duplicate token counts.",
+    "privacyTitle": "Privacy",
+    "privacyIntro": "Single-user mode is fully local — no network, no telemetry. Multi-user mode sends usage counts (tokens, timestamps, cost) to the server you control. Raw conversation content is never read or transmitted."
   },
   "session": {
     "back": "← Back to dashboard",
@@ -134,7 +168,8 @@
   },
   "navHeader": {
     "users": "Users",
-    "signOut": "Sign out"
+    "signOut": "Sign out",
+    "about": "About"
   },
   "agent": {
     "statusLive": "Agent live",
@@ -237,7 +272,10 @@
     "columnUsername": "Username",
     "columnEmail": "Email",
     "columnJoined": "Joined",
-    "badgeAdmin": "admin"
+    "badgeAdmin": "admin",
+    "copyLink": "Copy link",
+    "copied": "Copied",
+    "copyError": "Couldn't copy — please copy manually"
   },
   "authForms": {
     "signIn": "Sign in",

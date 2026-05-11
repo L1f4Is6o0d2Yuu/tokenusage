@@ -38,6 +38,10 @@
     "totalTokens": "총 토큰",
     "inputOutput": "입력 / 출력",
     "cacheRead": "캐시 읽기",
+    "cacheHitRate": "캐시 적중률",
+    "cacheHit": "적중",
+    "cacheMiss": "미스",
+    "cacheWritten": "쓰기",
     "estimated": "추정",
     "partialCost": "비용 데이터 일부 누락",
     "nonCache": "비캐시",
@@ -80,6 +84,36 @@
     "description": "이 기간의 최신 10건 — 클릭하여 자세히 보기.",
     "empty": "이 기간에 세션이 없습니다.",
     "untitled": "(제목 없는 세션)"
+  },
+  "priceTooltip": {
+    "priceTable": "백만 토큰당 가격",
+    "thisRow": "이 행",
+    "total": "예상 합계",
+    "input": "입력",
+    "output": "출력",
+    "cacheRead": "캐시 읽기",
+    "cacheWrite": "캐시 쓰기",
+    "reasoning": "추론",
+    "perM": "/M"
+  },
+  "about": {
+    "title": "tokenusage 작동 방식",
+    "subtitle": "추적할 수 있는 것, 없는 것, 그리고 비용이 어떻게 계산되는지.",
+    "back": "← 대시보드로 돌아가기",
+    "trackedTitle": "추적 가능한 항목",
+    "trackedIntro": "아래 각 행은 머신의 실제 데이터 소스입니다. 숫자는 로컬 파일에서 읽으며 단일 사용자 모드에서는 외부로 전송되지 않습니다.",
+    "colSource": "소스",
+    "colWhere": "위치",
+    "colWhat": "집계 방식",
+    "untrackedTitle": "추적 불가능한 항목",
+    "untrackedIntro": "이는 대시보드의 한계가 아니라 각 공급사 자체의 제약입니다.",
+    "costTitle": "비용 계산 방식",
+    "costIntro": "토큰 수 × 단가표(data/prices.default.json). 가격을 변경하려면 /prices에서 편집하세요. 오버라이드 파일은 data/prices.json입니다.",
+    "costNote": "추정치이지 청구서가 아닙니다. 공급사 청구에는 반올림, 프로모션, 무료 크레딧, 모델명 변경 등이 포함될 수 있습니다. 최종 금액은 공급사 청구서를 기준으로 확인하세요.",
+    "dedupTitle": "중복 제거",
+    "dedupIntro": "Claude Code는 단일 API 응답을 콘텐츠 블록(텍스트/도구 호출/thinking)별로 여러 JSONL 행에 직렬화하며 각 행은 동일한 usage를 가집니다. message.id(fallback requestId)로 중복을 제거하여 각 API 호출을 정확히 한 번만 카운트합니다. 일반 세션에서 30~50%의 중복 토큰이 제거됩니다.",
+    "privacyTitle": "개인정보",
+    "privacyIntro": "단일 사용자 모드는 완전 로컬 — 네트워크, 텔레메트리 없음. 멀티 사용자 모드도 사용량(토큰 수, 타임스탬프, 비용)만 직접 운영하는 서버로 전송하며 대화 내용은 절대 읽거나 전송하지 않습니다."
   },
   "session": {
     "back": "← 대시보드로 돌아가기",
@@ -134,7 +168,8 @@
   },
   "navHeader": {
     "users": "사용자",
-    "signOut": "로그아웃"
+    "signOut": "로그아웃",
+    "about": "설명"
   },
   "agent": {
     "statusLive": "Agent 온라인",
@@ -237,7 +272,10 @@
     "columnUsername": "사용자명",
     "columnEmail": "이메일",
     "columnJoined": "가입일",
-    "badgeAdmin": "관리자"
+    "badgeAdmin": "관리자",
+    "copyLink": "링크 복사",
+    "copied": "복사됨",
+    "copyError": "복사하지 못했습니다. 수동으로 복사하세요"
   },
   "authForms": {
     "signIn": "로그인",

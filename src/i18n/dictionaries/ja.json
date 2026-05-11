@@ -38,6 +38,10 @@
     "totalTokens": "合計トークン",
     "inputOutput": "入力 / 出力",
     "cacheRead": "キャッシュ読み取り",
+    "cacheHitRate": "キャッシュヒット率",
+    "cacheHit": "ヒット",
+    "cacheMiss": "ミス",
+    "cacheWritten": "書込",
     "estimated": "推定",
     "partialCost": "コストデータが不完全",
     "nonCache": "非キャッシュ",
@@ -80,6 +84,36 @@
     "description": "この期間の最新 10 件 — クリックで詳細表示。",
     "empty": "この期間にセッションなし。",
     "untitled": "（無題のセッション）"
+  },
+  "priceTooltip": {
+    "priceTable": "100万トークンあたり",
+    "thisRow": "この行",
+    "total": "推定合計",
+    "input": "入力",
+    "output": "出力",
+    "cacheRead": "キャッシュ読取",
+    "cacheWrite": "キャッシュ書込",
+    "reasoning": "推論",
+    "perM": "/M"
+  },
+  "about": {
+    "title": "tokenusage の仕組み",
+    "subtitle": "何を計測でき、何が計測できないか、そして金額がどう算出されるか。",
+    "back": "← ダッシュボードへ戻る",
+    "trackedTitle": "計測できるもの",
+    "trackedIntro": "下記の各行はあなたのマシン上の実際のソースです。数値はローカルファイルから読み取り、シングルユーザーモードでは何も外部に送信しません。",
+    "colSource": "ソース",
+    "colWhere": "場所",
+    "colWhat": "計測内容",
+    "untrackedTitle": "計測できないもの",
+    "untrackedIntro": "これらは各プロバイダー側の制約であり、本ツールの仕様ではありません。",
+    "costTitle": "金額の算出方法",
+    "costIntro": "トークン数 × 単価表（data/prices.default.json）。価格の上書きは /prices から、保存先は data/prices.json です。",
+    "costNote": "見積もりであり、請求書ではありません。プロバイダー側の請求には端数処理・キャンペーン・無料枠・モデル名変更などが含まれます。最終金額は必ず公式請求書をご確認ください。",
+    "dedupTitle": "重複排除",
+    "dedupIntro": "Claude Code は1回の API レスポンスをコンテンツブロック（テキスト/ツール呼び出し/thinking）ごとに複数の JSONL 行へ展開し、各行に同じ usage を持たせます。message.id（fallback は requestId）で重複排除し、API 呼び出しを正確に1回だけカウントします。通常のセッションで 30〜50% の重複が削減されます。",
+    "privacyTitle": "プライバシー",
+    "privacyIntro": "シングルユーザーモードは完全にローカル動作で、ネットワーク通信もテレメトリーもありません。マルチユーザーモードでも送信されるのは使用量（トークン数・タイムスタンプ・コスト）のみで、会話本文は決して読み取り・送信されません。"
   },
   "session": {
     "back": "← ダッシュボードに戻る",
@@ -134,7 +168,8 @@
   },
   "navHeader": {
     "users": "ユーザー",
-    "signOut": "サインアウト"
+    "signOut": "サインアウト",
+    "about": "ガイド"
   },
   "agent": {
     "statusLive": "Agent オンライン",
@@ -237,7 +272,10 @@
     "columnUsername": "ユーザー名",
     "columnEmail": "Email",
     "columnJoined": "参加日",
-    "badgeAdmin": "管理者"
+    "badgeAdmin": "管理者",
+    "copyLink": "リンクをコピー",
+    "copied": "コピーしました",
+    "copyError": "コピーできませんでした。手動でコピーしてください"
   },
   "authForms": {
     "signIn": "サインイン",

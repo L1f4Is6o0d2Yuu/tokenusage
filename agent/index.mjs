@@ -173,6 +173,12 @@ async function readClaudeCode() {
         apiCallCount: 0,
         title: null,
       };
+      // One API response can be split across multiple `assistant` rows (one
+      // per content block — text / tool_use / thinking), and every row carries
+      // the same `message.usage`. Dedup by `message.id` (fallback requestId)
+      // so we count each API call exactly once. Keep in sync with
+      // src/lib/adapters/claude-code.ts.
+      const seenApiCall = new Set();
       const stream = createReadStream(filePath, { encoding: "utf8" });
       const rl = readline.createInterface({ input: stream, crlfDelay: Infinity });
       for await (const line of rl) {
@@ -185,6 +191,14 @@ async function readClaudeCode() {
           if (obj?.type === "assistant") {
             const usage = obj.message?.usage;
             if (!usage) continue;
+            const dedupKey =
+              (typeof obj.message?.id === "string" && obj.message.id) ||
+              (typeof obj.requestId === "string" && obj.requestId) ||
+              null;
+            if (dedupKey) {
+              if (seenApiCall.has(dedupKey)) continue;
+              seenApiCall.add(dedupKey);
+            }
             acc.apiCallCount += 1;
             if (!acc.model && typeof obj.message?.model === "string") acc.model = obj.message.model;
             acc.inputTokens += Number(usage.input_tokens ?? 0);

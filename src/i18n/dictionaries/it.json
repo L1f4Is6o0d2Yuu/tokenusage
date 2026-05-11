@@ -38,6 +38,10 @@
     "totalTokens": "Token totali",
     "inputOutput": "Input / Output",
     "cacheRead": "Lettura cache",
+    "cacheHitRate": "Tasso di cache",
+    "cacheHit": "Hit",
+    "cacheMiss": "Miss",
+    "cacheWritten": "Scritti",
     "estimated": "stimato",
     "partialCost": "dati di costo parziali",
     "nonCache": "senza cache",
@@ -80,6 +84,36 @@
     "description": "Ultime 10 in questo periodo — clicca per dettagli.",
     "empty": "Nessuna sessione in questo periodo.",
     "untitled": "(sessione senza titolo)"
+  },
+  "priceTooltip": {
+    "priceTable": "Prezzo per milione di token",
+    "thisRow": "Questa riga",
+    "total": "Totale stimato",
+    "input": "Input",
+    "output": "Output",
+    "cacheRead": "Lettura cache",
+    "cacheWrite": "Scrittura cache",
+    "reasoning": "Reasoning",
+    "perM": "/M"
+  },
+  "about": {
+    "title": "Come funziona tokenusage",
+    "subtitle": "Cosa tracciamo, cosa non possiamo, e come si calcolano i costi.",
+    "back": "← Torna alla dashboard",
+    "trackedTitle": "Cosa tracciamo",
+    "trackedIntro": "Ogni riga sotto è una sorgente reale sul tuo computer. I numeri provengono da file locali — in modalità single-user nulla esce dalla macchina.",
+    "colSource": "Sorgente",
+    "colWhere": "Dove",
+    "colWhat": "Cosa contiamo",
+    "untrackedTitle": "Cosa non possiamo tracciare",
+    "untrackedIntro": "Sono limitazioni dei fornitori, non della dashboard.",
+    "costTitle": "Come si calcolano i costi",
+    "costIntro": "Numero di token × tabella prezzi per token (data/prices.default.json). Modifica i prezzi in /prices per sovrascrivere.",
+    "costNote": "Stime, non fatture. La fatturazione del fornitore include arrotondamenti, promozioni, crediti gratuiti e rinomine di modelli. Affidati alla fattura ufficiale per gli importi finali.",
+    "dedupTitle": "Deduplicazione",
+    "dedupIntro": "Claude Code serializza una risposta API in più righe JSONL (una per blocco di contenuto — testo / tool-use / thinking), ciascuna con lo stesso usage. Deduplichiamo per message.id (fallback requestId) per contare ogni chiamata API una sola volta. In una sessione tipica vengono rimossi 30–50% di token duplicati.",
+    "privacyTitle": "Privacy",
+    "privacyIntro": "La modalità single-user è completamente locale — niente rete, niente telemetria. La modalità multi-user invia solo conteggi d'uso (token, timestamp, costo) al server che controlli tu. Il contenuto delle conversazioni non viene mai letto né trasmesso."
   },
   "session": {
     "back": "← Torna alla dashboard",
@@ -134,7 +168,8 @@
   },
   "navHeader": {
     "users": "Utenti",
-    "signOut": "Esci"
+    "signOut": "Esci",
+    "about": "Info"
   },
   "agent": {
     "statusLive": "Agent online",
@@ -237,7 +272,10 @@
     "columnUsername": "Username",
     "columnEmail": "Email",
     "columnJoined": "Iscritto il",
-    "badgeAdmin": "admin"
+    "badgeAdmin": "admin",
+    "copyLink": "Copia link",
+    "copied": "Copiato",
+    "copyError": "Impossibile copiare — copia manualmente"
   },
   "authForms": {
     "signIn": "Accedi",
