@@ -17,7 +17,7 @@ export function Logomark({
   return (
     <svg
       viewBox="0 0 64 48"
-      className={className}
+      className={`tu-spark group ${className}`}
       fill="none"
       stroke="currentColor"
       aria-hidden
@@ -28,7 +28,7 @@ export function Logomark({
         strokeLinecap="round"
         strokeLinejoin="round"
         pathLength={100}
-        className={animated ? "tu-spark-draw" : undefined}
+        className={animated ? "tu-spark-path tu-spark-draw" : "tu-spark-path"}
       />
       <circle
         cx="60"
@@ -36,7 +36,7 @@ export function Logomark({
         r="3.5"
         fill="currentColor"
         stroke="none"
-        className={animated ? "tu-spark-dot" : undefined}
+        className={animated ? "tu-spark-tip tu-spark-dot" : "tu-spark-tip"}
       />
     </svg>
   );

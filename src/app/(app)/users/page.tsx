@@ -6,6 +6,8 @@ import { getPublicUrl } from "@/lib/public-url";
 import { createInviteAction, revokeInviteAction, resetUserPasswordAction } from "./actions";
 import { SubmitButton } from "@/components/submit-button";
 import { CopyInviteLink } from "@/components/copy-invite-link";
+import { EditableInviteNote } from "@/components/editable-invite-note";
+import { lookupGeo, formatGeo } from "@/lib/geoip";
 import { getDictionary, readLocale } from "@/i18n";
 import {
   Card,
@@ -47,6 +49,15 @@ export default async function UsersPage({
   const locale = await readLocale();
   const dict = await getDictionary(locale);
   const t = dict.usersPage;
+
+  // Resolve each user's last-known IP to a city/region/country in
+  // parallel. The lookup is cached in the ip_lookups table for 30 days,
+  // so the hot path is just a SQLite read.
+  const geos = await Promise.all(
+    users.map((u) =>
+      u.lastIp ? lookupGeo(u.lastIp) : Promise.resolve(null)
+    )
+  );
 
   return (
     <main className="mx-auto w-full max-w-4xl px-6 py-10">
@@ -127,8 +138,13 @@ export default async function UsersPage({
                     const expired = !used && inv.expiresAt < Date.now();
                     return (
                       <TableRow key={inv.id}>
-                        <TableCell className="font-medium">
-                          {inv.note ?? "—"}
+                        <TableCell>
+                          <EditableInviteNote
+                            id={inv.id}
+                            note={inv.note}
+                            placeholder={t.notePlaceholder}
+                            editLabel={t.editNote}
+                          />
                         </TableCell>
                         <TableCell className="text-xs text-muted-foreground tabular-nums">
                           {formatDate(inv.createdAt, locale)}
@@ -181,17 +197,40 @@ export default async function UsersPage({
                 <TableRow>
                   <TableHead>{t.columnUsername}</TableHead>
                   <TableHead>{t.columnEmail}</TableHead>
+                  <TableHead>{t.columnIp}</TableHead>
+                  <TableHead>{t.columnLocation}</TableHead>
                   <TableHead>{t.columnJoined}</TableHead>
                   <TableHead>{dict.adminReset.columnReset}</TableHead>
                   <TableHead />
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {users.map((u) => (
+                {users.map((u, i) => {
+                  const geo = geos[i];
+                  const geoText = geo ? formatGeo(geo) : null;
+                  return (
                   <TableRow key={u.id}>
                     <TableCell className="font-medium">{u.username}</TableCell>
                     <TableCell className="text-xs text-muted-foreground">
                       {u.email ?? "—"}
+                    </TableCell>
+                    <TableCell className="text-xs">
+                      {u.lastIp ? (
+                        <a
+                          href={`https://ping0.cc/ip/${encodeURIComponent(u.lastIp)}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          title={t.ipPingTooltip}
+                          className="font-mono tabular-nums text-accent hover:underline"
+                        >
+                          {u.lastIp}
+                        </a>
+                      ) : (
+                        <span className="text-fg-faint">—</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-xs text-fg-muted">
+                      {geoText ?? <span className="text-fg-faint">—</span>}
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground tabular-nums">
                       {formatDate(u.createdAt, locale)}
@@ -216,7 +255,8 @@ export default async function UsersPage({
                       {u.isAdmin && <Badge variant="outline">{t.badgeAdmin}</Badge>}
                     </TableCell>
                   </TableRow>
-                ))}
+                  );
+                })}
               </TableBody>
             </Table>
           </div>

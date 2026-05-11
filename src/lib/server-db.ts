@@ -154,6 +154,26 @@ function migrate(db: Database.Database): void {
          ON invite_tokens(code) WHERE code IS NOT NULL`
     );
   }
+
+  // v0.17: last-known IP per user, plus a separate ip_lookups cache for
+  // geolocation. We store country/region/city alongside the IP it
+  // belongs to and TTL the row (30 days) — ip-api.com is rate-limited
+  // and most users don't change locations from one login to the next.
+  if (!hasColumn(db, "users", "last_ip")) {
+    db.exec(`ALTER TABLE users ADD COLUMN last_ip TEXT`);
+  }
+  if (!hasColumn(db, "users", "last_ip_at")) {
+    db.exec(`ALTER TABLE users ADD COLUMN last_ip_at INTEGER`);
+  }
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS ip_lookups (
+      ip TEXT PRIMARY KEY,
+      country TEXT,
+      region TEXT,
+      city TEXT,
+      looked_up_at INTEGER NOT NULL
+    );
+  `);
 }
 
 export function openServerDb(): Database.Database {

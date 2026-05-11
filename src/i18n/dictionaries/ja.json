@@ -277,7 +277,11 @@
     "badgeAdmin": "管理者",
     "copyLink": "リンクをコピー",
     "copied": "コピーしました",
-    "copyError": "コピーできませんでした。手動でコピーしてください"
+    "copyError": "コピーできませんでした。手動でコピーしてください",
+    "editNote": "メモを編集",
+    "columnIp": "最終 IP",
+    "columnLocation": "ロケーション",
+    "ipPingTooltip": "ping0.cc で IP を確認"
   },
   "authForms": {
     "signIn": "サインイン",

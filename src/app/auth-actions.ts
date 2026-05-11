@@ -1,6 +1,6 @@
 "use server";
 
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import {
@@ -11,6 +11,7 @@ import {
   redeemInvite as redeemInviteInternal,
   lookupPasswordReset,
   completePasswordReset,
+  recordUserIp,
   SESSION_COOKIE,
 } from "@/lib/auth";
 import { isFirstRun, isMultiUserMode } from "@/lib/server-db";
@@ -25,6 +26,16 @@ function setSessionCookie(token: string) {
   );
 }
 
+// Pull the real client IP out of the request. Caddy sets X-Forwarded-For;
+// for direct connections (rare) we fall back to X-Real-IP. The XFF can
+// be a chain — `clientIp, proxy1, proxy2` — so we take the first hop.
+async function clientIpFromHeaders(): Promise<string> {
+  const h = await headers();
+  const fwd = h.get("x-forwarded-for");
+  if (fwd) return fwd.split(",")[0]?.trim() ?? "";
+  return h.get("x-real-ip")?.trim() ?? "";
+}
+
 export type AuthFormState = { error?: string };
 
 export async function loginAction(
@@ -36,6 +47,8 @@ export async function loginAction(
   if (!username || !password) return { error: "username and password are required" };
   const user = authenticate(username, password);
   if (!user) return { error: "invalid username or password" };
+  recordUserIp(user.id, await clientIpFromHeaders());
+  recordUserIp(user.id, await clientIpFromHeaders());
   const token = createSession(user.id);
   await setSessionCookie(token);
   revalidatePath("/", "layout");
@@ -72,6 +85,7 @@ export async function signupAction(
     password,
     isAdmin: true,
   });
+  recordUserIp(user.id, await clientIpFromHeaders());
   const token = createSession(user.id);
   await setSessionCookie(token);
   revalidatePath("/", "layout");
@@ -105,6 +119,7 @@ export async function redeemInviteAction(
     }
     return { error: msg };
   }
+  recordUserIp(user.id, await clientIpFromHeaders());
   const token = createSession(user.id);
   await setSessionCookie(token);
   revalidatePath("/", "layout");
@@ -152,6 +167,7 @@ export async function forgotPasswordCompleteAction(
   // Log the user in directly: the admin already vouched for them.
   const auth = authenticate(email, password);
   if (auth) {
+    recordUserIp(auth.id, await clientIpFromHeaders());
     const token = createSession(auth.id);
     await setSessionCookie(token);
   }
