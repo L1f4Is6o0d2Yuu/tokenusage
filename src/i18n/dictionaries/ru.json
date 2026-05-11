@@ -301,7 +301,7 @@
     "inviteInvalid": "Неверная ссылка приглашения.",
     "forgotPasswordLink": "Забыли пароль?",
     "inviteCodeLabel": "Код приглашения",
-    "inviteCodePlaceholder": "tui_…",
+    "inviteCodePlaceholder": "TU0000",
     "inviteCodeSubmit": "Продолжить",
     "inviteCodeMissing": "Вставьте код приглашения.",
     "policyHint": "8+ символов, буквы и цифра.",

@@ -301,7 +301,7 @@
     "inviteInvalid": "Lien d'invitation invalide.",
     "forgotPasswordLink": "Mot de passe oublié ?",
     "inviteCodeLabel": "Code d'invitation",
-    "inviteCodePlaceholder": "tui_…",
+    "inviteCodePlaceholder": "TU0000",
     "inviteCodeSubmit": "Continuer",
     "inviteCodeMissing": "Collez votre code d'invitation pour continuer.",
     "policyHint": "8+ caractères avec lettres et un chiffre.",

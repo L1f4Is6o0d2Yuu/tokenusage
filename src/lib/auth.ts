@@ -179,21 +179,42 @@ export type InviteRow = {
   note: string | null;
 };
 
+// Generates `TU####` — a 6-char invite code with a 2-letter prefix and 4
+// random digits. Collision-retry up to 50 times against existing rows.
+//
+// 10K-code space is tiny by crypto standards but acceptable for an
+// admin-issued, one-shot, 14-day-expiry coupon. Each new code is also
+// hashed into `token_hash` so the legacy lookup path keeps working for
+// callers that only know the hash; the lookup tries `code` first.
+//
+// The 4-digit format is a deliberate trade for shareability (a user can
+// type or read it over a phone call). If we ever need a bigger keyspace
+// the column already accepts longer strings.
+function generateInviteCode(db: ReturnType<typeof openServerDb>): string {
+  const stmt = db.prepare(`SELECT 1 FROM invite_tokens WHERE code = ? LIMIT 1`);
+  for (let i = 0; i < 50; i++) {
+    const n = crypto.randomInt(0, 10000).toString().padStart(4, "0");
+    const code = `TU${n}`;
+    if (!stmt.get(code)) return code;
+  }
+  throw new Error("invite code space exhausted — revoke expired invites and retry");
+}
+
 export function createInvite(adminUserId: number, note: string | null): {
   id: number;
   plaintext: string;
 } {
-  const plaintext = "tui_" + crypto.randomBytes(24).toString("hex");
   const db = openServerDb();
   try {
+    const code = generateInviteCode(db);
     const now = Date.now();
     const info = db
       .prepare(
-        `INSERT INTO invite_tokens (token_hash, created_by, created_at, expires_at, note)
-         VALUES (?, ?, ?, ?, ?)`
+        `INSERT INTO invite_tokens (token_hash, code, created_by, created_at, expires_at, note)
+         VALUES (?, ?, ?, ?, ?, ?)`
       )
-      .run(hashToken(plaintext), adminUserId, now, now + INVITE_TTL_MS, note);
-    return { id: Number(info.lastInsertRowid), plaintext };
+      .run(hashToken(code), code, adminUserId, now, now + INVITE_TTL_MS, note);
+    return { id: Number(info.lastInsertRowid), plaintext: code };
   } finally {
     db.close();
   }
@@ -223,6 +244,36 @@ export function revokeInvite(id: number): void {
   }
 }
 
+// Look up an invite row by either the new short code or the legacy hashed
+// token. New `TU####` codes match `code` directly; old `tui_…` tokens
+// resolve via sha256 like before. Either path returns the same row shape.
+function findInviteRow(
+  db: ReturnType<typeof openServerDb>,
+  plaintext: string
+): { id: number; expiresAt: number; usedAt: number | null } | undefined {
+  const trimmed = plaintext.trim();
+  // TU codes are case-insensitive for the user — we store and compare in
+  // uppercase. Legacy `tui_` tokens are case-sensitive hex, untouched.
+  const codeKey = /^tu\d{4}$/i.test(trimmed) ? trimmed.toUpperCase() : trimmed;
+  const byCode = db
+    .prepare(
+      `SELECT id, expires_at AS expiresAt, used_at AS usedAt
+       FROM invite_tokens WHERE code = ? LIMIT 1`
+    )
+    .get(codeKey) as
+    | { id: number; expiresAt: number; usedAt: number | null }
+    | undefined;
+  if (byCode) return byCode;
+  return db
+    .prepare(
+      `SELECT id, expires_at AS expiresAt, used_at AS usedAt
+       FROM invite_tokens WHERE token_hash = ? LIMIT 1`
+    )
+    .get(hashToken(trimmed)) as
+    | { id: number; expiresAt: number; usedAt: number | null }
+    | undefined;
+}
+
 // Validate a plaintext invite without consuming it. Used by the redemption
 // page to decide whether to render the form or an error.
 export function lookupInvite(plaintext: string):
@@ -230,14 +281,7 @@ export function lookupInvite(plaintext: string):
   | { ok: false; reason: "not-found" | "expired" | "used" } {
   const db = openServerDb();
   try {
-    const row = db
-      .prepare(
-        `SELECT id, expires_at AS expiresAt, used_at AS usedAt
-         FROM invite_tokens WHERE token_hash = ?`
-      )
-      .get(hashToken(plaintext)) as
-      | { id: number; expiresAt: number; usedAt: number | null }
-      | undefined;
+    const row = findInviteRow(db, plaintext);
     if (!row) return { ok: false, reason: "not-found" };
     if (row.usedAt != null) return { ok: false, reason: "used" };
     if (row.expiresAt < Date.now()) return { ok: false, reason: "expired" };
@@ -258,14 +302,7 @@ export function redeemInvite(
   const db = openServerDb();
   try {
     const txn = db.transaction(() => {
-      const inv = db
-        .prepare(
-          `SELECT id, expires_at AS expiresAt, used_at AS usedAt
-           FROM invite_tokens WHERE token_hash = ?`
-        )
-        .get(hashToken(plaintext)) as
-        | { id: number; expiresAt: number; usedAt: number | null }
-        | undefined;
+      const inv = findInviteRow(db, plaintext);
       if (!inv) throw new Error("invite not found");
       if (inv.usedAt != null) throw new Error("invite already used");
       if (inv.expiresAt < Date.now()) throw new Error("invite expired");
