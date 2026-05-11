@@ -505,8 +505,8 @@ function SummaryCard({
     <Card
       className={
         accent
-          ? "relative overflow-hidden transition-colors hover:border-foreground/30 before:absolute before:inset-y-0 before:left-0 before:w-[3px] before:bg-foreground/70"
-          : "transition-colors hover:border-foreground/30"
+          ? "relative overflow-hidden panel-hover before:absolute before:inset-y-0 before:left-0 before:w-[3px] before:bg-foreground/70"
+          : "panel-hover"
       }
     >
       <CardHeader className="pb-1">
@@ -550,7 +550,7 @@ function CacheCard({
         ? "text-foreground"
         : "text-amber-600 dark:text-amber-400";
   return (
-    <Card className="transition-colors hover:border-foreground/30">
+    <Card className="panel-hover">
       <CardHeader className="pb-1">
         <CardDescription className="text-[11px] font-medium uppercase tracking-wider">
           {t.cacheHitRate}

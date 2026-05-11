@@ -301,7 +301,7 @@
     "inviteInvalid": "邀請連結無效。",
     "forgotPasswordLink": "忘記密碼？",
     "inviteCodeLabel": "邀請碼",
-    "inviteCodePlaceholder": "tui_…",
+    "inviteCodePlaceholder": "TU0000",
     "inviteCodeSubmit": "繼續",
     "inviteCodeMissing": "請貼上邀請碼以繼續。",
     "policyHint": "至少 8 位，含字母和數字。",

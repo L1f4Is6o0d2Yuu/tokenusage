@@ -301,7 +301,7 @@
     "inviteInvalid": "유효하지 않은 초대 링크입니다.",
     "forgotPasswordLink": "비밀번호를 잊으셨나요?",
     "inviteCodeLabel": "초대 코드",
-    "inviteCodePlaceholder": "tui_…",
+    "inviteCodePlaceholder": "TU0000",
     "inviteCodeSubmit": "계속",
     "inviteCodeMissing": "초대 코드를 붙여넣어 주세요.",
     "policyHint": "8자 이상, 영문과 숫자 포함.",

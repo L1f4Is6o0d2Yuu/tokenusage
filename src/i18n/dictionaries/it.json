@@ -301,7 +301,7 @@
     "inviteInvalid": "Link di invito non valido.",
     "forgotPasswordLink": "Password dimenticata?",
     "inviteCodeLabel": "Codice invito",
-    "inviteCodePlaceholder": "tui_…",
+    "inviteCodePlaceholder": "TU0000",
     "inviteCodeSubmit": "Continua",
     "inviteCodeMissing": "Incolla il tuo codice invito.",
     "policyHint": "8+ caratteri con lettere e una cifra.",

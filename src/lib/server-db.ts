@@ -142,6 +142,18 @@ function migrate(db: Database.Database): void {
   if (!hasColumn(db, "users", "password_reset_at")) {
     db.exec(`ALTER TABLE users ADD COLUMN password_reset_at INTEGER`);
   }
+
+  // v0.17: short human-friendly invite codes (TU####). The legacy
+  // `token_hash` column stays — old `tui_…` invites keep working — but
+  // new invites populate `code` with a 6-char string the user can type.
+  // Partial unique index so old rows with NULL code don't conflict.
+  if (!hasColumn(db, "invite_tokens", "code")) {
+    db.exec(`ALTER TABLE invite_tokens ADD COLUMN code TEXT`);
+    db.exec(
+      `CREATE UNIQUE INDEX IF NOT EXISTS idx_invite_tokens_code_unique
+         ON invite_tokens(code) WHERE code IS NOT NULL`
+    );
+  }
 }
 
 export function openServerDb(): Database.Database {
