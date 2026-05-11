@@ -12,9 +12,11 @@ export type PlanId =
   | "claude-max-5x"
   | "claude-max-20x"
   | "claude-team"
+  | "chatgpt-go"
   | "chatgpt-plus"
   | "chatgpt-pro"
   | "chatgpt-team"
+  | "codex-go"
   | "codex-plus"
   | "codex-pro"
   | "cursor-pro"
@@ -25,7 +27,16 @@ export type PlanId =
   | "github-copilot-enterprise"
   | "deepseek-pro"
   | "kimi-premium"
-  | "qwen-plus";
+  | "qwen-plus"
+  | "mimo-lite"
+  | "mimo-standard"
+  | "mimo-pro"
+  | "mimo-max"
+  | "google-ai-pro"
+  | "perplexity-pro"
+  | "windsurf-pro"
+  | "replit-core"
+  | "ms365-copilot";
 
 export type PlanDef = {
   id: PlanId;
@@ -84,6 +95,13 @@ export const PLAN_CATALOG: PlanDef[] = [
     models: [/^gpt-/i, /^o\d/i, /chat-latest/i],
   },
   {
+    id: "chatgpt-go",
+    vendor: "OpenAI",
+    name: "ChatGPT Go",
+    monthlyUsd: 8,
+    models: [/^gpt-/i, /^o\d/i, /chat-latest/i],
+  },
+  {
     id: "chatgpt-plus",
     vendor: "OpenAI",
     name: "ChatGPT Plus",
@@ -94,7 +112,7 @@ export const PLAN_CATALOG: PlanDef[] = [
     id: "codex-pro",
     vendor: "OpenAI",
     name: "Codex Pro",
-    monthlyUsd: 200,
+    monthlyUsd: 100,
     models: [/^gpt-/i, /^o\d/i, /codex/i],
   },
   {
@@ -102,6 +120,13 @@ export const PLAN_CATALOG: PlanDef[] = [
     vendor: "OpenAI",
     name: "Codex Plus",
     monthlyUsd: 20,
+    models: [/^gpt-/i, /^o\d/i, /codex/i],
+  },
+  {
+    id: "codex-go",
+    vendor: "OpenAI",
+    name: "Codex Go",
+    monthlyUsd: 8,
     models: [/^gpt-/i, /^o\d/i, /codex/i],
   },
   {
@@ -166,6 +191,75 @@ export const PLAN_CATALOG: PlanDef[] = [
     name: "通义千问 Plus",
     monthlyUsd: 8,
     models: [/^qwen/i],
+  },
+  // 小米 MiMo Token Plan — four tiers, RMB billed; USD here is the
+  // sticker conversion at the time the catalog was written.
+  {
+    id: "mimo-max",
+    vendor: "Xiaomi",
+    name: "MiMo Max (¥659)",
+    monthlyUsd: 100,
+    models: [/mimo/i],
+  },
+  {
+    id: "mimo-pro",
+    vendor: "Xiaomi",
+    name: "MiMo Pro (¥329)",
+    monthlyUsd: 50,
+    models: [/mimo/i],
+  },
+  {
+    id: "mimo-standard",
+    vendor: "Xiaomi",
+    name: "MiMo Standard (¥99)",
+    monthlyUsd: 16,
+    models: [/mimo/i],
+  },
+  {
+    id: "mimo-lite",
+    vendor: "Xiaomi",
+    name: "MiMo Lite (¥39)",
+    monthlyUsd: 6,
+    models: [/mimo/i],
+  },
+  // Other AI tools / chat plans the user might be paying for. These
+  // don't necessarily emit token logs we can attribute usage to —
+  // ROI counts the subscription as cost, with usage credit only if a
+  // matching record appears. Still useful for tallying total burn.
+  {
+    id: "google-ai-pro",
+    vendor: "Google",
+    name: "Google AI Pro (Gemini Advanced)",
+    monthlyUsd: 20,
+    models: [/^gemini/i],
+  },
+  {
+    id: "perplexity-pro",
+    vendor: "Perplexity",
+    name: "Perplexity Pro",
+    monthlyUsd: 20,
+    models: [/^gpt-/i, /^claude-/i, /sonnet/i, /opus/i],
+  },
+  {
+    id: "windsurf-pro",
+    vendor: "Codeium",
+    name: "Windsurf Pro",
+    monthlyUsd: 15,
+    models: [/^claude-/i, /^gpt-/i, /sonnet/i],
+  },
+  {
+    id: "replit-core",
+    vendor: "Replit",
+    name: "Replit Core",
+    monthlyUsd: 25,
+    models: [/^claude-/i, /^gpt-/i, /sonnet/i],
+  },
+  {
+    id: "ms365-copilot",
+    vendor: "Microsoft",
+    name: "Microsoft 365 Copilot (per seat)",
+    monthlyUsd: 30,
+    models: [/^gpt-/i, /chat-latest/i],
   },
 ];
 
