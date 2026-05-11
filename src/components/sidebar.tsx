@@ -6,12 +6,12 @@ import {
   Users,
   Info,
   LogOut,
-  Activity,
 } from "lucide-react";
 import { logoutAction } from "@/app/auth-actions";
 import { ThemeSwitcher } from "@/components/theme-switcher";
 import { LocaleSwitcher } from "@/components/locale-switcher";
 import { SidebarNavLink } from "@/components/sidebar-nav-link";
+import { Logomark, Wordmark } from "@/components/logomark";
 import type { ComponentType, SVGProps } from "react";
 import type { Theme } from "@/lib/theme";
 import type { Dictionary, Locale } from "@/i18n/types";
@@ -49,29 +49,46 @@ export function Sidebar({
 
   return (
     <aside className="tu-slide-in sticky top-0 flex h-dvh w-60 shrink-0 flex-col border-r border-border-subtle bg-bg-sidebar text-sm">
-      {/* Brand */}
-      <div className="flex h-14 items-center gap-2 px-4">
-        <span className="flex h-7 w-7 items-center justify-center rounded-md bg-accent text-accent-fg">
-          <Activity className="h-4 w-4" strokeWidth={2.4} aria-hidden />
-        </span>
-        <span className="font-medium tracking-tight text-fg-strong">tokenusage</span>
-      </div>
+      {/* Brand: sparkline mark (animates on first paint) + word "tokenusage"
+          with the central 'u' painted in the accent indigo. */}
+      <Link
+        href="/"
+        className="flex h-14 items-center gap-2.5 px-4 text-accent transition-opacity hover:opacity-90"
+        aria-label="tokenusage"
+      >
+        <Logomark className="h-5 w-7 text-accent" />
+        <Wordmark className="text-[15px]" />
+      </Link>
 
-      {/* Primary nav */}
+      {/* Primary nav — each link fades in on a 40ms stagger after the
+          sidebar slides in. The cascade reads as "the nav is settling
+          into place" rather than "everything pops at once". */}
       <nav className="flex flex-1 flex-col gap-6 overflow-y-auto px-2 py-2">
         <SidebarSection label={t.nav.workspace}>
-          {primary.map((item) => (
-            <SidebarNavLink key={item.href} href={item.href} label={item.label}>
-              <item.icon className="h-4 w-4" strokeWidth={1.8} aria-hidden />
-            </SidebarNavLink>
+          {primary.map((item, i) => (
+            <div
+              key={item.href}
+              className="tu-fade-in"
+              style={{ animationDelay: `${180 + i * 40}ms` }}
+            >
+              <SidebarNavLink href={item.href} label={item.label}>
+                <item.icon className="h-4 w-4" strokeWidth={1.8} aria-hidden />
+              </SidebarNavLink>
+            </div>
           ))}
         </SidebarSection>
 
         <SidebarSection label={t.nav.account}>
-          {secondary.map((item) => (
-            <SidebarNavLink key={item.href} href={item.href} label={item.label}>
-              <item.icon className="h-4 w-4" strokeWidth={1.8} aria-hidden />
-            </SidebarNavLink>
+          {secondary.map((item, i) => (
+            <div
+              key={item.href}
+              className="tu-fade-in"
+              style={{ animationDelay: `${340 + i * 40}ms` }}
+            >
+              <SidebarNavLink href={item.href} label={item.label}>
+                <item.icon className="h-4 w-4" strokeWidth={1.8} aria-hidden />
+              </SidebarNavLink>
+            </div>
           ))}
         </SidebarSection>
       </nav>

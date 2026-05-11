@@ -215,20 +215,70 @@
  * ───────────────────────────────────────────────────────────────────────── */
 
 @keyframes tu-rise {
-  from { opacity: 0; transform: translateY(8px); }
+  from { opacity: 0; transform: translateY(6px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes tu-slide-in {
-  from { opacity: 0; transform: translateX(-12px); }
+  from { opacity: 0; transform: translateX(-10px); }
   to   { opacity: 1; transform: translateX(0); }
+}
+
+/* Sparkline brand mark "draws" itself in. pathLength is normalized to 100
+ * inside the SVG so the dash math doesn't depend on the actual length. */
+@keyframes tu-spark-draw {
+  from { stroke-dasharray: 100; stroke-dashoffset: 100; }
+  to   { stroke-dasharray: 100; stroke-dashoffset: 0; }
+}
+
+/* Trailing value dot: invisible until the line reaches it, then settles.
+ * A 1.1× overshoot at the midpoint gives the dot a hint of arrival weight
+ * without crossing into bouncy / Lottie territory. */
+@keyframes tu-spark-dot {
+  0%   { opacity: 0; transform: scale(0); }
+  60%  { opacity: 0; transform: scale(0); }
+  75%  { opacity: 1; transform: scale(1.1); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+/* Used by sidebar nav children to fade in sequentially after the sidebar
+ * itself slides in. Tiny — 220ms — so the whole sequence completes inside
+ * ~600ms even with the longest stagger. */
+@keyframes tu-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 
 @media (prefers-reduced-motion: no-preference) {
   .tu-rise {
-    animation: tu-rise 360ms cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation: tu-rise 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
   }
   .tu-slide-in {
     animation: tu-slide-in 380ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  .tu-fade-in {
+    animation: tu-fade-in 240ms ease-out both;
+  }
+  .tu-spark-draw {
+    animation: tu-spark-draw 700ms cubic-bezier(0.65, 0, 0.35, 1) both;
+  }
+  .tu-spark-dot {
+    transform-origin: 60px 16px;
+    animation: tu-spark-dot 1000ms cubic-bezier(0.34, 1.4, 0.64, 1) both;
+  }
+}
+
+/* Reduced-motion fallback: the line is still there, just static. Without
+ * this, users on reduced-motion would see the path stay invisible because
+ * stroke-dasharray would never be cleared. */
+@media (prefers-reduced-motion: reduce) {
+  .tu-spark-draw, .tu-spark-dot { animation: none; }
+}
+
+/* Lift cards on hover — subtle 1px nudge + border tone shift. Reads as
+ * "this is interactive" without yelling. */
+@layer components {
+  .panel-hover {
+    @apply transition-[transform,border-color] duration-200 ease-out hover:-translate-y-px hover:border-accent/40;
   }
 }
