@@ -15,7 +15,7 @@ import { OnboardingCard } from "@/components/onboarding-card";
 import { AgentStatusBar } from "@/components/agent-status-bar";
 import { ModelPriceTooltip } from "@/components/model-price-tooltip";
 import { computeRoi, periodDays, type PlanLite } from "@/lib/roi-client";
-import { pickEncouragement } from "@/lib/encouragement";
+import { pickDailyTaunt, pickRoiLine } from "@/lib/encouragement";
 import {
   Card,
   CardContent,
@@ -727,7 +727,12 @@ function SubscriptionRoiPanel({
 
   const days = periodDays(period, customRange);
   const roi = computeRoi(apiSpendUsd, plans, days);
-  const encouragement = pickEncouragement(roi.milestoneBand, locale, userKey);
+  // Today / 24h get the absolute-spend taunt corpus ($3 steps).
+  // Longer windows use the ROI band corpus (10% steps past break-even).
+  const isDaily = period === "today" || period === "24h";
+  const message = isDaily
+    ? pickDailyTaunt(apiSpendUsd, plans, locale, userKey)
+    : pickRoiLine(roi.milestoneBand, roi.netUsd, plans, locale, userKey);
   const inProfit = roi.netUsd >= 0;
   const periodLabel = t.period[period].toLowerCase();
 
@@ -782,9 +787,20 @@ function SubscriptionRoiPanel({
                 style={{ width: `${Math.min(roi.ratioPct, 100)}%` }}
               />
             </div>
-            {encouragement && (
-              <p className="mt-3 text-center text-sm italic text-fg-default">
-                {encouragement}
+            {message && (
+              <p
+                className={
+                  "mt-3 text-center text-sm italic " +
+                  (message.tone === "roast"
+                    ? "text-danger"
+                    : message.tone === "tease"
+                      ? "text-warning"
+                      : message.tone === "shade"
+                        ? "text-fg-muted"
+                        : "text-success")
+                }
+              >
+                {message.text}
               </p>
             )}
           </div>
