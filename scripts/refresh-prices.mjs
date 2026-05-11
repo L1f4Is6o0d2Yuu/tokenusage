@@ -38,11 +38,14 @@ const PER_M = 1_000_000;
 // most often be running.
 
 const MAP = {
+  // ─── OpenAI ────────────────────────────────────────────────────
   "^gpt-5\\.5":         ["openai/gpt-5.5"],
   "^gpt-5\\.4":         ["openai/gpt-5.4"],
   "^gpt-5":             ["openai/gpt-5"],
   "^o4-mini":           ["openai/o4-mini"],
   "^o4":                ["openai/o4"],
+
+  // ─── Anthropic ─────────────────────────────────────────────────
   "opus":               [
     "anthropic/claude-opus-4.7",
     "anthropic/claude-opus-4.6",
@@ -59,13 +62,67 @@ const MAP = {
     "anthropic/claude-haiku-4.5",
     "anthropic/claude-haiku-3.5",
   ],
-  "deepseek-reasoner":  ["deepseek/deepseek-r1", "deepseek/deepseek-reasoner"],
-  "deepseek":           ["deepseek/deepseek-chat", "deepseek/deepseek-v3"],
+
+  // ─── Google ────────────────────────────────────────────────────
   "gemini.*pro":        [
     "google/gemini-3-pro",
     "google/gemini-2.5-pro",
     "google/gemini-2-pro",
   ],
+  "gemini.*flash":      [
+    "google/gemini-3-flash",
+    "google/gemini-2.5-flash",
+  ],
+
+  // ─── DeepSeek (国内 + 海外都以 deepseek- 开头) ─────────────────
+  "deepseek-reasoner":  [
+    "deepseek/deepseek-r1",
+    "deepseek/deepseek-reasoner",
+    "deepseek/deepseek-v3.2",
+  ],
+  "deepseek-coder":     [
+    "deepseek/deepseek-coder",
+    "deepseek/deepseek-v3.2",
+  ],
+  "deepseek":           [
+    "deepseek/deepseek-chat",
+    "deepseek/deepseek-v4-flash",
+    "deepseek/deepseek-v3.2",
+  ],
+
+  // ─── 小米 MiMo (国内 mimo-* / 海外 xiaomi/mimo-*) ──────────────
+  "^(xiaomi[/-])?mimo": [
+    "xiaomi/mimo-v2.5-pro",
+    "xiaomi/mimo-v2-pro",
+    "xiaomi/mimo-v2.5",
+  ],
+  "^(xiaomi[/-])?mimo-flash": ["xiaomi/mimo-v2-flash"],
+
+  // ─── 通义千问 Qwen (阿里) ──────────────────────────────────────
+  // 顺序：specific → generic。Coder 先于 max 先于 plus 先于 flash 先于通配。
+  "qwen.*coder":        ["qwen/qwen3-coder-plus", "qwen/qwen3-coder-next"],
+  "qwen.*max":          ["qwen/qwen3-max-thinking", "qwen/qwen3-max"],
+  "qwen.*plus":         ["qwen/qwen3.5-plus-20260420", "qwen/qwen3.5-plus-02-15"],
+  "qwen.*flash":        ["qwen/qwen3.6-flash", "qwen/qwen3.5-flash-02-23"],
+  "qwen":               ["qwen/qwen3.6-flash"],
+
+  // ─── 月之暗面 Kimi / Moonshot ──────────────────────────────────
+  "^(moonshot[/-])?kimi": ["moonshotai/kimi-k2.6", "moonshotai/kimi-k2.5"],
+
+  // ─── 智谱 GLM ─────────────────────────────────────────────────
+  "^glm|zhipu":         ["z-ai/glm-5.1", "z-ai/glm-5", "z-ai/glm-4.7"],
+
+  // ─── MiniMax ──────────────────────────────────────────────────
+  "minimax":            ["minimax/minimax-m2.7", "minimax/minimax-m2"],
+
+  // ─── 百度 文心 ERNIE ───────────────────────────────────────────
+  "ernie|wenxin":       ["baidu/ernie-4.5-21b-a3b-thinking"],
+
+  // ─── 腾讯 混元 ─────────────────────────────────────────────────
+  "hunyuan|^tencent":   ["tencent/hy3-preview"],
+
+  // ─── 阶跃星辰 Stepfun ─────────────────────────────────────────
+  "^step|stepfun":      ["stepfun/step-3.5-flash"],
 };
 
 // ─── plumbing ────────────────────────────────────────────────────────────

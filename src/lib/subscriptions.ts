@@ -11,13 +11,21 @@ export type PlanId =
   | "claude-pro"
   | "claude-max-5x"
   | "claude-max-20x"
+  | "claude-team"
   | "chatgpt-plus"
   | "chatgpt-pro"
+  | "chatgpt-team"
   | "codex-plus"
   | "codex-pro"
   | "cursor-pro"
+  | "cursor-ultra"
+  | "cursor-team"
   | "github-copilot-pro"
-  | "deepseek-pro";
+  | "github-copilot-business"
+  | "github-copilot-enterprise"
+  | "deepseek-pro"
+  | "kimi-premium"
+  | "qwen-plus";
 
 export type PlanDef = {
   id: PlanId;
@@ -33,6 +41,13 @@ export type PlanDef = {
 };
 
 export const PLAN_CATALOG: PlanDef[] = [
+  {
+    id: "claude-team",
+    vendor: "Anthropic",
+    name: "Claude Team (per seat)",
+    monthlyUsd: 30,
+    models: [/^claude-/i, /opus/i, /sonnet/i, /haiku/i],
+  },
   {
     id: "claude-max-20x",
     vendor: "Anthropic",
@@ -53,6 +68,13 @@ export const PLAN_CATALOG: PlanDef[] = [
     name: "Claude Pro",
     monthlyUsd: 20,
     models: [/^claude-/i, /opus/i, /sonnet/i, /haiku/i],
+  },
+  {
+    id: "chatgpt-team",
+    vendor: "OpenAI",
+    name: "ChatGPT Team (per seat)",
+    monthlyUsd: 30,
+    models: [/^gpt-/i, /^o\d/i, /chat-latest/i],
   },
   {
     id: "chatgpt-pro",
@@ -83,11 +105,39 @@ export const PLAN_CATALOG: PlanDef[] = [
     models: [/^gpt-/i, /^o\d/i, /codex/i],
   },
   {
+    id: "cursor-ultra",
+    vendor: "Cursor",
+    name: "Cursor Ultra",
+    monthlyUsd: 200,
+    models: [/^claude-/i, /^gpt-/i, /sonnet/i, /opus/i],
+  },
+  {
+    id: "cursor-team",
+    vendor: "Cursor",
+    name: "Cursor Team (per seat)",
+    monthlyUsd: 40,
+    models: [/^claude-/i, /^gpt-/i, /sonnet/i, /opus/i],
+  },
+  {
     id: "cursor-pro",
     vendor: "Cursor",
     name: "Cursor Pro",
     monthlyUsd: 20,
     models: [/^claude-/i, /^gpt-/i, /sonnet/i, /opus/i],
+  },
+  {
+    id: "github-copilot-enterprise",
+    vendor: "GitHub",
+    name: "Copilot Enterprise (per seat)",
+    monthlyUsd: 39,
+    models: [/^gpt-/i, /^claude-/i, /sonnet/i],
+  },
+  {
+    id: "github-copilot-business",
+    vendor: "GitHub",
+    name: "Copilot Business (per seat)",
+    monthlyUsd: 19,
+    models: [/^gpt-/i, /^claude-/i, /sonnet/i],
   },
   {
     id: "github-copilot-pro",
@@ -102,6 +152,20 @@ export const PLAN_CATALOG: PlanDef[] = [
     name: "DeepSeek Pro",
     monthlyUsd: 10,
     models: [/^deepseek/i],
+  },
+  {
+    id: "kimi-premium",
+    vendor: "Moonshot",
+    name: "Kimi Premium",
+    monthlyUsd: 14,
+    models: [/^kimi/i, /^moonshot/i],
+  },
+  {
+    id: "qwen-plus",
+    vendor: "Alibaba",
+    name: "通义千问 Plus",
+    monthlyUsd: 8,
+    models: [/^qwen/i],
   },
 ];
 
