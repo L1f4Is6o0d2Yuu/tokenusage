@@ -297,5 +297,14 @@
     "inviteUsed": "이 초대는 이미 사용되었습니다.",
     "inviteExpired": "이 초대는 만료되었습니다. 관리자에게 새로 요청하세요.",
     "inviteInvalid": "유효하지 않은 초대 링크입니다."
+  },
+  "nav": {
+    "workspace": "워크스페이스",
+    "account": "계정",
+    "dashboard": "대시보드",
+    "tokens": "API 토큰",
+    "prices": "요금",
+    "users": "사용자",
+    "about": "소개"
   }
 }

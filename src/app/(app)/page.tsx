@@ -1,18 +1,13 @@
 import Link from "next/link";
-import { cookies } from "next/headers";
 import { loadRecords } from "@/lib/adapters";
 import { aggregate, filterByPeriod, pickGranularity } from "@/lib/aggregate";
 import { type CustomRange, type Period, type UsageRecord } from "@/lib/types";
 import { formatInt, formatTokens, formatUsd } from "@/lib/format";
-import { isTheme, THEME_COOKIE, type Theme } from "@/lib/theme";
 import { requireUser } from "@/lib/auth-guard";
-import { logoutAction } from "@/app/auth-actions";
 import { countServerRecords } from "@/lib/adapters";
 import { getUserSyncState, getLatestAgentSeenAt } from "@/lib/sync-state";
 import { PeriodTabs } from "@/components/period-tabs";
 import { UsageTrend } from "@/components/usage-trend";
-import { LocaleSwitcher } from "@/components/locale-switcher";
-import { ThemeSwitcher } from "@/components/theme-switcher";
 import { OnboardingCard } from "@/components/onboarding-card";
 import { AgentStatusBar } from "@/components/agent-status-bar";
 import { ModelPriceTooltip } from "@/components/model-price-tooltip";
@@ -68,9 +63,6 @@ export default async function Page({
   const currentUser = await requireUser();
   const locale = await readLocale();
   const t = await getDictionary(locale);
-  const cookieStore = await cookies();
-  const themeRaw = cookieStore.get(THEME_COOKIE)?.value;
-  const theme: Theme = isTheme(themeRaw) ? themeRaw : "system";
 
   const { records, sources, fellBackToSample, mode } = await loadRecords();
   const scoped = filterByPeriod(records, period, customRange);
@@ -94,78 +86,45 @@ export default async function Page({
       : null;
 
   return (
-    <main className="mx-auto w-full max-w-6xl px-6 py-10">
-      <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">{t.meta.title}</h1>
-          <p className="mt-1.5 text-sm text-muted-foreground">{t.header.tagline}</p>
+    <>
+      {/* Top bar — title left, period filter right. Borrowed from Grafana's
+          dashboard header rhythm: thin, sticky, one line. */}
+      <header className="sticky top-0 z-10 flex flex-col gap-3 border-b border-border-subtle bg-bg-app/85 px-6 py-3 backdrop-blur md:flex-row md:items-center md:justify-between">
+        <div className="min-w-0">
+          <h1 className="text-base font-medium tracking-tight text-fg-strong">
+            {t.meta.title}
+          </h1>
+          <p className="truncate text-[12px] text-fg-muted">{t.header.tagline}</p>
         </div>
-        <div className="flex w-full flex-col gap-3 sm:w-auto sm:items-end">
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-            {currentUser && (
-              <div className="flex items-center gap-2 text-xs">
-                <Link
-                  href="/tokens"
-                  className="font-mono text-foreground hover:underline"
-                >
-                  {currentUser.username}
-                </Link>
-                {currentUser.isAdmin && (
-                  <Link
-                    href="/users"
-                    className="text-muted-foreground transition-colors hover:text-foreground"
-                  >
-                    {t.navHeader.users}
-                  </Link>
-                )}
-                <Link
-                  href="/about"
-                  className="text-muted-foreground transition-colors hover:text-foreground"
-                >
-                  {t.navHeader.about}
-                </Link>
-                <form action={logoutAction}>
-                  <button
-                    type="submit"
-                    className="text-muted-foreground hover:text-foreground"
-                  >
-                    {t.navHeader.signOut}
-                  </button>
-                </form>
-              </div>
-            )}
-            <ThemeSwitcher active={theme} labels={t.theme} />
-            <LocaleSwitcher active={locale} label={t.language.label} />
-          </div>
-          <PeriodTabs active={period} custom={customRange} t={t.period} />
-        </div>
+        <PeriodTabs active={period} custom={customRange} t={t.period} />
       </header>
 
-      <SourceBanner
-        sources={sources}
-        fellBack={fellBackToSample}
-        t={t.banner}
-      />
+      <div className="flex-1 px-6 py-5">
+          <SourceBanner
+            sources={sources}
+            fellBack={fellBackToSample}
+            t={t.banner}
+          />
 
-      {syncState && (
-        <AgentStatusBar
-          lastSyncedAt={syncState.lastUploadedAt}
-          agentSeenAt={agentSeenAt}
-          intervalSeconds={syncState.syncIntervalSeconds}
-          paused={syncState.paused}
-          t={t.agent}
-        />
-      )}
+          {syncState && (
+            <AgentStatusBar
+              lastSyncedAt={syncState.lastUploadedAt}
+              agentSeenAt={agentSeenAt}
+              intervalSeconds={syncState.syncIntervalSeconds}
+              paused={syncState.paused}
+              t={t.agent}
+            />
+          )}
 
-      {showOnboarding && currentUser && (
-        <OnboardingCard
-          username={currentUser.username}
-          t={t.onboarding}
-          installT={t.install}
-        />
-      )}
+          {showOnboarding && currentUser && (
+            <OnboardingCard
+              username={currentUser.username}
+              t={t.onboarding}
+              installT={t.install}
+            />
+          )}
 
-      <section className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <section className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <SummaryCard
           accent
           label={t.cards.totalSpend}
@@ -196,7 +155,7 @@ export default async function Page({
         />
       </section>
 
-      <section className="mt-8 grid gap-4 lg:grid-cols-3">
+      <section className="mt-6 grid gap-3 lg:grid-cols-3">
         <Card className="lg:col-span-2">
           <CardHeader>
             <CardTitle>
@@ -275,7 +234,7 @@ export default async function Page({
         </Card>
       </section>
 
-      <section className="mt-8">
+      <section className="mt-6">
         <Card>
           <CardHeader className="flex flex-col items-start gap-4 sm:flex-row sm:justify-between">
             <div className="space-y-1">
@@ -387,7 +346,7 @@ export default async function Page({
         </Card>
       </section>
 
-      <section className="mt-8">
+      <section className="mt-6">
         <Card>
           <CardHeader>
             <CardTitle>{t.recent.title}</CardTitle>
@@ -403,7 +362,8 @@ export default async function Page({
           </CardContent>
         </Card>
       </section>
-    </main>
+      </div>
+    </>
   );
 }
 

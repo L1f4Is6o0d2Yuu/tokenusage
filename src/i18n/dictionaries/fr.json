@@ -297,5 +297,14 @@
     "inviteUsed": "Cette invitation a déjà été utilisée.",
     "inviteExpired": "Cette invitation a expiré. Demandez-en une nouvelle à l'admin.",
     "inviteInvalid": "Lien d'invitation invalide."
+  },
+  "nav": {
+    "workspace": "Espace de travail",
+    "account": "Compte",
+    "dashboard": "Tableau de bord",
+    "tokens": "Jetons API",
+    "prices": "Tarifs",
+    "users": "Utilisateurs",
+    "about": "À propos"
   }
 }

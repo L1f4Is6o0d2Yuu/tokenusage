@@ -297,5 +297,14 @@
     "inviteUsed": "This invite has already been used.",
     "inviteExpired": "This invite has expired. Ask the admin for a new one.",
     "inviteInvalid": "Invalid invite link."
+  },
+  "nav": {
+    "workspace": "Workspace",
+    "account": "Account",
+    "dashboard": "Dashboard",
+    "tokens": "API tokens",
+    "prices": "Prices",
+    "users": "Users",
+    "about": "About"
   }
 }

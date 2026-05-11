@@ -297,5 +297,14 @@
     "inviteUsed": "Esta invitación ya se usó.",
     "inviteExpired": "Esta invitación caducó. Pide una nueva al admin.",
     "inviteInvalid": "Enlace de invitación inválido."
+  },
+  "nav": {
+    "workspace": "Espacio",
+    "account": "Cuenta",
+    "dashboard": "Panel",
+    "tokens": "Tokens API",
+    "prices": "Precios",
+    "users": "Usuarios",
+    "about": "Acerca de"
   }
 }

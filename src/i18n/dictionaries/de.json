@@ -297,5 +297,14 @@
     "inviteUsed": "Diese Einladung wurde bereits verwendet.",
     "inviteExpired": "Diese Einladung ist abgelaufen. Bitte den Admin um eine neue.",
     "inviteInvalid": "Ungültiger Einladungslink."
+  },
+  "nav": {
+    "workspace": "Arbeitsbereich",
+    "account": "Konto",
+    "dashboard": "Dashboard",
+    "tokens": "API-Token",
+    "prices": "Preise",
+    "users": "Nutzer",
+    "about": "Über"
   }
 }
