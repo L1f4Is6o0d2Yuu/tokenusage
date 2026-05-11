@@ -232,8 +232,28 @@ upload() {
   TMP="$(mktemp -d -t tokenusage-XXXXXX)"
 
   mkdir -p "$TMP/payload"
+
+  # Hermes state.db can grow to multi-GB (route_outcomes, kanban, logs,
+  # etc.) and easily blow past the server's 500MB upload cap. We only
+  # read the `sessions` table on the server, so slim the file down to
+  # just that table before tarring. If sqlite3 isn't available, fall
+  # back to copying the raw file only when it's still under a soft cap
+  # — past that we'd rather have no hermes data than a failed sync.
   if [ -f "$HOME/.hermes/state.db" ]; then
-    cp "$HOME/.hermes/state.db" "$TMP/payload/hermes.db"
+    if command -v sqlite3 >/dev/null 2>&1; then
+      if ! sqlite3 "$HOME/.hermes/state.db" ".dump sessions" 2>/dev/null \
+           | sqlite3 "$TMP/payload/hermes.db" 2>/dev/null; then
+        rm -f "$TMP/payload/hermes.db"
+        printf '[%s] hermes slim failed — skipping (will retry next cycle)\n' "$(ts)"
+      fi
+    else
+      _hsize=$(wc -c < "$HOME/.hermes/state.db" | tr -d ' ')
+      if [ "$_hsize" -lt 209715200 ]; then
+        cp "$HOME/.hermes/state.db" "$TMP/payload/hermes.db"
+      else
+        printf '[%s] hermes state.db is %s bytes — install sqlite3 to slim it, skipping\n' "$(ts)" "$_hsize"
+      fi
+    fi
   fi
 
   # Codex: legacy `~/.codex` + XDG `~/.config/codex`. Merge both into one
