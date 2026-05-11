@@ -38,6 +38,10 @@
     "totalTokens": "Total de tokens",
     "inputOutput": "Entrada / Saída",
     "cacheRead": "Leitura de cache",
+    "cacheHitRate": "Taxa de acertos",
+    "cacheHit": "Acerto",
+    "cacheMiss": "Falha",
+    "cacheWritten": "Gravados",
     "estimated": "estimado",
     "partialCost": "dados de custo parciais",
     "nonCache": "sem cache",
@@ -80,6 +84,36 @@
     "description": "Últimas 10 deste período — clique para inspecionar.",
     "empty": "Sem sessões neste período.",
     "untitled": "(sessão sem título)"
+  },
+  "priceTooltip": {
+    "priceTable": "Preço por milhão de tokens",
+    "thisRow": "Esta linha",
+    "total": "Total estimado",
+    "input": "Entrada",
+    "output": "Saída",
+    "cacheRead": "Leitura cache",
+    "cacheWrite": "Escrita cache",
+    "reasoning": "Raciocínio",
+    "perM": "/M"
+  },
+  "about": {
+    "title": "Como o tokenusage funciona",
+    "subtitle": "O que rastreamos, o que não conseguimos, e como os custos são calculados.",
+    "back": "← Voltar ao painel",
+    "trackedTitle": "O que rastreamos",
+    "trackedIntro": "Cada linha abaixo é uma fonte real na sua máquina. Os números vêm de arquivos locais — no modo single-user nada sai do computador.",
+    "colSource": "Fonte",
+    "colWhere": "Onde",
+    "colWhat": "O que contamos",
+    "untrackedTitle": "O que não conseguimos rastrear",
+    "untrackedIntro": "São limitações dos provedores, não do painel.",
+    "costTitle": "Como os custos são calculados",
+    "costIntro": "Tokens × tabela de preço por token (data/prices.default.json). Edite os preços em /prices para sobrescrever.",
+    "costNote": "Estimativas, não faturas. A cobrança do provedor inclui arredondamentos, promoções, créditos grátis e renomeações de modelo. Confie na fatura oficial para o valor final.",
+    "dedupTitle": "Deduplicação",
+    "dedupIntro": "O Claude Code serializa uma resposta da API em várias linhas JSONL (uma por bloco de conteúdo — texto / tool-use / thinking), cada uma com o mesmo usage. Deduplicamos por message.id (fallback requestId) para contar cada chamada uma única vez. Numa sessão típica isso elimina 30–50% de tokens duplicados.",
+    "privacyTitle": "Privacidade",
+    "privacyIntro": "O modo single-user é totalmente local — sem rede, sem telemetria. O modo multi-user envia apenas contagens de uso (tokens, timestamps, custo) para o servidor que você controla. O conteúdo das conversas nunca é lido nem transmitido."
   },
   "session": {
     "back": "← Voltar ao painel",
@@ -134,7 +168,8 @@
   },
   "navHeader": {
     "users": "Usuários",
-    "signOut": "Sair"
+    "signOut": "Sair",
+    "about": "Sobre"
   },
   "agent": {
     "statusLive": "Agente online",
@@ -237,7 +272,10 @@
     "columnUsername": "Usuário",
     "columnEmail": "Email",
     "columnJoined": "Entrou em",
-    "badgeAdmin": "admin"
+    "badgeAdmin": "admin",
+    "copyLink": "Copiar link",
+    "copied": "Copiado",
+    "copyError": "Não foi possível copiar — copie manualmente"
   },
   "authForms": {
     "signIn": "Entrar",

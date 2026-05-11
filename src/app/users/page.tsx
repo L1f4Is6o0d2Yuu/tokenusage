@@ -5,6 +5,7 @@ import { isMultiUserMode } from "@/lib/server-db";
 import { getPublicUrl } from "@/lib/public-url";
 import { createInviteAction, revokeInviteAction } from "./actions";
 import { SubmitButton } from "@/components/submit-button";
+import { CopyInviteLink } from "@/components/copy-invite-link";
 import { getDictionary, readLocale } from "@/i18n";
 import {
   Card,
@@ -67,9 +68,10 @@ export default async function UsersPage({
             <CardDescription>{t.inviteCreatedDescription}</CardDescription>
           </CardHeader>
           <CardContent>
-            <code className="block w-full break-all rounded border bg-background px-3 py-2 font-mono text-sm">
-              {`${origin}/signup?invite=${newInvite}`}
-            </code>
+            <CopyInviteLink
+              url={`${origin}/signup?invite=${newInvite}`}
+              t={{ copyLink: t.copyLink, copied: t.copied, copyError: t.copyError }}
+            />
           </CardContent>
         </Card>
       )}

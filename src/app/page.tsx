@@ -15,6 +15,8 @@ import { LocaleSwitcher } from "@/components/locale-switcher";
 import { ThemeSwitcher } from "@/components/theme-switcher";
 import { OnboardingCard } from "@/components/onboarding-card";
 import { AgentStatusBar } from "@/components/agent-status-bar";
+import { ModelPriceTooltip } from "@/components/model-price-tooltip";
+import { getPricing } from "@/lib/pricing";
 import { getDictionary, readLocale } from "@/i18n";
 import { interp } from "@/i18n/interp";
 import {
@@ -95,8 +97,8 @@ export default async function Page({
     <main className="mx-auto w-full max-w-6xl px-6 py-10">
       <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">{t.meta.title}</h1>
-          <p className="mt-1 text-sm text-muted-foreground">{t.header.tagline}</p>
+          <h1 className="text-3xl font-bold tracking-tight">{t.meta.title}</h1>
+          <p className="mt-1.5 text-sm text-muted-foreground">{t.header.tagline}</p>
         </div>
         <div className="flex w-full flex-col gap-3 sm:w-auto sm:items-end">
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
@@ -111,11 +113,17 @@ export default async function Page({
                 {currentUser.isAdmin && (
                   <Link
                     href="/users"
-                    className="text-muted-foreground hover:text-foreground"
+                    className="text-muted-foreground transition-colors hover:text-foreground"
                   >
                     {t.navHeader.users}
                   </Link>
                 )}
+                <Link
+                  href="/about"
+                  className="text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  {t.navHeader.about}
+                </Link>
                 <form action={logoutAction}>
                   <button
                     type="submit"
@@ -159,6 +167,7 @@ export default async function Page({
 
       <section className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <SummaryCard
+          accent
           label={t.cards.totalSpend}
           value={
             agg.totals.costKnown
@@ -179,10 +188,11 @@ export default async function Page({
           )}`}
           hint={t.cards.nonCache}
         />
-        <SummaryCard
-          label={t.cards.cacheRead}
-          value={formatTokens(agg.totals.cacheReadTokens)}
-          hint={interp(t.cards.written, { f: formatTokens(agg.totals.cacheWriteTokens) })}
+        <CacheCard
+          hitTokens={agg.totals.cacheReadTokens}
+          missTokens={agg.totals.inputTokens}
+          writtenTokens={agg.totals.cacheWriteTokens}
+          t={t.cards}
         />
       </section>
 
@@ -221,18 +231,33 @@ export default async function Page({
                   ? 0
                   : Math.round((m.totalTokens / agg.totals.totalTokens) * 100);
               return (
-                <div key={`${m.provider}-${m.model}`} className="space-y-1">
+                <div key={`${m.provider}-${m.model}`} className="space-y-1.5">
                   <div className="flex items-center justify-between text-sm">
-                    <span className="font-medium">{m.model}</span>
-                    <span className="text-muted-foreground">{share}%</span>
+                    <ModelPriceTooltip
+                      model={m.model}
+                      provider={m.provider}
+                      pricing={getPricing(m.model)}
+                      usage={{
+                        input: m.inputTokens,
+                        output: m.outputTokens,
+                        cacheRead: m.cacheReadTokens,
+                        cacheWrite: m.cacheWriteTokens,
+                        reasoning: m.reasoningTokens,
+                      }}
+                      t={t.priceTooltip}
+                      className="truncate font-mono text-xs"
+                    >
+                      {m.model}
+                    </ModelPriceTooltip>
+                    <span className="tabular-nums text-muted-foreground">{share}%</span>
                   </div>
                   <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
                     <div
-                      className="h-full bg-foreground"
+                      className="h-full rounded-full bg-foreground/80 transition-[width] duration-500 ease-out"
                       style={{ width: `${share}%` }}
                     />
                   </div>
-                  <div className="flex justify-between text-xs text-muted-foreground">
+                  <div className="flex justify-between text-xs text-muted-foreground tabular-nums">
                     <span>{formatTokens(m.totalTokens)}</span>
                     <span>
                       {m.costKnown
@@ -293,12 +318,33 @@ export default async function Page({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {agg.byModel.map((m) => (
-                  <TableRow key={`${m.provider}-${m.model}`}>
+                {agg.byModel.map((m, i) => (
+                  <TableRow
+                    key={`${m.provider}-${m.model}`}
+                    className={
+                      i % 2 === 1 ? "bg-muted/30 transition-colors" : "transition-colors"
+                    }
+                  >
                     <TableCell>
                       <Badge variant="outline">{m.provider}</Badge>
                     </TableCell>
-                    <TableCell className="font-medium">{m.model}</TableCell>
+                    <TableCell className="font-mono text-sm">
+                      <ModelPriceTooltip
+                        model={m.model}
+                        provider={m.provider}
+                        pricing={getPricing(m.model)}
+                        usage={{
+                          input: m.inputTokens,
+                          output: m.outputTokens,
+                          cacheRead: m.cacheReadTokens,
+                          cacheWrite: m.cacheWriteTokens,
+                          reasoning: m.reasoningTokens,
+                        }}
+                        t={t.priceTooltip}
+                      >
+                        {m.model}
+                      </ModelPriceTooltip>
+                    </TableCell>
                     <TableCell className="text-right tabular-nums">
                       {formatInt(m.records)}
                     </TableCell>
@@ -348,7 +394,12 @@ export default async function Page({
             <CardDescription>{t.recent.description}</CardDescription>
           </CardHeader>
           <CardContent className="p-0">
-            <RecentSessions records={recent} t={t.recent} locale={locale} />
+            <RecentSessions
+              records={recent}
+              t={t.recent}
+              tPrice={t.priceTooltip}
+              locale={locale}
+            />
           </CardContent>
         </Card>
       </section>
@@ -359,10 +410,12 @@ export default async function Page({
 function RecentSessions({
   records,
   t,
+  tPrice,
   locale,
 }: {
   records: UsageRecord[];
   t: Dictionary["recent"];
+  tPrice: Dictionary["priceTooltip"];
   locale: string;
 }) {
   if (records.length === 0) {
@@ -388,7 +441,7 @@ function RecentSessions({
           <li key={r.id}>
             <Link
               href={href}
-              className="flex items-center gap-4 px-6 py-3 transition-colors hover:bg-muted/40"
+              className="group flex items-center gap-4 px-6 py-3 transition-colors hover:bg-muted/50"
             >
               <Badge variant="outline" className="shrink-0">
                 {r.provider}
@@ -397,7 +450,25 @@ function RecentSessions({
                 {r.title ?? t.untitled}
               </span>
               <span className="hidden shrink-0 font-mono text-xs text-muted-foreground sm:inline">
-                {r.model ?? "?"}
+                {r.model ? (
+                  <ModelPriceTooltip
+                    model={r.model}
+                    provider={r.provider}
+                    pricing={getPricing(r.model)}
+                    usage={{
+                      input: r.inputTokens,
+                      output: r.outputTokens,
+                      cacheRead: r.cacheReadTokens,
+                      cacheWrite: r.cacheWriteTokens,
+                      reasoning: r.reasoningTokens,
+                    }}
+                    t={tPrice}
+                  >
+                    {r.model}
+                  </ModelPriceTooltip>
+                ) : (
+                  "?"
+                )}
               </span>
               <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
                 {when}
@@ -408,6 +479,7 @@ function RecentSessions({
               <span className="w-20 shrink-0 text-right text-sm tabular-nums">
                 {r.costUsd == null ? "—" : formatUsd(r.costUsd, { precise: true })}
               </span>
+              <ChevronRightIcon className="shrink-0 text-muted-foreground/40 transition-all duration-200 group-hover:translate-x-0.5 group-hover:text-foreground" />
             </Link>
           </li>
         );
@@ -416,25 +488,113 @@ function RecentSessions({
   );
 }
 
+function ChevronRightIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden
+    >
+      <polyline points="9 18 15 12 9 6" />
+    </svg>
+  );
+}
+
 function SummaryCard({
   label,
   value,
   hint,
+  accent,
 }: {
   label: string;
   value: string;
   hint?: string;
+  accent?: boolean;
 }) {
   return (
-    <Card>
-      <CardHeader className="pb-2">
-        <CardDescription>{label}</CardDescription>
-        <CardTitle className="text-2xl tabular-nums">{value}</CardTitle>
+    <Card
+      className={
+        accent
+          ? "relative overflow-hidden transition-colors hover:border-foreground/30 before:absolute before:inset-y-0 before:left-0 before:w-[3px] before:bg-foreground/70"
+          : "transition-colors hover:border-foreground/30"
+      }
+    >
+      <CardHeader className="pb-1">
+        <CardDescription className="text-[11px] font-medium uppercase tracking-wider">
+          {label}
+        </CardDescription>
+        <CardTitle className="text-3xl font-semibold tabular-nums tracking-tight">
+          {value}
+        </CardTitle>
       </CardHeader>
       {hint && (
         <CardContent className="pt-0 text-xs text-muted-foreground">{hint}</CardContent>
       )}
     </Card>
+  );
+}
+
+// Compound metric card: headline hit-rate %, then a three-up row of hit / miss /
+// written token counts. The three pieces explain the headline at a glance —
+// hit-rate is the actionable number, the three counts are how it got there.
+function CacheCard({
+  hitTokens,
+  missTokens,
+  writtenTokens,
+  t,
+}: {
+  hitTokens: number;
+  missTokens: number;
+  writtenTokens: number;
+  t: Dictionary["cards"];
+}) {
+  const denom = hitTokens + missTokens;
+  const rate = denom === 0 ? 0 : (hitTokens / denom) * 100;
+  // Above 80% means most prompts hit the cache — a clear win. Below 50% means
+  // you're paying full price for most input tokens. The accent communicates
+  // the difference without needing the user to read the digits.
+  const tone =
+    rate >= 80
+      ? "text-emerald-600 dark:text-emerald-400"
+      : rate >= 50
+        ? "text-foreground"
+        : "text-amber-600 dark:text-amber-400";
+  return (
+    <Card className="transition-colors hover:border-foreground/30">
+      <CardHeader className="pb-1">
+        <CardDescription className="text-[11px] font-medium uppercase tracking-wider">
+          {t.cacheHitRate}
+        </CardDescription>
+        <CardTitle
+          className={`text-3xl font-semibold tabular-nums tracking-tight ${tone}`}
+        >
+          {denom === 0 ? "—" : `${rate.toFixed(1)}%`}
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="grid grid-cols-3 gap-2 pt-0 text-xs">
+        <CacheStat label={t.cacheHit} value={formatTokens(hitTokens)} />
+        <CacheStat label={t.cacheMiss} value={formatTokens(missTokens)} />
+        <CacheStat label={t.cacheWritten} value={formatTokens(writtenTokens)} />
+      </CardContent>
+    </Card>
+  );
+}
+
+function CacheStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex flex-col gap-0.5">
+      <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
+        {label}
+      </span>
+      <span className="font-mono text-sm tabular-nums">{value}</span>
+    </div>
   );
 }
 
@@ -452,13 +612,22 @@ function SourceBanner({
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border bg-muted/40 px-4 py-2 text-xs text-muted-foreground">
       <div className="flex items-center gap-2">
-        <span
-          className={
-            fellBack
-              ? "h-2 w-2 rounded-full bg-amber-500"
-              : "h-2 w-2 rounded-full bg-emerald-500"
-          }
-        />
+        <span className="relative flex h-2 w-2" aria-hidden>
+          <span
+            className={
+              fellBack
+                ? "absolute inline-flex h-full w-full motion-safe:animate-ping rounded-full bg-amber-500 opacity-50"
+                : "absolute inline-flex h-full w-full motion-safe:animate-ping rounded-full bg-emerald-500 opacity-50"
+            }
+          />
+          <span
+            className={
+              fellBack
+                ? "relative inline-flex h-2 w-2 rounded-full bg-amber-500"
+                : "relative inline-flex h-2 w-2 rounded-full bg-emerald-500"
+            }
+          />
+        </span>
         {sources.length === 0 ? (
           <span>{t.noData}</span>
         ) : (

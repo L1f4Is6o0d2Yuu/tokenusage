@@ -38,6 +38,10 @@
     "totalTokens": "总 tokens",
     "inputOutput": "输入 / 输出",
     "cacheRead": "缓存读取",
+    "cacheHitRate": "缓存命中率",
+    "cacheHit": "命中",
+    "cacheMiss": "未命中",
+    "cacheWritten": "写入",
     "estimated": "估算",
     "partialCost": "成本数据不完整",
     "nonCache": "非缓存",
@@ -80,6 +84,36 @@
     "description": "本时段最新 10 条 — 点击查看详情。",
     "empty": "本时段无会话。",
     "untitled": "（无标题会话）"
+  },
+  "priceTooltip": {
+    "priceTable": "每百万 token 价格",
+    "thisRow": "当前行",
+    "total": "估算合计",
+    "input": "输入",
+    "output": "输出",
+    "cacheRead": "缓存读取",
+    "cacheWrite": "缓存写入",
+    "reasoning": "推理",
+    "perM": "/M"
+  },
+  "about": {
+    "title": "tokenusage 是怎么工作的",
+    "subtitle": "讲清楚能测什么、不能测什么，以及那个美元数字是怎么算出来的。",
+    "back": "← 回到看板",
+    "trackedTitle": "能测到的",
+    "trackedIntro": "下表每一行都是你机器上的真实数据源。数字来自本地文件——单机模式下任何数据都不会离开你的电脑。",
+    "colSource": "来源",
+    "colWhere": "在哪",
+    "colWhat": "怎么计数",
+    "untrackedTitle": "测不到的",
+    "untrackedIntro": "这些是各厂商本身的限制，不是看板做不做的问题。",
+    "costTitle": "钱是怎么算的",
+    "costIntro": "token 数 × 单价表（data/prices.default.json）。要改价格在 /prices，覆盖文件是 data/prices.json。",
+    "costNote": "估算 ≠ 账单。各厂商真实账单会有舍入、促销、免费额度、改型号名等情况。最终金额请以厂商发票为准。",
+    "dedupTitle": "去重逻辑",
+    "dedupIntro": "Claude Code 把一次 API 响应按 content block（文本/工具调用/thinking）拆成多条 JSONL 行，每行带着相同的 usage。我们按 message.id（fallback 到 requestId）去重，每次 API 调用只算一次。一般 session 能砍掉 30-50% 的重复 token。",
+    "privacyTitle": "隐私",
+    "privacyIntro": "单机模式完全本地——无网络、无遥测。多用户模式只把用量统计（token 数、时间戳、成本）发到你自己部署的服务器，原始对话内容永远不会被读取或上传。"
   },
   "session": {
     "back": "← 返回看板",
@@ -134,7 +168,8 @@
   },
   "navHeader": {
     "users": "用户",
-    "signOut": "退出登录"
+    "signOut": "退出登录",
+    "about": "说明"
   },
   "agent": {
     "statusLive": "Agent 在线",
@@ -237,7 +272,10 @@
     "columnUsername": "用户名",
     "columnEmail": "邮箱",
     "columnJoined": "加入时间",
-    "badgeAdmin": "管理员"
+    "badgeAdmin": "管理员",
+    "copyLink": "复制链接",
+    "copied": "已复制",
+    "copyError": "复制失败，请手动复制"
   },
   "authForms": {
     "signIn": "登录",

@@ -48,6 +48,9 @@ next-env.d.ts
 # user price overrides — defaults ship as data/prices.default.json
 /data/prices.json
 
+# refresh-prices --raw cache
+/scripts/.fetched/
+
 # multi-user mode server DB — never commit, contains user credentials
 /data/server.db
 /data/server.db-*

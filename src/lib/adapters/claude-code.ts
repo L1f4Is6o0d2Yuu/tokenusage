@@ -52,6 +52,13 @@ async function readSessionFile(filePath: string, projectSlug: string): Promise<S
     title: null,
   };
 
+  // A single API response can be serialized as multiple `assistant` JSONL rows
+  // (one per content block — text / tool_use / thinking). Every row carries the
+  // *same* `message.usage` for the whole response, so naive summation
+  // multiplies tokens by the number of content blocks. Dedup by `message.id`
+  // (fallback `requestId`) so each API call is counted exactly once.
+  const seenApiCall = new Set<string>();
+
   const stream = createReadStream(filePath, { encoding: "utf8" });
   const rl = readline.createInterface({ input: stream, crlfDelay: Infinity });
   for await (const line of rl) {
@@ -66,6 +73,14 @@ async function readSessionFile(filePath: string, projectSlug: string): Promise<S
         const msg = obj.message;
         const usage = msg?.usage;
         if (!usage) continue;
+        const dedupKey: string | null =
+          (typeof msg.id === "string" && msg.id) ||
+          (typeof obj.requestId === "string" && obj.requestId) ||
+          null;
+        if (dedupKey) {
+          if (seenApiCall.has(dedupKey)) continue;
+          seenApiCall.add(dedupKey);
+        }
         acc.apiCalls += 1;
         if (!acc.model && typeof msg.model === "string") acc.model = msg.model;
         acc.inputTokens += Number(usage.input_tokens ?? 0);

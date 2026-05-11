@@ -38,6 +38,10 @@
     "totalTokens": "Tokens totaux",
     "inputOutput": "Entrée / Sortie",
     "cacheRead": "Lecture cache",
+    "cacheHitRate": "Taux de cache",
+    "cacheHit": "Hit",
+    "cacheMiss": "Miss",
+    "cacheWritten": "Écrits",
     "estimated": "estimé",
     "partialCost": "données de coût partielles",
     "nonCache": "hors cache",
@@ -80,6 +84,36 @@
     "description": "10 dernières de cette période — cliquez pour inspecter.",
     "empty": "Aucune session sur cette période.",
     "untitled": "(session sans titre)"
+  },
+  "priceTooltip": {
+    "priceTable": "Prix par million de tokens",
+    "thisRow": "Cette ligne",
+    "total": "Total estimé",
+    "input": "Entrée",
+    "output": "Sortie",
+    "cacheRead": "Lecture cache",
+    "cacheWrite": "Écriture cache",
+    "reasoning": "Raisonnement",
+    "perM": "/M"
+  },
+  "about": {
+    "title": "Comment fonctionne tokenusage",
+    "subtitle": "Ce que nous suivons, ce que nous ne pouvons pas, et comment le calcul du coût fonctionne.",
+    "back": "← Retour au tableau de bord",
+    "trackedTitle": "Ce que nous suivons",
+    "trackedIntro": "Chaque ligne ci-dessous est une source réelle sur votre machine. Les chiffres proviennent de fichiers locaux — rien ne quitte votre ordinateur en mode mono-utilisateur.",
+    "colSource": "Source",
+    "colWhere": "Emplacement",
+    "colWhat": "Ce que nous comptons",
+    "untrackedTitle": "Ce que nous ne pouvons pas suivre",
+    "untrackedIntro": "Ce sont des limitations des fournisseurs, pas du tableau de bord.",
+    "costTitle": "Comment les coûts sont calculés",
+    "costIntro": "Nombre de tokens × tableau de prix par token (data/prices.default.json). Modifiez les prix dans /prices pour les surcharger.",
+    "costNote": "Estimations, pas factures. La facturation des fournisseurs inclut arrondis, promotions, crédits gratuits et renommages occasionnels de modèles. Fiez-vous à la facture officielle pour les montants finaux.",
+    "dedupTitle": "Déduplication",
+    "dedupIntro": "Claude Code sérialise une réponse API en plusieurs lignes JSONL (une par bloc de contenu — texte / tool-use / thinking), chacune portant la même usage. Nous dédupliquons par message.id (fallback requestId) pour ne compter chaque appel API qu'une fois. Cela élimine 30 à 50 % de doublons dans une session typique.",
+    "privacyTitle": "Confidentialité",
+    "privacyIntro": "Le mode mono-utilisateur est entièrement local — aucun réseau, aucune télémétrie. Le mode multi-utilisateur envoie uniquement les comptes d'usage (tokens, horodatages, coûts) au serveur que vous contrôlez. Le contenu des conversations n'est jamais lu ni transmis."
   },
   "session": {
     "back": "← Retour au tableau de bord",
@@ -134,7 +168,8 @@
   },
   "navHeader": {
     "users": "Utilisateurs",
-    "signOut": "Déconnexion"
+    "signOut": "Déconnexion",
+    "about": "À propos"
   },
   "agent": {
     "statusLive": "Agent en ligne",
@@ -237,7 +272,10 @@
     "columnUsername": "Nom d'utilisateur",
     "columnEmail": "Email",
     "columnJoined": "Inscrit le",
-    "badgeAdmin": "admin"
+    "badgeAdmin": "admin",
+    "copyLink": "Copier le lien",
+    "copied": "Copié",
+    "copyError": "Échec de la copie — veuillez copier manuellement"
   },
   "authForms": {
     "signIn": "Se connecter",

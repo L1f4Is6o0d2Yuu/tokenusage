@@ -12,7 +12,8 @@
     "start": "next start",
     "lint": "eslint",
     "sample": "node scripts/generate-sample.mjs",
-    "agent": "node agent/index.mjs"
+    "agent": "node agent/index.mjs",
+    "refresh-prices": "node scripts/refresh-prices.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.4.1",
