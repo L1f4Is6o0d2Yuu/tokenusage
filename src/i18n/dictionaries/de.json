@@ -232,7 +232,9 @@
     "diagnoseInitial": "Fügen Sie den Installationsbefehl im Terminal ein.",
     "diagnoseNoHeartbeat": "Token ausgestellt, aber Agent hat sich noch nicht gemeldet. Stellen Sie sicher, dass `tokenusage start` läuft.",
     "diagnoseNoUpload": "Agent online, aber noch nichts hochgeladen. Versuchen Sie `tokenusage sync`.",
-    "diagnoseEmptyUpload": "Agent meldete sich, fand aber keine lokalen Daten. Prüfen Sie `~/.claude/projects`, `~/.codex` oder `~/.hermes/state.db`."
+    "diagnoseEmptyUpload": "Agent meldete sich, fand aber keine lokalen Daten. Prüfen Sie `~/.claude/projects`, `~/.codex` oder `~/.hermes/state.db`.",
+    "syncNow": "Jetzt synchronisieren",
+    "syncing": "Synchronisiere…"
   },
   "tokensPage": {
     "title": "API-Tokens",

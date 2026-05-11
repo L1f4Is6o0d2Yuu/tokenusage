@@ -232,7 +232,9 @@
     "diagnoseInitial": "Paste the install command in your terminal to begin.",
     "diagnoseNoHeartbeat": "Token issued but the agent hasn't checked in yet. Make sure `tokenusage start` is running.",
     "diagnoseNoUpload": "Agent is online but hasn't uploaded yet. Try `tokenusage sync` to force a cycle.",
-    "diagnoseEmptyUpload": "Agent reported in but found no local data. Verify `~/.claude/projects`, `~/.codex`, or `~/.hermes/state.db` exists on the machine."
+    "diagnoseEmptyUpload": "Agent reported in but found no local data. Verify `~/.claude/projects`, `~/.codex`, or `~/.hermes/state.db` exists on the machine.",
+    "syncNow": "Sync now",
+    "syncing": "Syncing…"
   },
   "tokensPage": {
     "title": "API tokens",

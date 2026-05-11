@@ -232,7 +232,9 @@
     "diagnoseInitial": "把安装命令粘到终端开始。",
     "diagnoseNoHeartbeat": "令牌已发，但 agent 还没上线。确认终端里 `tokenusage start` 已经在跑。",
     "diagnoseNoUpload": "Agent 在线，但还没传过数据。试试 `tokenusage sync` 强制触发一次。",
-    "diagnoseEmptyUpload": "Agent 报到了但没找到本地数据。确认机器上有 `~/.claude/projects`、`~/.codex` 或 `~/.hermes/state.db` 任一目录。"
+    "diagnoseEmptyUpload": "Agent 报到了但没找到本地数据。确认机器上有 `~/.claude/projects`、`~/.codex` 或 `~/.hermes/state.db` 任一目录。",
+    "syncNow": "立即同步",
+    "syncing": "同步中…"
   },
   "tokensPage": {
     "title": "API tokens",
