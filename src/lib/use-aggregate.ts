@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   aggregate,
   filterByPeriod,
+  periodWindow,
   pickGranularity,
 } from "@/lib/aggregate";
 import type {
@@ -32,9 +33,10 @@ function computeSync(
   period: Period,
   customRange?: CustomRange
 ): Result {
+  const win = periodWindow(period, new Date(), customRange);
   const scoped = filterByPeriod(records, period, customRange);
   const granularity = pickGranularity(scoped, period);
-  const agg = aggregate(scoped, granularity);
+  const agg = aggregate(scoped, granularity, win);
   return { agg, scoped, granularity };
 }
 
