@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import { loginAction } from "@/app/auth-actions";
+import { PasswordField } from "@/components/password-field";
 
 export function LoginForm({
   labels,
@@ -17,7 +18,7 @@ export function LoginForm({
   return (
     <form action={action} className="space-y-4">
       <div>
-        <label className="text-xs text-muted-foreground" htmlFor="username">
+        <label className="text-xs text-fg-muted" htmlFor="username">
           {labels.identifier}
         </label>
         <input
@@ -26,24 +27,16 @@ export function LoginForm({
           autoComplete="username"
           required
           autoFocus
-          className="mt-1 w-full rounded border bg-background px-3 py-2 font-mono text-sm"
+          className="mt-1 w-full rounded border border-border-subtle bg-bg-input px-3 py-2 font-mono text-sm focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/40"
         />
       </div>
-      <div>
-        <label className="text-xs text-muted-foreground" htmlFor="password">
-          {labels.password}
-        </label>
-        <input
-          id="password"
-          name="password"
-          type="password"
-          autoComplete="current-password"
-          required
-          className="mt-1 w-full rounded border bg-background px-3 py-2 font-mono text-sm"
-        />
-      </div>
+      <PasswordField
+        label={labels.password}
+        autoComplete="current-password"
+        showStrength={false}
+      />
       {state.error && (
-        <p className="rounded border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-700 dark:text-red-300">
+        <p className="rounded border border-danger/30 bg-danger/10 px-3 py-2 text-xs text-danger">
           {state.error}
         </p>
       )}
