@@ -727,12 +727,14 @@ function SubscriptionRoiPanel({
 
   const days = periodDays(period, customRange);
   const roi = computeRoi(apiSpendUsd, plans, days);
-  // Today / 24h get the absolute-spend taunt corpus ($3 steps).
-  // Longer windows use the ROI band corpus (10% steps past break-even).
+  // Today / 24h get the absolute-spend taunt corpus ($1 step).
+  // Longer windows use the ROI corpus (variable 5-100% bands). The
+  // `period` key in the picker means each tab gets a different pick
+  // even when the math lands in the same band.
   const isDaily = period === "today" || period === "24h";
   const message = isDaily
-    ? pickDailyTaunt(apiSpendUsd, plans, locale, userKey)
-    : pickRoiLine(roi.milestoneBand, roi.netUsd, plans, locale, userKey);
+    ? pickDailyTaunt(apiSpendUsd, plans, locale, userKey, period)
+    : pickRoiLine(roi.ratioPct, roi.netUsd, plans, locale, userKey, period);
   const inProfit = roi.netUsd >= 0;
   const periodLabel = t.period[period].toLowerCase();
 
