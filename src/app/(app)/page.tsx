@@ -1,7 +1,9 @@
+import { redirect } from "next/navigation";
 import { loadRecords, countServerRecords } from "@/lib/adapters";
 import { type CustomRange, type Period } from "@/lib/types";
 import { requireUser } from "@/lib/auth-guard";
 import { getUserSyncState, getLatestAgentSeenAt } from "@/lib/sync-state";
+import { isMultiUserMode } from "@/lib/server-db";
 import { readActivePrices } from "@/lib/pricing";
 import { getDictionary, readLocale } from "@/i18n";
 import { DashboardClient } from "./dashboard-client";
@@ -41,6 +43,18 @@ export default async function Page({
     initialPeriod === "custom" ? parseCustomRange(from, to) : undefined;
 
   const currentUser = await requireUser();
+  // Empty-state guard: in multi-user mode, a user with zero sessions
+  // hasn't gotten the agent talking to the server yet. Sending them
+  // to an empty dashboard reads as "the product is broken" — divert to
+  // /install where the same data deficit is framed as the next step,
+  // with a live status checklist.
+  if (
+    isMultiUserMode() &&
+    currentUser != null &&
+    countServerRecords(currentUser.id) === 0
+  ) {
+    redirect("/install");
+  }
   const locale = await readLocale();
   const t = await getDictionary(locale);
 

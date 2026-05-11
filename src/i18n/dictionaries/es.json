@@ -212,7 +212,20 @@
     "description": "tokenusage aún no ve nada. Dos pasos y listo.",
     "step1Title": "Pulsa abajo, copia el comando, pégalo en una terminal",
     "step2Title": "Eso es todo",
-    "step2Body": "El instalador registra un servicio en segundo plano (launchd en Mac / systemd en Linux) que arranca al iniciar sesión y sincroniza en segundo plano. Pulsa Sincronizar ahora cuando quieras datos frescos, o Pausar seguimiento para detener subidas sin desinstalar."
+    "step2Body": "El instalador registra un servicio en segundo plano (launchd en Mac / systemd en Linux) que arranca al iniciar sesión y sincroniza en segundo plano. Pulsa Sincronizar ahora cuando quieras datos frescos, o Pausar seguimiento para detener subidas sin desinstalar.",
+    "installTitle": "Instalar agente",
+    "installSubtitle": "Ejecuta el agente en tu máquina — tus datos fluyen aquí.",
+    "statusTitle": "Estado",
+    "stages": {
+      "token": "Token API emitido",
+      "heartbeat": "Agente conectado (latido recibido)",
+      "upload": "Datos subidos",
+      "data": "Sesiones analizadas"
+    },
+    "diagnoseInitial": "Pega el comando de instalación en tu terminal.",
+    "diagnoseNoHeartbeat": "Token emitido pero el agente aún no se ha conectado. Verifica que `tokenusage start` esté ejecutándose.",
+    "diagnoseNoUpload": "Agente en línea pero aún no ha subido. Intenta `tokenusage sync`.",
+    "diagnoseEmptyUpload": "El agente se conectó pero no encontró datos locales. Verifica `~/.claude/projects`, `~/.codex` o `~/.hermes/state.db`."
   },
   "tokensPage": {
     "title": "Tokens API",

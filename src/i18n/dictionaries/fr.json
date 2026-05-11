@@ -212,7 +212,20 @@
     "description": "tokenusage ne voit encore rien. Deux étapes et c'est fini.",
     "step1Title": "Cliquez ci-dessous, copiez la commande, collez-la dans un terminal",
     "step2Title": "C'est tout",
-    "step2Body": "L'installeur enregistre un service de fond (launchd sur Mac / systemd sur Linux) qui démarre à la connexion et synchronise en arrière-plan. Cliquez sur Synchroniser pour des données fraîches, ou Mettre en pause pour suspendre les uploads sans désinstaller."
+    "step2Body": "L'installeur enregistre un service de fond (launchd sur Mac / systemd sur Linux) qui démarre à la connexion et synchronise en arrière-plan. Cliquez sur Synchroniser pour des données fraîches, ou Mettre en pause pour suspendre les uploads sans désinstaller.",
+    "installTitle": "Installer l'agent",
+    "installSubtitle": "Exécutez l'agent sur votre machine — vos données arrivent ici.",
+    "statusTitle": "Statut",
+    "stages": {
+      "token": "Jeton API émis",
+      "heartbeat": "Agent connecté (heartbeat reçu)",
+      "upload": "Données téléversées",
+      "data": "Sessions analysées"
+    },
+    "diagnoseInitial": "Collez la commande d'installation dans votre terminal pour commencer.",
+    "diagnoseNoHeartbeat": "Jeton émis mais l'agent ne s'est pas encore connecté. Vérifiez que `tokenusage start` tourne.",
+    "diagnoseNoUpload": "Agent en ligne mais n'a pas encore téléversé. Essayez `tokenusage sync` pour forcer un cycle.",
+    "diagnoseEmptyUpload": "L'agent s'est connecté mais n'a trouvé aucune donnée locale. Vérifiez la présence de `~/.claude/projects`, `~/.codex` ou `~/.hermes/state.db`."
   },
   "tokensPage": {
     "title": "Tokens API",

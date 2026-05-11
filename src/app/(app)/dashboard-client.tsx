@@ -2,11 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState, useTransition } from "react";
-import {
-  aggregate,
-  filterByPeriod,
-  pickGranularity,
-} from "@/lib/aggregate";
+import { useAggregate } from "@/lib/use-aggregate";
 import { findPricing } from "@/lib/pricing-client";
 import { formatInt, formatTokens, formatUsd } from "@/lib/format";
 import { interp } from "@/i18n/interp";
@@ -106,14 +102,10 @@ export function DashboardClient({
     }
   }, [period, customRange]);
 
-  // The actual data work. useMemo keeps this scoped to dependency changes —
-  // typing in a custom date field shouldn't re-aggregate until apply.
-  const { agg, scoped, granularity } = useMemo(() => {
-    const scoped = filterByPeriod(records, period, customRange);
-    const granularity = pickGranularity(scoped, period);
-    const agg = aggregate(scoped, granularity);
-    return { agg, scoped, granularity };
-  }, [records, period, customRange]);
+  // The actual data work. `useAggregate` picks the right execution mode:
+  // sync useMemo for small datasets, Web Worker for >10k records. The
+  // call surface stays identical from the component's POV.
+  const { agg, scoped, granularity } = useAggregate(records, period, customRange);
 
   const recent = useMemo(
     () =>
