@@ -315,10 +315,14 @@ export type Dictionary = {
     statusExpired: string;
     revoke: string;
     revoking: string;
+    editNote: string;
     membersTitle: string;
     columnUsername: string;
     columnEmail: string;
     columnJoined: string;
+    columnIp: string;
+    columnLocation: string;
+    ipPingTooltip: string;
     badgeAdmin: string;
     copyLink: string;
     copied: string;

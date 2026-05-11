@@ -244,6 +244,18 @@ export function revokeInvite(id: number): void {
   }
 }
 
+// Admin edits the human-readable note on an invite. We allow this even
+// after the invite is redeemed — the note is purely descriptive, useful
+// for "who did I give this to?" bookkeeping.
+export function updateInviteNote(id: number, note: string | null): void {
+  const db = openServerDb();
+  try {
+    db.prepare(`UPDATE invite_tokens SET note = ? WHERE id = ?`).run(note, id);
+  } finally {
+    db.close();
+  }
+}
+
 // Look up an invite row by either the new short code or the legacy hashed
 // token. New `TU####` codes match `code` directly; old `tui_…` tokens
 // resolve via sha256 like before. Either path returns the same row shape.
@@ -332,13 +344,16 @@ export function listUsers(): Array<{
   isAdmin: boolean;
   createdAt: number;
   passwordResetAt: number | null;
+  lastIp: string | null;
+  lastIpAt: number | null;
 }> {
   const db = openServerDb();
   try {
     return db
       .prepare(
         `SELECT id, username, email, is_admin AS isAdmin, created_at AS createdAt,
-                password_reset_at AS passwordResetAt
+                password_reset_at AS passwordResetAt,
+                last_ip AS lastIp, last_ip_at AS lastIpAt
          FROM users ORDER BY created_at ASC`
       )
       .all()
@@ -350,9 +365,28 @@ export function listUsers(): Array<{
           isAdmin: number;
           createdAt: number;
           passwordResetAt: number | null;
+          lastIp: string | null;
+          lastIpAt: number | null;
         };
         return { ...row, isAdmin: row.isAdmin === 1 };
       });
+  } finally {
+    db.close();
+  }
+}
+
+// Stamp a login event onto the user row. Called from loginAction with
+// the request's client IP (resolved from X-Forwarded-For, since we sit
+// behind Caddy). No-op if the ip string is empty.
+export function recordUserIp(userId: number, ip: string): void {
+  if (!ip) return;
+  const db = openServerDb();
+  try {
+    db.prepare(`UPDATE users SET last_ip = ?, last_ip_at = ? WHERE id = ?`).run(
+      ip,
+      Date.now(),
+      userId
+    );
   } finally {
     db.close();
   }

@@ -277,7 +277,11 @@
     "badgeAdmin": "관리자",
     "copyLink": "링크 복사",
     "copied": "복사됨",
-    "copyError": "복사하지 못했습니다. 수동으로 복사하세요"
+    "copyError": "복사하지 못했습니다. 수동으로 복사하세요",
+    "editNote": "메모 편집",
+    "columnIp": "최근 IP",
+    "columnLocation": "위치",
+    "ipPingTooltip": "ping0.cc 에서 IP 확인"
   },
   "authForms": {
     "signIn": "로그인",

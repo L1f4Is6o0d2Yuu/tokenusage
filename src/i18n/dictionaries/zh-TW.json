@@ -277,7 +277,11 @@
     "badgeAdmin": "管理員",
     "copyLink": "複製連結",
     "copied": "已複製",
-    "copyError": "複製失敗，請手動複製"
+    "copyError": "複製失敗，請手動複製",
+    "editNote": "編輯備註",
+    "columnIp": "上次 IP",
+    "columnLocation": "歸屬地",
+    "ipPingTooltip": "在 ping0.cc 查 IP 純淨度"
   },
   "authForms": {
     "signIn": "登入",

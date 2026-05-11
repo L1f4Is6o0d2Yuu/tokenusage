@@ -277,7 +277,11 @@
     "badgeAdmin": "админ",
     "copyLink": "Копировать ссылку",
     "copied": "Скопировано",
-    "copyError": "Не удалось скопировать — скопируйте вручную"
+    "copyError": "Не удалось скопировать — скопируйте вручную",
+    "editNote": "Изменить заметку",
+    "columnIp": "Последний IP",
+    "columnLocation": "Локация",
+    "ipPingTooltip": "Проверить IP на ping0.cc"
   },
   "authForms": {
     "signIn": "Войти",

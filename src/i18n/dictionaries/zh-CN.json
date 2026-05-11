@@ -277,7 +277,11 @@
     "badgeAdmin": "管理员",
     "copyLink": "复制链接",
     "copied": "已复制",
-    "copyError": "复制失败，请手动复制"
+    "copyError": "复制失败，请手动复制",
+    "editNote": "编辑备注",
+    "columnIp": "上次 IP",
+    "columnLocation": "归属地",
+    "ipPingTooltip": "在 ping0.cc 查 IP 纯净度"
   },
   "authForms": {
     "signIn": "登录",

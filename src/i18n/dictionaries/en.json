@@ -277,7 +277,11 @@
     "badgeAdmin": "admin",
     "copyLink": "Copy link",
     "copied": "Copied",
-    "copyError": "Couldn't copy — please copy manually"
+    "copyError": "Couldn't copy — please copy manually",
+    "editNote": "Edit note",
+    "columnIp": "Last IP",
+    "columnLocation": "Location",
+    "ipPingTooltip": "Check IP purity on ping0.cc"
   },
   "authForms": {
     "signIn": "Sign in",

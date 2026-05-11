@@ -7,6 +7,7 @@ import {
   createInvite,
   revokeInvite,
   flagPasswordReset,
+  updateInviteNote,
 } from "@/lib/auth";
 
 async function requireAdmin() {
@@ -29,6 +30,18 @@ export async function revokeInviteAction(formData: FormData): Promise<void> {
   const id = Number(formData.get("id"));
   if (!Number.isFinite(id)) return;
   revokeInvite(id);
+  revalidatePath("/users");
+}
+
+// Edit the descriptive note on an invite. Empty input clears the note.
+// We let admins edit even after redemption — the note is bookkeeping, not
+// an authentication concern.
+export async function updateInviteNoteAction(formData: FormData): Promise<void> {
+  await requireAdmin();
+  const id = Number(formData.get("id"));
+  const noteRaw = String(formData.get("note") ?? "").trim();
+  if (!Number.isFinite(id)) return;
+  updateInviteNote(id, noteRaw || null);
   revalidatePath("/users");
 }
 
