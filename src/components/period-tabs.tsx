@@ -1,17 +1,26 @@
-import Link from "next/link";
+"use client";
+
 import type { CustomRange, Period } from "@/lib/types";
 import type { Dictionary } from "@/i18n/types";
 import { cn } from "@/lib/utils";
 
 const ORDER: Period[] = ["today", "24h", "7d", "30d", "month", "year", "all", "custom"];
 
+// Controlled tab bar: parent owns the period state, this just renders
+// buttons and calls back. We deliberately don't push to the URL here —
+// that's the parent's job via window.history.pushState, so the parent
+// can choose whether a given click should be sharable or ephemeral.
 export function PeriodTabs({
   active,
   custom,
+  onChange,
+  onCustomChange,
   t,
 }: {
   active: Period;
   custom?: CustomRange;
+  onChange: (next: Period) => void;
+  onCustomChange?: (range: CustomRange) => void;
   t: Dictionary["period"];
 }) {
   return (
@@ -19,15 +28,11 @@ export function PeriodTabs({
       <nav className="flex flex-nowrap overflow-x-auto rounded-md border bg-card p-1 text-sm scrollbar-none">
         {ORDER.map((p) => {
           const isActive = p === active;
-          const href =
-            p === "custom" && custom
-              ? `/?period=custom&from=${custom.from}&to=${custom.to}`
-              : `/?period=${p}`;
           return (
-            <Link
+            <button
               key={p}
-              href={href}
-              scroll={false}
+              type="button"
+              onClick={() => onChange(p)}
               className={cn(
                 "shrink-0 rounded px-3 py-1.5 transition-colors",
                 isActive
@@ -36,17 +41,21 @@ export function PeriodTabs({
               )}
             >
               {t[p]}
-            </Link>
+            </button>
           );
         })}
       </nav>
       {active === "custom" && (
         <form
-          action="/"
-          method="GET"
+          onSubmit={(e) => {
+            e.preventDefault();
+            const fd = new FormData(e.currentTarget);
+            const from = String(fd.get("from") ?? "");
+            const to = String(fd.get("to") ?? "");
+            onCustomChange?.({ from, to });
+          }}
           className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground"
         >
-          <input type="hidden" name="period" value="custom" />
           <label className="flex items-center gap-1">
             {t.from}
             <input
