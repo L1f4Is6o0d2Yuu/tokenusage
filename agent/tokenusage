@@ -235,19 +235,34 @@ upload() {
   if [ -f "$HOME/.hermes/state.db" ]; then
     cp "$HOME/.hermes/state.db" "$TMP/payload/hermes.db"
   fi
-  if [ -d "$HOME/.codex" ]; then
-    mkdir -p "$TMP/payload/codex"
-    [ -f "$HOME/.codex/state_5.sqlite" ] && cp "$HOME/.codex/state_5.sqlite" "$TMP/payload/codex/state_5.sqlite"
-    [ -d "$HOME/.codex/sessions" ] && cp -R "$HOME/.codex/sessions" "$TMP/payload/codex/sessions"
-  fi
-  if [ -d "$HOME/.claude/projects" ]; then
-    cp -R "$HOME/.claude/projects" "$TMP/payload/claude-projects"
-  fi
 
+  # Codex: legacy `~/.codex` + XDG `~/.config/codex`. Merge both into one
+  # codex/ dir so the server-side parser sees a single tree.
+  mkdir -p "$TMP/payload/codex"
+  for base in "$HOME/.codex" "$HOME/.config/codex"; do
+    [ -f "$base/state_5.sqlite" ] && cp "$base/state_5.sqlite" "$TMP/payload/codex/state_5.sqlite"
+    [ -d "$base/sessions" ] && cp -R "$base/sessions" "$TMP/payload/codex/sessions"
+  done
+  # Empty? drop the dir to keep the tar slim.
+  [ -z "$(ls -A "$TMP/payload/codex" 2>/dev/null)" ] && rmdir "$TMP/payload/codex"
+
+  # Claude Code: legacy `~/.claude/projects` + XDG `~/.config/claude/projects`.
+  # Borrowed from hanbu97/tokenusage — some installs put logs under XDG.
+  for cand in "$HOME/.claude/projects" "$HOME/.config/claude/projects"; do
+    if [ -d "$cand" ]; then
+      cp -R "$cand" "$TMP/payload/claude-projects"
+      break
+    fi
+  done
+
+  # Even when none of the source dirs exist, send the (empty) tarball
+  # anyway. Server-side it costs ~nothing — 0 records insert, 0 bytes
+  # written to sessions_data — but `last_uploaded_at` gets updated, so
+  # the dashboard's "last synced" stamp reflects the actual cycle the
+  # agent ran. Without this, a user who never touched Claude/Codex/
+  # Hermes would see "never synced" forever, even after a manual sync.
   if [ -z "$(ls -A "$TMP/payload" 2>/dev/null)" ]; then
-    printf '[%s] no data to upload (none of ~/.hermes ~/.codex ~/.claude/projects exist)\n' "$(ts)"
-    rm -rf "$TMP"
-    return
+    printf '[%s] no local data (none of ~/.hermes ~/.codex ~/.claude/projects exist) — sending empty sync\n' "$(ts)"
   fi
 
   tar czf "$TMP/payload.tar.gz" -C "$TMP/payload" .

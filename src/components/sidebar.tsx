@@ -35,12 +35,16 @@ export function Sidebar({
   locale: Locale;
   t: Dictionary;
 }) {
+  // API tokens are a power-user / admin concern — the agent install
+  // happens once via the onboarding card on the dashboard, and after
+  // that regular users never need to look at this surface. Admins keep
+  // the link so they can issue / revoke tokens for themselves.
   const primary: Item[] = [
     { href: "/", label: t.nav.dashboard, icon: LayoutDashboard },
-    { href: "/tokens", label: t.nav.tokens, icon: KeyRound },
     { href: "/prices", label: t.nav.prices, icon: DollarSign },
   ];
   if (user?.isAdmin) {
+    primary.push({ href: "/tokens", label: t.nav.tokens, icon: KeyRound });
     primary.push({ href: "/users", label: t.nav.users, icon: Users });
   }
   const secondary: Item[] = [

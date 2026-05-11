@@ -1,5 +1,7 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth-guard";
+import { isMultiUserMode } from "@/lib/server-db";
 import { listTokens } from "@/lib/auth";
 import { getPublicUrl } from "@/lib/public-url";
 import { createTokenAction, revokeTokenAction, setSyncIntervalAction } from "./actions";
@@ -48,6 +50,11 @@ export default async function TokensPage({
   searchParams: Promise<{ new?: string; settings?: string }>;
 }) {
   const user = await requireUser();
+  // Token management is admin-only in multi-user mode. Regular users
+  // install once via the onboarding card on the dashboard and never
+  // need to see the raw token table. Admin-self-install on a new
+  // machine still works through this page.
+  if (isMultiUserMode() && user && !user.isAdmin) redirect("/");
   const locale = await readLocale();
   const t = (await getDictionary(locale)).tokensPage;
   const installT = (await getDictionary(locale)).install;
