@@ -1,0 +1,28 @@
+"use server";
+
+import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
+import { readCurrentUser } from "@/lib/auth";
+import {
+  PLAN_CATALOG,
+  setUserSubscriptions,
+  type PlanId,
+} from "@/lib/subscriptions";
+
+// User toggles their declared subscriptions. Anyone signed in can edit
+// their own — no admin gate (subscriptions are personal to each
+// account and don't read other users' data).
+export async function saveSubscriptionsAction(formData: FormData): Promise<void> {
+  const user = await readCurrentUser();
+  if (!user) redirect("/login");
+
+  const validIds = new Set(PLAN_CATALOG.map((p) => p.id as string));
+  const picked = formData
+    .getAll("plan")
+    .filter((v): v is string => typeof v === "string" && validIds.has(v)) as PlanId[];
+
+  setUserSubscriptions(user.id, picked);
+  revalidatePath("/");
+  revalidatePath("/subscriptions");
+  redirect("/subscriptions?saved=1");
+}

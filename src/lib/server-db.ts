@@ -174,6 +174,22 @@ function migrate(db: Database.Database): void {
       looked_up_at INTEGER NOT NULL
     );
   `);
+
+  // v0.18: subscriptions the user has self-declared, used to compute
+  // "did your usage pay back the subscription this period?". One row
+  // per active plan per user; `plan` references the catalog in
+  // lib/subscriptions.ts. We don't try to fetch real billing data —
+  // the user toggles which plans they pay for and we trust them.
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS user_subscriptions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      plan TEXT NOT NULL,
+      started_at INTEGER NOT NULL,
+      UNIQUE(user_id, plan)
+    );
+    CREATE INDEX IF NOT EXISTS idx_user_subscriptions_user ON user_subscriptions(user_id);
+  `);
 }
 
 export function openServerDb(): Database.Database {

@@ -117,7 +117,12 @@
     "dedupTitle": "去重邏輯",
     "dedupIntro": "Claude Code 把一次 API 回應按 content block（文字/工具呼叫/thinking）拆成多條 JSONL 行，每行帶著相同的 usage。我們按 message.id（fallback 到 requestId）去重，每次 API 呼叫只算一次。一般 session 能砍掉 30-50% 的重複 token。",
     "privacyTitle": "隱私",
-    "privacyIntro": "單機模式完全本地——無網路、無遙測。多人模式只把用量統計（token 數、時間戳、成本）發到你自己部署的伺服器，原始對話內容永遠不會被讀取或上傳。"
+    "privacyIntro": "單機模式完全本地——無網路、無遙測。多人模式只把用量統計（token 數、時間戳、成本）發到你自己部署的伺服器，原始對話內容永遠不會被讀取或上傳。",
+    "buffetTitle": "tokenusage 到底是干啥的？",
+    "buffetIntro": "一句话：这是张账单，告诉你 AI 自助餐是回了本还是被宰了。",
+    "buffetPara1": "Claude Max、ChatGPT Pro、Cursor、Codex —— 你订阅的每个套餐本质都是自助餐。商家卖你「无限量」（其实有限），赌的是普通用户吃得比单点便宜。整个生意的关键问题：你吃够本了，还是当了那张让他们赚钱的桌？",
+    "buffetPara2": "tokenusage 就是站在自助餐厅门口拿小本本的那位。你每发一次 prompt，它就记下你吃了啥、菜单上要多少钱。一天结束把账加起来，对比你实际付的订阅费。如果 $200 的套餐你吃到了 $250 等价，恭喜你 —— 多带走了 $50 自助餐，老板眉头皱成「川」字。",
+    "buffetPara3": "看板就是这本小本本的可读版。顶上 period 切时间窗。KPI 卡显示 token 和钱。订阅面板显示你的「武器装备」和回本进度。最近 session 列表是你的吃饭记录。所有数据本地解析，我们不偷看你吃啥，只记数。"
   },
   "session": {
     "back": "← 返回儀表板",
@@ -334,7 +339,8 @@
     "tokens": "API 權杖",
     "prices": "定價",
     "users": "使用者",
-    "about": "關於"
+    "about": "關於",
+    "subscriptions": "訂閱套餐"
   },
   "forgotPassword": {
     "title": "忘記密碼",
@@ -357,5 +363,26 @@
     "pending": "待重置",
     "pendingLabel": "已請求重置",
     "columnReset": "重置"
+  },
+  "subs": {
+    "title": "訂閱武器庫",
+    "activeSuffix": "在用",
+    "manage": "管理",
+    "add": "新增訂閱",
+    "emptyDescription": "告訴我們你訂閱了哪些套餐，我們幫你算用量回本沒。",
+    "proratedFor": "{period}訂閱攤銷",
+    "spendFor": "{period} API 等價",
+    "recovered": "已回本",
+    "shortBy": "還差",
+    "progress": "回本進度",
+    "pageTitle": "訂閱套餐",
+    "pageDescription": "勾選你付費訂閱的套餐。我們用同期 API 等價花費對比訂閱攤銷價，看你回本沒。",
+    "save": "儲存",
+    "saving": "儲存中…",
+    "saved": "已儲存",
+    "columnPlan": "套餐",
+    "columnVendor": "厂商",
+    "columnPrice": "月费",
+    "columnActive": "在用"
   }
 }

@@ -117,7 +117,12 @@
     "dedupTitle": "Deduplication",
     "dedupIntro": "Claude Code serializes one API response as multiple JSONL lines (one per content block — text / tool-use / thinking), each carrying the same usage. We dedupe by message.id (fallback requestId) so each API call counts once. In a typical session this trims 30–50% of duplicate token counts.",
     "privacyTitle": "Privacy",
-    "privacyIntro": "Single-user mode is fully local — no network, no telemetry. Multi-user mode sends usage counts (tokens, timestamps, cost) to the server you control. Raw conversation content is never read or transmitted."
+    "privacyIntro": "Single-user mode is fully local — no network, no telemetry. Multi-user mode sends usage counts (tokens, timestamps, cost) to the server you control. Raw conversation content is never read or transmitted.",
+    "buffetTitle": "What is tokenusage, really?",
+    "buffetIntro": "Short version: it's the receipt that tells you whether the all-you-can-eat AI buffet was a steal or a sucker move.",
+    "buffetPara1": "Claude Max, ChatGPT Pro, Cursor, Codex — every plan you pay flat-rate for is basically a buffet. They sell unlimited (-ish) at a fixed price, betting the average customer eats less than the menu would charge à la carte. The whole game is: do you eat enough to make the buffet worth it, or are you the table they make money on?",
+    "buffetPara2": "tokenusage sits at the door of the dining room with a notebook. Every time you send a prompt, it scribbles down what you ate and the menu price. At the end of the day it adds the bill back up and compares it to what you actually paid in subscriptions. If you ate $250 of menu price on a $200 plan, congrats — you walked out with $50 worth of free food and the chef's frown.",
+    "buffetPara3": "The dashboard is just that notebook, made readable. Period filter at the top decides the time window. KPI cards show tokens and money. The subscription panel shows your loadout and how close you are to breaking even. The recent sessions list is your meal log. Everything is local — we don't watch you eat, we just count."
   },
   "session": {
     "back": "← Back to dashboard",
@@ -334,7 +339,8 @@
     "tokens": "API tokens",
     "prices": "Prices",
     "users": "Users",
-    "about": "About"
+    "about": "About",
+    "subscriptions": "Subscriptions"
   },
   "forgotPassword": {
     "title": "Forgot password",
@@ -357,5 +363,26 @@
     "pending": "Pending",
     "pendingLabel": "reset requested",
     "columnReset": "Reset"
+  },
+  "subs": {
+    "title": "Subscription arsenal",
+    "activeSuffix": "active",
+    "manage": "Manage",
+    "add": "Add subscriptions",
+    "emptyDescription": "Tell us which plans you pay for, and we'll show whether your usage paid them back.",
+    "proratedFor": "{period} prorated",
+    "spendFor": "{period} API equivalent",
+    "recovered": "Recovered",
+    "shortBy": "Short by",
+    "progress": "Recovery progress",
+    "pageTitle": "Subscriptions",
+    "pageDescription": "Pick the plans you pay for. We compare your usage cost against the prorated subscription fee for the period in view on the dashboard.",
+    "save": "Save",
+    "saving": "Saving…",
+    "saved": "Saved",
+    "columnPlan": "Plan",
+    "columnVendor": "Vendor",
+    "columnPrice": "Monthly",
+    "columnActive": "Active"
   }
 }

@@ -117,7 +117,12 @@
     "dedupTitle": "Deduplizierung",
     "dedupIntro": "Claude Code serialisiert eine API-Antwort in mehrere JSONL-Zeilen (eine pro Content-Block — Text / Tool-Use / Thinking), jede mit derselben usage. Wir deduplizieren per message.id (Fallback requestId), sodass jeder API-Aufruf genau einmal zählt. Eine typische Sitzung enthält 30–50 % doppelte Token, die dadurch entfernt werden.",
     "privacyTitle": "Datenschutz",
-    "privacyIntro": "Einzelnutzermodus ist vollständig lokal — kein Netzwerk, keine Telemetrie. Mehrnutzermodus sendet nur Verbrauchszahlen (Tokens, Zeitstempel, Kosten) an Ihren eigenen Server. Roher Gesprächsinhalt wird nie gelesen oder übertragen."
+    "privacyIntro": "Einzelnutzermodus ist vollständig lokal — kein Netzwerk, keine Telemetrie. Mehrnutzermodus sendet nur Verbrauchszahlen (Tokens, Zeitstempel, Kosten) an Ihren eigenen Server. Roher Gesprächsinhalt wird nie gelesen oder übertragen.",
+    "buffetTitle": "What is tokenusage, really?",
+    "buffetIntro": "Short version: it's the receipt that tells you whether the all-you-can-eat AI buffet was a steal or a sucker move.",
+    "buffetPara1": "Claude Max, ChatGPT Pro, Cursor, Codex — every plan you pay flat-rate for is basically a buffet. They sell unlimited (-ish) at a fixed price, betting the average customer eats less than the menu would charge à la carte. The whole game is: do you eat enough to make the buffet worth it, or are you the table they make money on?",
+    "buffetPara2": "tokenusage sits at the door of the dining room with a notebook. Every time you send a prompt, it scribbles down what you ate and the menu price. At the end of the day it adds the bill back up and compares it to what you actually paid in subscriptions. If you ate $250 of menu price on a $200 plan, congrats — you walked out with $50 worth of free food and the chef's frown.",
+    "buffetPara3": "The dashboard is just that notebook, made readable. Period filter at the top decides the time window. KPI cards show tokens and money. The subscription panel shows your loadout and how close you are to breaking even. The recent sessions list is your meal log. Everything is local — we don't watch you eat, we just count."
   },
   "session": {
     "back": "← Zurück zum Dashboard",
@@ -334,7 +339,8 @@
     "tokens": "API-Token",
     "prices": "Preise",
     "users": "Nutzer",
-    "about": "Über"
+    "about": "Über",
+    "subscriptions": "Abos"
   },
   "forgotPassword": {
     "title": "Passwort vergessen",
@@ -357,5 +363,26 @@
     "pending": "Ausstehend",
     "pendingLabel": "Zurücksetzen angefordert",
     "columnReset": "Reset"
+  },
+  "subs": {
+    "title": "Subscription arsenal",
+    "activeSuffix": "active",
+    "manage": "Manage",
+    "add": "Add subscriptions",
+    "emptyDescription": "Tell us which plans you pay for, and we'll show whether your usage paid them back.",
+    "proratedFor": "{period} prorated",
+    "spendFor": "{period} API equivalent",
+    "recovered": "Recovered",
+    "shortBy": "Short by",
+    "progress": "Recovery progress",
+    "pageTitle": "Subscriptions",
+    "pageDescription": "Pick the plans you pay for. We compare your usage cost against the prorated subscription fee for the period in view on the dashboard.",
+    "save": "Save",
+    "saving": "Saving…",
+    "saved": "Saved",
+    "columnPlan": "Plan",
+    "columnVendor": "Vendor",
+    "columnPrice": "Monthly",
+    "columnActive": "Active"
   }
 }

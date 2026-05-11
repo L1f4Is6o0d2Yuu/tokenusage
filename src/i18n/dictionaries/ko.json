@@ -117,7 +117,12 @@
     "dedupTitle": "중복 제거",
     "dedupIntro": "Claude Code는 단일 API 응답을 콘텐츠 블록(텍스트/도구 호출/thinking)별로 여러 JSONL 행에 직렬화하며 각 행은 동일한 usage를 가집니다. message.id(fallback requestId)로 중복을 제거하여 각 API 호출을 정확히 한 번만 카운트합니다. 일반 세션에서 30~50%의 중복 토큰이 제거됩니다.",
     "privacyTitle": "개인정보",
-    "privacyIntro": "단일 사용자 모드는 완전 로컬 — 네트워크, 텔레메트리 없음. 멀티 사용자 모드도 사용량(토큰 수, 타임스탬프, 비용)만 직접 운영하는 서버로 전송하며 대화 내용은 절대 읽거나 전송하지 않습니다."
+    "privacyIntro": "단일 사용자 모드는 완전 로컬 — 네트워크, 텔레메트리 없음. 멀티 사용자 모드도 사용량(토큰 수, 타임스탬프, 비용)만 직접 운영하는 서버로 전송하며 대화 내용은 절대 읽거나 전송하지 않습니다.",
+    "buffetTitle": "What is tokenusage, really?",
+    "buffetIntro": "Short version: it's the receipt that tells you whether the all-you-can-eat AI buffet was a steal or a sucker move.",
+    "buffetPara1": "Claude Max, ChatGPT Pro, Cursor, Codex — every plan you pay flat-rate for is basically a buffet. They sell unlimited (-ish) at a fixed price, betting the average customer eats less than the menu would charge à la carte. The whole game is: do you eat enough to make the buffet worth it, or are you the table they make money on?",
+    "buffetPara2": "tokenusage sits at the door of the dining room with a notebook. Every time you send a prompt, it scribbles down what you ate and the menu price. At the end of the day it adds the bill back up and compares it to what you actually paid in subscriptions. If you ate $250 of menu price on a $200 plan, congrats — you walked out with $50 worth of free food and the chef's frown.",
+    "buffetPara3": "The dashboard is just that notebook, made readable. Period filter at the top decides the time window. KPI cards show tokens and money. The subscription panel shows your loadout and how close you are to breaking even. The recent sessions list is your meal log. Everything is local — we don't watch you eat, we just count."
   },
   "session": {
     "back": "← 대시보드로 돌아가기",
@@ -334,7 +339,8 @@
     "tokens": "API 토큰",
     "prices": "요금",
     "users": "사용자",
-    "about": "소개"
+    "about": "소개",
+    "subscriptions": "구독"
   },
   "forgotPassword": {
     "title": "비밀번호 찾기",
@@ -357,5 +363,26 @@
     "pending": "대기 중",
     "pendingLabel": "재설정 요청됨",
     "columnReset": "재설정"
+  },
+  "subs": {
+    "title": "Subscription arsenal",
+    "activeSuffix": "active",
+    "manage": "Manage",
+    "add": "Add subscriptions",
+    "emptyDescription": "Tell us which plans you pay for, and we'll show whether your usage paid them back.",
+    "proratedFor": "{period} prorated",
+    "spendFor": "{period} API equivalent",
+    "recovered": "Recovered",
+    "shortBy": "Short by",
+    "progress": "Recovery progress",
+    "pageTitle": "Subscriptions",
+    "pageDescription": "Pick the plans you pay for. We compare your usage cost against the prorated subscription fee for the period in view on the dashboard.",
+    "save": "Save",
+    "saving": "Saving…",
+    "saved": "Saved",
+    "columnPlan": "Plan",
+    "columnVendor": "Vendor",
+    "columnPrice": "Monthly",
+    "columnActive": "Active"
   }
 }

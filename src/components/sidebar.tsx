@@ -6,6 +6,7 @@ import {
   Users,
   Info,
   LogOut,
+  Sword,
 } from "lucide-react";
 import { logoutAction } from "@/app/auth-actions";
 import { ThemeSwitcher } from "@/components/theme-switcher";
@@ -41,6 +42,7 @@ export function Sidebar({
   // the link so they can issue / revoke tokens for themselves.
   const primary: Item[] = [
     { href: "/", label: t.nav.dashboard, icon: LayoutDashboard },
+    { href: "/subscriptions", label: t.nav.subscriptions, icon: Sword },
     { href: "/prices", label: t.nav.prices, icon: DollarSign },
   ];
   if (user?.isAdmin) {

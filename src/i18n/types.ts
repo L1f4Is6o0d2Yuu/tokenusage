@@ -138,6 +138,11 @@ export type Dictionary = {
     title: string;
     subtitle: string;
     back: string;
+    buffetTitle: string;
+    buffetIntro: string;
+    buffetPara1: string;
+    buffetPara2: string;
+    buffetPara3: string;
     trackedTitle: string;
     trackedIntro: string;
     colSource: string;
@@ -215,6 +220,7 @@ export type Dictionary = {
     workspace: string;
     account: string;
     dashboard: string;
+    subscriptions: string;
     tokens: string;
     prices: string;
     users: string;
@@ -393,5 +399,26 @@ export type Dictionary = {
     pending: string;
     pendingLabel: string;
     columnReset: string;
+  };
+  subs: {
+    title: string;
+    activeSuffix: string;
+    manage: string;
+    add: string;
+    emptyDescription: string;
+    proratedFor: string; // "{period} prorated cost"
+    spendFor: string; // "{period} API equivalent"
+    recovered: string;
+    shortBy: string;
+    progress: string;
+    pageTitle: string;
+    pageDescription: string;
+    save: string;
+    saving: string;
+    saved: string;
+    columnPlan: string;
+    columnVendor: string;
+    columnPrice: string;
+    columnActive: string;
   };
 };
