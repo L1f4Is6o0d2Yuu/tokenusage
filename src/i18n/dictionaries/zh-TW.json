@@ -297,5 +297,14 @@
     "inviteUsed": "這個邀請已經被使用了。",
     "inviteExpired": "這個邀請已過期。請管理員重發。",
     "inviteInvalid": "邀請連結無效。"
+  },
+  "nav": {
+    "workspace": "工作區",
+    "account": "帳戶",
+    "dashboard": "儀表板",
+    "tokens": "API 權杖",
+    "prices": "定價",
+    "users": "使用者",
+    "about": "關於"
   }
 }

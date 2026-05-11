@@ -297,5 +297,14 @@
     "inviteUsed": "Invito già utilizzato.",
     "inviteExpired": "Invito scaduto. Chiedi un nuovo invito all'admin.",
     "inviteInvalid": "Link di invito non valido."
+  },
+  "nav": {
+    "workspace": "Workspace",
+    "account": "Account",
+    "dashboard": "Dashboard",
+    "tokens": "Token API",
+    "prices": "Prezzi",
+    "users": "Utenti",
+    "about": "Info"
   }
 }

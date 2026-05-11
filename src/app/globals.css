@@ -4,12 +4,138 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* ─── Design tokens ────────────────────────────────────────────────────────
+ * Two layers:
+ *   1. Surface / foreground / border / accent / status — semantic.
+ *   2. shadcn aliases (--background, --card, --primary, ...) point at layer 1
+ *      so existing shadcn primitives keep working without edits.
+ *
+ * Reference distilled from Linear (sidebar chrome) and Grafana (panel density).
+ * ───────────────────────────────────────────────────────────────────────── */
+
+:root {
+  /* Surfaces */
+  --bg-app: oklch(0.985 0 0);
+  --bg-sidebar: oklch(0.965 0 0);
+  --bg-panel: oklch(1 0 0);
+  --bg-panel-2: oklch(0.97 0 0);
+  --bg-input: oklch(0.97 0 0);
+
+  /* Foregrounds */
+  --fg-default: oklch(0.18 0 0);
+  --fg-strong: oklch(0.08 0 0);
+  --fg-muted: oklch(0.5 0 0);
+  --fg-faint: oklch(0.65 0 0);
+
+  /* Borders */
+  --border-subtle: oklch(0.92 0 0);
+  --border-strong: oklch(0.85 0 0);
+
+  /* Accent (Linear-leaning electric indigo) */
+  --accent: oklch(0.55 0.2 268);
+  --accent-fg: oklch(0.98 0 0);
+  --accent-soft: oklch(0.55 0.2 268 / 0.1);
+  --accent-ring: oklch(0.55 0.2 268 / 0.4);
+
+  /* Status */
+  --success: oklch(0.55 0.16 145);
+  --warning: oklch(0.62 0.15 75);
+  --danger: oklch(0.55 0.22 25);
+
+  /* Chart palette (Grafana-leaning saturated) */
+  --chart-1: oklch(0.55 0.2 268);
+  --chart-2: oklch(0.65 0.16 145);
+  --chart-3: oklch(0.7 0.15 75);
+  --chart-4: oklch(0.6 0.18 25);
+  --chart-5: oklch(0.58 0.15 200);
+  --chart-6: oklch(0.55 0.18 320);
+
+  /* Geometry */
+  --radius: 0.5rem;
+
+  /* shadcn aliases → semantic */
+  --background: var(--bg-app);
+  --foreground: var(--fg-default);
+  --card: var(--bg-panel);
+  --card-foreground: var(--fg-default);
+  --popover: var(--bg-panel);
+  --popover-foreground: var(--fg-default);
+  --primary: var(--accent);
+  --primary-foreground: var(--accent-fg);
+  --secondary: var(--bg-panel-2);
+  --secondary-foreground: var(--fg-default);
+  --muted: var(--bg-panel-2);
+  --muted-foreground: var(--fg-muted);
+  --accent-foreground: var(--accent);
+  --destructive: var(--danger);
+  --border: var(--border-subtle);
+  --input: var(--bg-input);
+  --ring: var(--accent-ring);
+  --sidebar: var(--bg-sidebar);
+  --sidebar-foreground: var(--fg-default);
+  --sidebar-primary: var(--accent);
+  --sidebar-primary-foreground: var(--accent-fg);
+  --sidebar-accent: var(--accent-soft);
+  --sidebar-accent-foreground: var(--accent);
+  --sidebar-border: var(--border-subtle);
+  --sidebar-ring: var(--accent-ring);
+}
+
+.dark {
+  --bg-app: oklch(0.16 0.005 255);
+  --bg-sidebar: oklch(0.135 0.005 260);
+  --bg-panel: oklch(0.205 0.005 255);
+  --bg-panel-2: oklch(0.235 0.005 255);
+  --bg-input: oklch(0.225 0.005 255);
+
+  --fg-default: oklch(0.93 0 0);
+  --fg-strong: oklch(0.99 0 0);
+  --fg-muted: oklch(0.66 0 0);
+  --fg-faint: oklch(0.5 0 0);
+
+  --border-subtle: oklch(0.27 0.005 255);
+  --border-strong: oklch(0.36 0.005 255);
+
+  --accent: oklch(0.7 0.17 268);
+  --accent-fg: oklch(0.99 0 0);
+  --accent-soft: oklch(0.7 0.17 268 / 0.15);
+  --accent-ring: oklch(0.7 0.17 268 / 0.5);
+
+  --success: oklch(0.72 0.16 145);
+  --warning: oklch(0.78 0.15 80);
+  --danger: oklch(0.7 0.2 25);
+
+  --chart-1: oklch(0.7 0.17 268);
+  --chart-2: oklch(0.72 0.16 145);
+  --chart-3: oklch(0.78 0.15 75);
+  --chart-4: oklch(0.7 0.2 25);
+  --chart-5: oklch(0.7 0.15 200);
+  --chart-6: oklch(0.68 0.2 320);
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
+  --color-fg-strong: var(--fg-strong);
+  --color-fg-muted: var(--fg-muted);
+  --color-fg-faint: var(--fg-faint);
+  --color-bg-app: var(--bg-app);
+  --color-bg-sidebar: var(--bg-sidebar);
+  --color-bg-panel: var(--bg-panel);
+  --color-bg-panel-2: var(--bg-panel-2);
+  --color-border-subtle: var(--border-subtle);
+  --color-border-strong: var(--border-strong);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent-soft: var(--accent-soft);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+
+  --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-sans);
+  --font-heading: var(--font-geist-sans);
+
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -23,12 +149,11 @@
   --color-chart-3: var(--chart-3);
   --color-chart-2: var(--chart-2);
   --color-chart-1: var(--chart-1);
+  --color-chart-6: var(--chart-6);
   --color-ring: var(--ring);
   --color-input: var(--input);
   --color-border: var(--border);
   --color-destructive: var(--destructive);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-accent: var(--accent);
   --color-muted-foreground: var(--muted-foreground);
   --color-muted: var(--muted);
   --color-secondary-foreground: var(--secondary-foreground);
@@ -39,82 +164,11 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
-  --radius-sm: calc(var(--radius) * 0.6);
-  --radius-md: calc(var(--radius) * 0.8);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) * 1.4);
-  --radius-2xl: calc(var(--radius) * 1.8);
-  --radius-3xl: calc(var(--radius) * 2.2);
-  --radius-4xl: calc(var(--radius) * 2.6);
-}
-
-:root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
-}
-
-.dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+  --radius-2xl: 16px;
 }
 
 @layer base {
@@ -122,9 +176,30 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-bg-app text-foreground;
+    font-feature-settings: "ss01", "cv11";
   }
   html {
     @apply font-sans;
+  }
+}
+
+/* ─── Grafana-leaning panel utility ───────────────────────────────────────
+ * Reach for `.panel` when the rounded shadcn Card feels too heavy. Smaller
+ * radius, single hairline border, no shadow — the look you get with
+ * Grafana's default theme.
+ * ───────────────────────────────────────────────────────────────────────── */
+@layer components {
+  .panel {
+    @apply rounded-md border border-border-subtle bg-bg-panel;
+  }
+  .panel-header {
+    @apply flex items-center justify-between gap-3 border-b border-border-subtle px-4 py-2.5;
+  }
+  .panel-title {
+    @apply text-[12px] font-medium uppercase tracking-wider text-fg-muted;
+  }
+  .panel-body {
+    @apply px-4 py-3;
   }
 }

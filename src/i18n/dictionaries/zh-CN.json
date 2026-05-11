@@ -297,5 +297,14 @@
     "inviteUsed": "这个邀请已经被使用过了。",
     "inviteExpired": "这个邀请已经过期。请管理员重新生成。",
     "inviteInvalid": "邀请链接无效。"
+  },
+  "nav": {
+    "workspace": "工作区",
+    "account": "账户",
+    "dashboard": "仪表盘",
+    "tokens": "API 令牌",
+    "prices": "定价",
+    "users": "用户",
+    "about": "关于"
   }
 }

@@ -206,6 +206,16 @@ export type Dictionary = {
     signOut: string;
     about: string;
   };
+  // ---- v0.17: left sidebar ----
+  nav: {
+    workspace: string;
+    account: string;
+    dashboard: string;
+    tokens: string;
+    prices: string;
+    users: string;
+    about: string;
+  };
   agent: {
     statusLive: string;
     statusPaused: string;

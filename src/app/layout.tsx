@@ -52,7 +52,7 @@ export default async function RootLayout({
       <head>
         <script dangerouslySetInnerHTML={{ __html: NO_FLASH_SCRIPT }} />
       </head>
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-dvh bg-bg-app text-foreground">{children}</body>
     </html>
   );
 }

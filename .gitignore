@@ -51,6 +51,9 @@ next-env.d.ts
 # refresh-prices --raw cache
 /scripts/.fetched/
 
+# Claude Code task scratch (pua-loop state, history)
+/.claude/
+
 # multi-user mode server DB — never commit, contains user credentials
 /data/server.db
 /data/server.db-*

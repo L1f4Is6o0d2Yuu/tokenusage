@@ -297,5 +297,14 @@
     "inviteUsed": "Este convite já foi usado.",
     "inviteExpired": "Este convite expirou. Peça um novo ao admin.",
     "inviteInvalid": "Link de convite inválido."
+  },
+  "nav": {
+    "workspace": "Workspace",
+    "account": "Conta",
+    "dashboard": "Painel",
+    "tokens": "Tokens API",
+    "prices": "Preços",
+    "users": "Utilizadores",
+    "about": "Sobre"
   }
 }

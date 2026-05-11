@@ -297,5 +297,14 @@
     "inviteUsed": "この招待はすでに使用されています。",
     "inviteExpired": "この招待は期限切れです。管理者に再発行を依頼してください。",
     "inviteInvalid": "無効な招待リンクです。"
+  },
+  "nav": {
+    "workspace": "ワークスペース",
+    "account": "アカウント",
+    "dashboard": "ダッシュボード",
+    "tokens": "API トークン",
+    "prices": "料金",
+    "users": "ユーザー",
+    "about": "概要"
   }
 }
