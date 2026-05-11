@@ -56,7 +56,9 @@
     "description": "Token (sx) / costo USD (dx) — {period}",
     "empty": "Nessun dato nel periodo selezionato.",
     "yTokens": "Token",
-    "yCost": "Costo"
+    "yCost": "Costo",
+    "titleHour": "Andamento orario",
+    "tzHint": "ora locale, {tz}"
   },
   "topModels": {
     "title": "Modelli principali",

@@ -56,7 +56,9 @@
     "description": "Tokens (esq.) / custo USD (dir.) — {period}",
     "empty": "Sem dados no período selecionado.",
     "yTokens": "Tokens",
-    "yCost": "Custo"
+    "yCost": "Custo",
+    "titleHour": "Tendência horária",
+    "tzHint": "hora local, {tz}"
   },
   "topModels": {
     "title": "Modelos principais",

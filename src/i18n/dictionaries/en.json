@@ -56,7 +56,9 @@
     "description": "Tokens (left) and USD cost (right) — {period}",
     "empty": "No data in the selected period.",
     "yTokens": "Tokens",
-    "yCost": "Cost"
+    "yCost": "Cost",
+    "titleHour": "Hourly trend",
+    "tzHint": "local time, {tz}"
   },
   "topModels": {
     "title": "Top models",

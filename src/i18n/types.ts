@@ -85,9 +85,11 @@ export type Dictionary = {
     written: string; // "{f} written"
   };
   trend: {
+    titleHour: string;
     titleDay: string;
     titleMonth: string;
     description: string; // "... — {period}"
+    tzHint: string; // "local time, {tz}" — only appended when hourly
     empty: string;
     yTokens: string;
     yCost: string;
