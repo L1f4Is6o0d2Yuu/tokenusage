@@ -232,7 +232,9 @@
     "diagnoseInitial": "Collez la commande d'installation dans votre terminal pour commencer.",
     "diagnoseNoHeartbeat": "Jeton émis mais l'agent ne s'est pas encore connecté. Vérifiez que `tokenusage start` tourne.",
     "diagnoseNoUpload": "Agent en ligne mais n'a pas encore téléversé. Essayez `tokenusage sync` pour forcer un cycle.",
-    "diagnoseEmptyUpload": "L'agent s'est connecté mais n'a trouvé aucune donnée locale. Vérifiez la présence de `~/.claude/projects`, `~/.codex` ou `~/.hermes/state.db`."
+    "diagnoseEmptyUpload": "L'agent s'est connecté mais n'a trouvé aucune donnée locale. Vérifiez la présence de `~/.claude/projects`, `~/.codex` ou `~/.hermes/state.db`.",
+    "syncNow": "Synchroniser",
+    "syncing": "Synchronisation…"
   },
   "tokensPage": {
     "title": "Tokens API",

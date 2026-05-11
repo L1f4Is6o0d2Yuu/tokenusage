@@ -12,6 +12,7 @@ import { listTokens } from "@/lib/auth";
 import { getDictionary, readLocale } from "@/i18n";
 import { interp } from "@/i18n/interp";
 import { InstallAgentButton } from "@/components/install-agent-button";
+import { ForceSyncButton } from "@/components/force-sync-button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 // Dedicated install / waiting-for-data page. The dashboard route
@@ -88,13 +89,14 @@ export default async function InstallPage() {
           takes over the moment sessions > 0. */}
       <meta httpEquiv="refresh" content="8" />
 
-      <header className="sticky top-0 z-10 flex items-center border-b border-border-subtle bg-bg-app/85 px-6 py-3 backdrop-blur">
-        <div>
+      <header className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-border-subtle bg-bg-app/85 px-6 py-3 backdrop-blur">
+        <div className="min-w-0">
           <h1 className="text-base font-medium tracking-tight text-fg-strong">
             {ot.installTitle}
           </h1>
           <p className="truncate text-[12px] text-fg-muted">{ot.installSubtitle}</p>
         </div>
+        <ForceSyncButton label={ot.syncNow} pendingLabel={ot.syncing} />
       </header>
 
       <div className="flex-1 px-6 py-8">

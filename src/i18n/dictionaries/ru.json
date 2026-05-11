@@ -232,7 +232,9 @@
     "diagnoseInitial": "Вставьте команду установки в терминал.",
     "diagnoseNoHeartbeat": "Токен выдан, но агент не подключился. Убедитесь, что `tokenusage start` выполняется.",
     "diagnoseNoUpload": "Агент онлайн, но пока ничего не загрузил. Попробуйте `tokenusage sync`.",
-    "diagnoseEmptyUpload": "Агент подключился, но локальных данных не нашёл. Проверьте `~/.claude/projects`, `~/.codex` или `~/.hermes/state.db`."
+    "diagnoseEmptyUpload": "Агент подключился, но локальных данных не нашёл. Проверьте `~/.claude/projects`, `~/.codex` или `~/.hermes/state.db`.",
+    "syncNow": "Синхронизировать",
+    "syncing": "Синхронизация…"
   },
   "tokensPage": {
     "title": "API-токены",

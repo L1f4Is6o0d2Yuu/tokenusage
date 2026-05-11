@@ -269,6 +269,8 @@ export type Dictionary = {
     installTitle: string;
     installSubtitle: string;
     statusTitle: string;
+    syncNow: string;
+    syncing: string;
     stages: {
       token: string;
       heartbeat: string;
