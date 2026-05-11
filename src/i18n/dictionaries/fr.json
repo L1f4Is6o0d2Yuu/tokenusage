@@ -302,8 +302,9 @@
     "inviteCodePlaceholder": "tui_…",
     "inviteCodeSubmit": "Continuer",
     "inviteCodeMissing": "Collez votre code d'invitation pour continuer.",
-    "haveInvite": "Vous avez un code ?",
-    "policyHint": "8+ caractères avec lettres et un chiffre."
+    "policyHint": "8+ caractères avec lettres et un chiffre.",
+    "noAccount": "Pas de compte ?",
+    "signUpNow": "S'inscrire"
   },
   "nav": {
     "workspace": "Espace de travail",

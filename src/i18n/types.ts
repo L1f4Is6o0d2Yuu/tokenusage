@@ -347,7 +347,8 @@ export type Dictionary = {
     inviteCodePlaceholder: string;
     inviteCodeSubmit: string;
     inviteCodeMissing: string;
-    haveInvite: string;
+    noAccount: string;
+    signUpNow: string;
     policyHint: string;
   };
   forgotPassword: {

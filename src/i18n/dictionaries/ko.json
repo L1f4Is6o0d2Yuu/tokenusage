@@ -302,8 +302,9 @@
     "inviteCodePlaceholder": "tui_…",
     "inviteCodeSubmit": "계속",
     "inviteCodeMissing": "초대 코드를 붙여넣어 주세요.",
-    "haveInvite": "초대 코드가 있나요?",
-    "policyHint": "8자 이상, 영문과 숫자 포함."
+    "policyHint": "8자 이상, 영문과 숫자 포함.",
+    "noAccount": "계정이 없으신가요?",
+    "signUpNow": "지금 가입"
   },
   "nav": {
     "workspace": "워크스페이스",

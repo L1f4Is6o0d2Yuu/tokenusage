@@ -302,8 +302,9 @@
     "inviteCodePlaceholder": "tui_…",
     "inviteCodeSubmit": "続ける",
     "inviteCodeMissing": "招待コードを貼り付けてください。",
-    "haveInvite": "招待コードをお持ちですか？",
-    "policyHint": "8 文字以上、英字と数字を含む。"
+    "policyHint": "8 文字以上、英字と数字を含む。",
+    "noAccount": "アカウントがない？",
+    "signUpNow": "今すぐ登録"
   },
   "nav": {
     "workspace": "ワークスペース",
