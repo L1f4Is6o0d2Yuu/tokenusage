@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 64" fill="none">
+  
+  <path d="M8 32 L 56 32" stroke="#5B5BF2" stroke-width="3" stroke-linecap="round" opacity="0.3"/>
+  <circle cx="14" cy="32" r="4" fill="#5B5BF2" opacity="0.5"/>
+  <circle cx="32" cy="32" r="5" fill="#5B5BF2"/>
+  <circle cx="50" cy="32" r="3" fill="#5B5BF2" opacity="0.4"/>
+  <text x="76" y="40" fill="#0A0A0A" font-family="ui-monospace, 'Geist Mono', monospace" font-size="22" font-weight="600" letter-spacing="-0.5">tokenusage</text>
+</svg>

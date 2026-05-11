@@ -46,7 +46,9 @@
     "partialCost": "비용 데이터 일부 누락",
     "nonCache": "비캐시",
     "sessions": "{n} 세션",
-    "written": "{f} 기록됨"
+    "written": "{f} 기록됨",
+    "spendInPeriod": "{period} 지출",
+    "tokensInPeriod": "{period} 토큰"
   },
   "trend": {
     "titleDay": "일별 추세",

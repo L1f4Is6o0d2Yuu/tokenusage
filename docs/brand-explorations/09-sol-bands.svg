@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 64" fill="none">
+  
+  <defs>
+    <linearGradient id="sl9" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#5B5BF2"/><stop offset="1" stop-color="#22D3EE"/>
+    </linearGradient>
+  </defs>
+  <path d="M12 18 L52 12 L52 18 L 12 24 Z" fill="url(#sl9)"/>
+  <path d="M12 30 L52 24 L52 30 L 12 36 Z" fill="url(#sl9)" opacity="0.85"/>
+  <path d="M12 42 L52 36 L52 42 L 12 48 Z" fill="url(#sl9)" opacity="0.7"/>
+  <text x="76" y="40" fill="#0A0A0A" font-family="ui-monospace, 'Geist Mono', monospace" font-size="22" font-weight="600" letter-spacing="-0.5">tokenusage</text>
+</svg>

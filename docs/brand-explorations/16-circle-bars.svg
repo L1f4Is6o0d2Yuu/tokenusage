@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 64" fill="none">
+  
+  <circle cx="32" cy="32" r="22" fill="none" stroke="#5B5BF2" stroke-width="2"/>
+  <rect x="22" y="32" width="4" height="12" rx="1" fill="#5B5BF2"/>
+  <rect x="30" y="24" width="4" height="20" rx="1" fill="#5B5BF2"/>
+  <rect x="38" y="28" width="4" height="16" rx="1" fill="#5B5BF2"/>
+  <text x="76" y="40" fill="#0A0A0A" font-family="ui-monospace, 'Geist Mono', monospace" font-size="22" font-weight="600" letter-spacing="-0.5">tokenusage</text>
+</svg>

@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 64" fill="none">
+  
+  <g transform="translate(32,32)">
+    <path d="M0 -18 L16 -10 L 16 6 L 0 14 L -16 6 L -16 -10 Z" fill="#5B5BF2" opacity="0.85"/>
+    <path d="M0 -18 L16 -10 L 0 -2 L -16 -10 Z" fill="#7B6FFF"/>
+    <path d="M0 -2 L 16 -10 L 16 6 L 0 14 Z" fill="#5B5BF2"/>
+  </g>
+  <text x="76" y="40" fill="#0A0A0A" font-family="ui-monospace, 'Geist Mono', monospace" font-size="22" font-weight="600" letter-spacing="-0.5">tokenusage</text>
+</svg>

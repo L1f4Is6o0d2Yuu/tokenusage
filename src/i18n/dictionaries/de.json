@@ -46,7 +46,9 @@
     "partialCost": "Kostendaten unvollständig",
     "nonCache": "ohne Cache",
     "sessions": "{n} Sitzungen",
-    "written": "{f} geschrieben"
+    "written": "{f} geschrieben",
+    "spendInPeriod": "Ausgaben · {period}",
+    "tokensInPeriod": "Tokens · {period}"
   },
   "trend": {
     "titleDay": "Tagesverlauf",

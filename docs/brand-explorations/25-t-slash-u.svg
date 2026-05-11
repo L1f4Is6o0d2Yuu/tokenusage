@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 64" fill="none">
+  
+  <rect x="10" y="14" width="22" height="6" rx="1" fill="#5B5BF2"/>
+  <rect x="18" y="14" width="6" height="36" rx="1" fill="#5B5BF2"/>
+  <path d="M44 12 L 28 52" stroke="#5B5BF2" stroke-width="3" stroke-linecap="round" opacity="0.5"/>
+  <path d="M38 18 L 38 38 Q 38 50 50 50 L 50 50 Q 54 50 54 46 L 54 18"
+        stroke="#5B5BF2" stroke-width="5" fill="none" stroke-linejoin="round"/>
+  <text x="76" y="40" fill="#0A0A0A" font-family="ui-monospace, 'Geist Mono', monospace" font-size="22" font-weight="600" letter-spacing="-0.5">tokenusage</text>
+</svg>

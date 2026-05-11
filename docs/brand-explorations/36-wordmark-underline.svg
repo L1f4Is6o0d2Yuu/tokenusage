@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 64" fill="none">
+  <text x="12" y="38" fill="#0A0A0A" font-family="ui-monospace, 'Geist Mono', monospace" font-size="26" font-weight="600" letter-spacing="-0.5">tokenusage</text>
+  <rect x="12" y="46" width="120" height="3" rx="1.5" fill="#5B5BF2"/>
+  <rect x="12" y="46" width="180" height="3" rx="1.5" fill="#5B5BF2" opacity="0.25"/>
+</svg>

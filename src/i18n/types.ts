@@ -70,6 +70,8 @@ export type Dictionary = {
   cards: {
     totalSpend: string;
     totalTokens: string;
+    spendInPeriod: string; // "{period} spend" — interp w/ t.period[active]
+    tokensInPeriod: string; // "{period} tokens"
     inputOutput: string;
     cacheRead: string;
     cacheHitRate: string;
