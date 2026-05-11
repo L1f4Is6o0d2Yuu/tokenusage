@@ -302,8 +302,9 @@
     "inviteCodePlaceholder": "tui_…",
     "inviteCodeSubmit": "Продолжить",
     "inviteCodeMissing": "Вставьте код приглашения.",
-    "haveInvite": "Есть код приглашения?",
-    "policyHint": "8+ символов, буквы и цифра."
+    "policyHint": "8+ символов, буквы и цифра.",
+    "noAccount": "Нет аккаунта?",
+    "signUpNow": "Зарегистрироваться"
   },
   "nav": {
     "workspace": "Рабочая область",

@@ -32,12 +32,15 @@ export default async function LoginPage() {
         >
           {t.forgotPasswordLink}
         </Link>
-        <Link
-          href="/signup"
-          className="text-fg-muted transition-colors hover:text-fg-default"
-        >
-          {t.haveInvite}
-        </Link>
+        <p className="text-fg-muted">
+          {t.noAccount}{" "}
+          <Link
+            href="/signup"
+            className="text-accent transition-colors hover:text-fg-default"
+          >
+            {t.signUpNow}
+          </Link>
+        </p>
       </div>
     </main>
   );

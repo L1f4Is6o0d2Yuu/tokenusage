@@ -302,8 +302,9 @@
     "inviteCodePlaceholder": "tui_…",
     "inviteCodeSubmit": "Continue",
     "inviteCodeMissing": "Paste your invite code to continue.",
-    "haveInvite": "Have an invite code?",
-    "policyHint": "8+ chars with letters and a digit (mixed case + a symbol pushes you to strong)."
+    "policyHint": "8+ chars with letters and a digit (mixed case + a symbol pushes you to strong).",
+    "noAccount": "No account?",
+    "signUpNow": "Sign up"
   },
   "nav": {
     "workspace": "Workspace",

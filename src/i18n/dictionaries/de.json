@@ -302,8 +302,9 @@
     "inviteCodePlaceholder": "tui_…",
     "inviteCodeSubmit": "Weiter",
     "inviteCodeMissing": "Bitte Einladungscode einfügen.",
-    "haveInvite": "Einladungscode vorhanden?",
-    "policyHint": "8+ Zeichen mit Buchstaben und einer Ziffer."
+    "policyHint": "8+ Zeichen mit Buchstaben und einer Ziffer.",
+    "noAccount": "Kein Konto?",
+    "signUpNow": "Registrieren"
   },
   "nav": {
     "workspace": "Arbeitsbereich",
