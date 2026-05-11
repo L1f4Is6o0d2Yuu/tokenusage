@@ -58,12 +58,15 @@ export function filterByPeriod(
   });
 }
 
-// Decide bucket size for the trend chart. Day buckets are great up to ~3
-// months; beyond that the x-axis becomes unreadable, so flip to month buckets.
+// Decide bucket size for the trend chart. Short windows (today / last
+// 24h) get hour buckets so the user can see intra-day shape; day
+// buckets are great up to ~3 months; beyond that flip to month buckets
+// or the x-axis turns unreadable.
 export function pickGranularity(
   records: UsageRecord[],
   period: Period
 ): Granularity {
+  if (period === "today" || period === "24h") return "hour";
   if (period === "year") return "month";
   if (period === "all") {
     if (records.length === 0) return "day";
@@ -78,12 +81,21 @@ export function pickGranularity(
   return "day";
 }
 
+// All bucket keys are derived from the runtime's *local* clock. On the
+// server we get UTC; on the client we get the user's actual timezone.
+// Aggregation moved client-side specifically so hour buckets line up
+// with the user's wall clock — a "Today" chart that shows the user's
+// 0-24 in their own TZ.
 function bucketKey(ts: number, g: Granularity): string {
   const d = new Date(ts);
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, "0");
   if (g === "month") return `${y}-${m}-01`;
   const day = String(d.getDate()).padStart(2, "0");
+  if (g === "hour") {
+    const hh = String(d.getHours()).padStart(2, "0");
+    return `${y}-${m}-${day} ${hh}:00`;
+  }
   return `${y}-${m}-${day}`;
 }
 

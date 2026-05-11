@@ -56,7 +56,9 @@
     "description": "Tokens (links) / USD-Kosten (rechts) — {period}",
     "empty": "Keine Daten im gewählten Zeitraum.",
     "yTokens": "Tokens",
-    "yCost": "Kosten"
+    "yCost": "Kosten",
+    "titleHour": "Stündlicher Trend",
+    "tzHint": "Ortszeit, {tz}"
   },
   "topModels": {
     "title": "Top-Modelle",

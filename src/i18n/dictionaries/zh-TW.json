@@ -56,7 +56,9 @@
     "description": "tokens（左軸）/ USD 成本（右軸）— {period}",
     "empty": "所選期間無資料。",
     "yTokens": "Tokens",
-    "yCost": "成本"
+    "yCost": "成本",
+    "titleHour": "小時走勢",
+    "tzHint": "本地時間，{tz}"
   },
   "topModels": {
     "title": "熱門模型",

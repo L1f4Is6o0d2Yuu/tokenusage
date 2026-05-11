@@ -56,7 +56,9 @@
     "description": "토큰(좌축) / USD 비용(우축) — {period}",
     "empty": "선택한 기간에 데이터가 없습니다.",
     "yTokens": "토큰",
-    "yCost": "비용"
+    "yCost": "비용",
+    "titleHour": "시간별 추세",
+    "tzHint": "현지 시간, {tz}"
   },
   "topModels": {
     "title": "상위 모델",

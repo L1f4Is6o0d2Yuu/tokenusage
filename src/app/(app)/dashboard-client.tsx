@@ -215,17 +215,28 @@ export function DashboardClient({
           <Card className="lg:col-span-2">
             <CardHeader>
               <CardTitle>
-                {granularity === "month" ? t.trend.titleMonth : t.trend.titleDay}
+                {granularity === "hour"
+                  ? t.trend.titleHour
+                  : granularity === "month"
+                    ? t.trend.titleMonth
+                    : t.trend.titleDay}
               </CardTitle>
               <CardDescription>
                 {interp(t.trend.description, {
                   period: t.period[period].toLowerCase(),
                 })}
+                {granularity === "hour" && (
+                  <>
+                    {" · "}
+                    {interp(t.trend.tzHint, { tz: localTzLabel() })}
+                  </>
+                )}
               </CardDescription>
             </CardHeader>
             <CardContent>
               <UsageTrend
                 data={agg.byDay}
+                granularity={granularity}
                 labels={{
                   tokens: t.trend.yTokens,
                   cost: t.trend.yCost,
@@ -650,6 +661,17 @@ function RecentSessions({
       })}
     </ul>
   );
+}
+
+// `UTC+8` / `UTC-5` / `UTC+5:30` formatted from the browser's clock —
+// surfaces what timezone the hour-bucketed trend chart is binning by.
+function localTzLabel(): string {
+  const offsetMin = -new Date().getTimezoneOffset();
+  const sign = offsetMin >= 0 ? "+" : "-";
+  const abs = Math.abs(offsetMin);
+  const h = Math.trunc(abs / 60);
+  const m = abs % 60;
+  return m === 0 ? `UTC${sign}${h}` : `UTC${sign}${h}:${String(m).padStart(2, "0")}`;
 }
 
 function ChevronRightIcon({ className }: { className?: string }) {

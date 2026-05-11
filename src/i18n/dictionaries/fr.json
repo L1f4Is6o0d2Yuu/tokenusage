@@ -56,7 +56,9 @@
     "description": "Tokens (gauche) / coût USD (droite) — {period}",
     "empty": "Aucune donnée sur la période sélectionnée.",
     "yTokens": "Tokens",
-    "yCost": "Coût"
+    "yCost": "Coût",
+    "titleHour": "Tendance horaire",
+    "tzHint": "heure locale, {tz}"
   },
   "topModels": {
     "title": "Modèles les plus utilisés",

@@ -1,6 +1,6 @@
 export type Period = "today" | "24h" | "7d" | "30d" | "month" | "year" | "all" | "custom";
 
-export type Granularity = "day" | "month";
+export type Granularity = "hour" | "day" | "month";
 
 export const PERIOD_LABELS: Record<Period, string> = {
   today: "Today",

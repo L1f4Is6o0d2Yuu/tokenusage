@@ -56,7 +56,9 @@
     "description": "トークン（左軸）/ USD コスト（右軸）— {period}",
     "empty": "選択された期間にデータがありません。",
     "yTokens": "トークン",
-    "yCost": "コスト"
+    "yCost": "コスト",
+    "titleHour": "時間別推移",
+    "tzHint": "ローカル時間、{tz}"
   },
   "topModels": {
     "title": "上位モデル",
