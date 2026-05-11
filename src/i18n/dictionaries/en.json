@@ -296,7 +296,14 @@
     "inviteTitle": "Invited to join — pick an email and password.",
     "inviteUsed": "This invite has already been used.",
     "inviteExpired": "This invite has expired. Ask the admin for a new one.",
-    "inviteInvalid": "Invalid invite link."
+    "inviteInvalid": "Invalid invite link.",
+    "forgotPasswordLink": "Forgot password?",
+    "inviteCodeLabel": "Invite code",
+    "inviteCodePlaceholder": "tui_…",
+    "inviteCodeSubmit": "Continue",
+    "inviteCodeMissing": "Paste your invite code to continue.",
+    "haveInvite": "Have an invite code?",
+    "policyHint": "8+ chars with letters and a digit (mixed case + a symbol pushes you to strong)."
   },
   "nav": {
     "workspace": "Workspace",
@@ -306,5 +313,27 @@
     "prices": "Prices",
     "users": "Users",
     "about": "About"
+  },
+  "forgotPassword": {
+    "title": "Forgot password",
+    "subtitle": "Enter your email — the admin must have flagged your account for reset.",
+    "email": "Email",
+    "submitLookup": "Continue",
+    "submittingLookup": "Checking…",
+    "notFlagged": "Your password isn't flagged for reset yet. Ask the admin to mark your account first, then try again.",
+    "resetTitle": "Set a new password",
+    "resetSubtitle": "Admin cleared the way. Pick a new one.",
+    "newPassword": "New password",
+    "policyHint": "8+ chars with letters and a digit.",
+    "submitReset": "Save and sign in",
+    "submittingReset": "Saving…",
+    "backToLogin": "Back to login"
+  },
+  "adminReset": {
+    "button": "Reset password",
+    "confirm": "Flag this user for password reset?",
+    "pending": "Pending",
+    "pendingLabel": "reset requested",
+    "columnReset": "Reset"
   }
 }

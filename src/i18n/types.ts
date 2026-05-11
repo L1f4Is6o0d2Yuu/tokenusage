@@ -342,5 +342,34 @@ export type Dictionary = {
     inviteUsed: string;
     inviteExpired: string;
     inviteInvalid: string;
+    forgotPasswordLink: string;
+    inviteCodeLabel: string;
+    inviteCodePlaceholder: string;
+    inviteCodeSubmit: string;
+    inviteCodeMissing: string;
+    haveInvite: string;
+    policyHint: string;
+  };
+  forgotPassword: {
+    title: string;
+    subtitle: string;
+    email: string;
+    submitLookup: string;
+    submittingLookup: string;
+    notFlagged: string;
+    resetTitle: string;
+    resetSubtitle: string;
+    newPassword: string;
+    policyHint: string;
+    submitReset: string;
+    submittingReset: string;
+    backToLogin: string;
+  };
+  adminReset: {
+    button: string;
+    confirm: string;
+    pending: string;
+    pendingLabel: string;
+    columnReset: string;
   };
 };

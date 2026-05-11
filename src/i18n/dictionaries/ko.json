@@ -296,7 +296,14 @@
     "inviteTitle": "초대를 받았습니다 —— 이메일과 비밀번호를 설정하세요.",
     "inviteUsed": "이 초대는 이미 사용되었습니다.",
     "inviteExpired": "이 초대는 만료되었습니다. 관리자에게 새로 요청하세요.",
-    "inviteInvalid": "유효하지 않은 초대 링크입니다."
+    "inviteInvalid": "유효하지 않은 초대 링크입니다.",
+    "forgotPasswordLink": "비밀번호를 잊으셨나요?",
+    "inviteCodeLabel": "초대 코드",
+    "inviteCodePlaceholder": "tui_…",
+    "inviteCodeSubmit": "계속",
+    "inviteCodeMissing": "초대 코드를 붙여넣어 주세요.",
+    "haveInvite": "초대 코드가 있나요?",
+    "policyHint": "8자 이상, 영문과 숫자 포함."
   },
   "nav": {
     "workspace": "워크스페이스",
@@ -306,5 +313,27 @@
     "prices": "요금",
     "users": "사용자",
     "about": "소개"
+  },
+  "forgotPassword": {
+    "title": "비밀번호 찾기",
+    "subtitle": "이메일 입력 —— 관리자가 계정을 재설정 대상으로 표시해야 합니다.",
+    "email": "이메일",
+    "submitLookup": "계속",
+    "submittingLookup": "확인 중…",
+    "notFlagged": "아직 재설정이 허용되지 않았습니다. 관리자에게 문의하세요.",
+    "resetTitle": "새 비밀번호 설정",
+    "resetSubtitle": "관리자가 허용했습니다. 새 비밀번호를 입력하세요.",
+    "newPassword": "새 비밀번호",
+    "policyHint": "8자 이상, 영문과 숫자 포함.",
+    "submitReset": "저장 후 로그인",
+    "submittingReset": "저장 중…",
+    "backToLogin": "로그인으로 돌아가기"
+  },
+  "adminReset": {
+    "button": "비밀번호 재설정",
+    "confirm": "이 사용자를 재설정 대상으로 표시할까요?",
+    "pending": "대기 중",
+    "pendingLabel": "재설정 요청됨",
+    "columnReset": "재설정"
   }
 }

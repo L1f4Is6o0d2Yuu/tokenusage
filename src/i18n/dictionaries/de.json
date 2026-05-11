@@ -296,7 +296,14 @@
     "inviteTitle": "Eingeladen —— wähle E-Mail und Passwort.",
     "inviteUsed": "Diese Einladung wurde bereits verwendet.",
     "inviteExpired": "Diese Einladung ist abgelaufen. Bitte den Admin um eine neue.",
-    "inviteInvalid": "Ungültiger Einladungslink."
+    "inviteInvalid": "Ungültiger Einladungslink.",
+    "forgotPasswordLink": "Passwort vergessen?",
+    "inviteCodeLabel": "Einladungscode",
+    "inviteCodePlaceholder": "tui_…",
+    "inviteCodeSubmit": "Weiter",
+    "inviteCodeMissing": "Bitte Einladungscode einfügen.",
+    "haveInvite": "Einladungscode vorhanden?",
+    "policyHint": "8+ Zeichen mit Buchstaben und einer Ziffer."
   },
   "nav": {
     "workspace": "Arbeitsbereich",
@@ -306,5 +313,27 @@
     "prices": "Preise",
     "users": "Nutzer",
     "about": "Über"
+  },
+  "forgotPassword": {
+    "title": "Passwort vergessen",
+    "subtitle": "E-Mail eingeben — der Admin muss Ihr Konto zum Zurücksetzen markiert haben.",
+    "email": "E-Mail",
+    "submitLookup": "Weiter",
+    "submittingLookup": "Prüfen…",
+    "notFlagged": "Konto noch nicht zum Zurücksetzen markiert. Bitte Admin kontaktieren.",
+    "resetTitle": "Neues Passwort setzen",
+    "resetSubtitle": "Admin hat freigegeben. Neues Passwort wählen.",
+    "newPassword": "Neues Passwort",
+    "policyHint": "8+ Zeichen mit Buchstaben und einer Ziffer.",
+    "submitReset": "Speichern und anmelden",
+    "submittingReset": "Speichern…",
+    "backToLogin": "Zurück zur Anmeldung"
+  },
+  "adminReset": {
+    "button": "Passwort zurücksetzen",
+    "confirm": "Nutzer zum Zurücksetzen markieren?",
+    "pending": "Ausstehend",
+    "pendingLabel": "Zurücksetzen angefordert",
+    "columnReset": "Reset"
   }
 }

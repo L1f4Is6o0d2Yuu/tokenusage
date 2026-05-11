@@ -296,7 +296,14 @@
     "inviteTitle": "你被邀请加入 —— 设一个邮箱和密码。",
     "inviteUsed": "这个邀请已经被使用过了。",
     "inviteExpired": "这个邀请已经过期。请管理员重新生成。",
-    "inviteInvalid": "邀请链接无效。"
+    "inviteInvalid": "邀请链接无效。",
+    "forgotPasswordLink": "忘记密码？",
+    "inviteCodeLabel": "邀请码",
+    "inviteCodePlaceholder": "tui_…",
+    "inviteCodeSubmit": "继续",
+    "inviteCodeMissing": "请粘贴邀请码以继续。",
+    "haveInvite": "有邀请码？",
+    "policyHint": "至少 8 位，含字母和数字（大小写混合 + 符号 = 强密码）。"
   },
   "nav": {
     "workspace": "工作区",
@@ -306,5 +313,27 @@
     "prices": "定价",
     "users": "用户",
     "about": "关于"
+  },
+  "forgotPassword": {
+    "title": "忘记密码",
+    "subtitle": "输入邮箱 —— 需要管理员已经把你的账户标记为重置。",
+    "email": "邮箱",
+    "submitLookup": "继续",
+    "submittingLookup": "检查中…",
+    "notFlagged": "你的密码还没有被标记重置。请联系管理员后再试。",
+    "resetTitle": "设置新密码",
+    "resetSubtitle": "管理员已放行，请设置新密码。",
+    "newPassword": "新密码",
+    "policyHint": "至少 8 位，含字母和数字。",
+    "submitReset": "保存并登录",
+    "submittingReset": "保存中…",
+    "backToLogin": "返回登录"
+  },
+  "adminReset": {
+    "button": "重置密码",
+    "confirm": "标记该用户为密码重置？",
+    "pending": "待重置",
+    "pendingLabel": "已请求重置",
+    "columnReset": "重置"
   }
 }

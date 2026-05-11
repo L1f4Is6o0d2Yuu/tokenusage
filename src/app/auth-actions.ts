@@ -9,10 +9,13 @@ import {
   createUser,
   destroySession,
   redeemInvite as redeemInviteInternal,
+  lookupPasswordReset,
+  completePasswordReset,
   SESSION_COOKIE,
 } from "@/lib/auth";
 import { isFirstRun, isMultiUserMode } from "@/lib/server-db";
 import { cookieOptions } from "@/lib/cookie-opts";
+import { isValidEmail, checkPasswordPolicy } from "@/lib/auth-validation";
 
 const ONE_MONTH = 60 * 60 * 24 * 30;
 
@@ -39,8 +42,13 @@ export async function loginAction(
   redirect("/");
 }
 
-function isValidEmail(s: string): boolean {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
+function passwordError(password: string): string | null {
+  const p = checkPasswordPolicy(password);
+  if (p.ok) return null;
+  if (p.reason === "too-short") return "password must be at least 8 characters";
+  if (p.reason === "missing-letter") return "password must contain a letter";
+  if (p.reason === "missing-digit") return "password must contain a digit";
+  return "password does not meet the policy";
 }
 
 export async function signupAction(
@@ -56,7 +64,8 @@ export async function signupAction(
   if (!username || !password) return { error: "username and password are required" };
   if (username.length < 2) return { error: "username too short" };
   if (email && !isValidEmail(email)) return { error: "email looks invalid" };
-  if (password.length < 8) return { error: "password must be at least 8 characters" };
+  const pwErr = passwordError(password);
+  if (pwErr) return { error: pwErr };
   const user = createUser({
     username,
     email: email || null,
@@ -79,7 +88,8 @@ export async function redeemInviteAction(
   const password = String(formData.get("password") ?? "");
   if (!invite) return { error: "missing invite token" };
   if (!email || !isValidEmail(email)) return { error: "valid email is required" };
-  if (!password || password.length < 8) return { error: "password must be at least 8 characters" };
+  const pwErr = passwordError(password);
+  if (pwErr) return { error: pwErr };
   const finalUsername = username || email.split("@")[0];
   if (finalUsername.length < 2) return { error: "username too short" };
   let user;
@@ -97,6 +107,54 @@ export async function redeemInviteAction(
   }
   const token = createSession(user.id);
   await setSessionCookie(token);
+  revalidatePath("/", "layout");
+  redirect("/");
+}
+
+// Step 1 of forgot-password: confirm an admin has flagged the user's account
+// for reset. If yes, send the user to the new-password form. If no, show the
+// "ask the admin" message — we don't email a link because the server has no
+// SMTP path configured.
+export type ForgotPasswordLookupState = {
+  error?: string;
+  notFlagged?: boolean;
+};
+
+export async function forgotPasswordLookupAction(
+  _prev: ForgotPasswordLookupState,
+  formData: FormData
+): Promise<ForgotPasswordLookupState> {
+  const email = String(formData.get("email") ?? "").trim();
+  if (!email || !isValidEmail(email)) return { error: "valid email is required" };
+  const lookup = lookupPasswordReset(email);
+  if (!lookup.ok) {
+    // Tell the user "not reset" identically whether they typed a wrong email
+    // or a real one without the admin flag. That way enumeration via this
+    // form leaks nothing about which emails are registered.
+    return { notFlagged: true };
+  }
+  redirect(`/forgot-password?step=reset&email=${encodeURIComponent(email)}`);
+}
+
+// Step 2: actually swap the password. Re-checks the flag inside the txn so
+// an admin who unflagged the user between step 1 and step 2 still wins.
+export async function forgotPasswordCompleteAction(
+  _prev: AuthFormState,
+  formData: FormData
+): Promise<AuthFormState> {
+  const email = String(formData.get("email") ?? "").trim();
+  const password = String(formData.get("password") ?? "");
+  if (!email || !isValidEmail(email)) return { error: "valid email is required" };
+  const pwErr = passwordError(password);
+  if (pwErr) return { error: pwErr };
+  const ok = completePasswordReset(email, password);
+  if (!ok) return { error: "reset is no longer available — ask the admin to flag your account again" };
+  // Log the user in directly: the admin already vouched for them.
+  const auth = authenticate(email, password);
+  if (auth) {
+    const token = createSession(auth.id);
+    await setSessionCookie(token);
+  }
   revalidatePath("/", "layout");
   redirect("/");
 }
