@@ -1,9 +1,16 @@
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { Sidebar } from "@/components/sidebar";
-import { readCurrentUser } from "@/lib/auth";
+import { readCurrentUser, recordUserIp } from "@/lib/auth";
 import { isMultiUserMode } from "@/lib/server-db";
 import { getDictionary, readLocale } from "@/i18n";
 import { isTheme, THEME_COOKIE, type Theme } from "@/lib/theme";
+
+// Backfill window: if a user's last_ip stamp is older than this (or
+// missing), the next dashboard render captures their request IP again.
+// Long enough that we're not writing on every nav, short enough that a
+// user who left the session running for a week still gets a recent IP
+// surfaced to the admin /users page.
+const IP_BACKFILL_TTL_MS = 60 * 60 * 1000; // 1 hour
 
 // Shared shell for all authenticated dashboard pages.
 //
@@ -23,6 +30,20 @@ export default async function AppLayout({
   const theme: Theme = isTheme(themeRaw) ? themeRaw : "system";
 
   const user = isMultiUserMode() ? await readCurrentUser() : null;
+
+  // Opportunistic IP backfill. Existing sessions issued before IP tracking
+  // landed have a NULL last_ip; without this they'd stay invisible to the
+  // admin /users page for up to 30 days. We piggyback on the dashboard
+  // render (~once per nav at most, throttled to the TTL above).
+  if (
+    user &&
+    (user.lastIpAt == null || Date.now() - (user.lastIpAt ?? 0) > IP_BACKFILL_TTL_MS)
+  ) {
+    const h = await headers();
+    const ip =
+      (h.get("x-forwarded-for")?.split(",")[0] ?? h.get("x-real-ip") ?? "").trim();
+    if (ip) recordUserIp(user.id, ip);
+  }
 
   return (
     <div className="flex min-h-dvh">

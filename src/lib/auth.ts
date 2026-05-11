@@ -13,6 +13,10 @@ export type User = {
   username: string;
   email: string | null;
   isAdmin: boolean;
+  // Only populated by readCurrentUser(); other constructors leave it
+  // undefined. Used by (app)/layout.tsx to decide whether to backfill
+  // the IP for a session issued before IP tracking landed.
+  lastIpAt?: number | null;
 };
 
 // ---- password hashing (scrypt, built into node:crypto, no native deps) ----
@@ -76,13 +80,21 @@ export async function readCurrentUser(): Promise<User | null> {
     const row = db
       .prepare(
         `SELECT u.id AS id, u.username AS username, u.email AS email,
-                u.is_admin AS is_admin, s.expires_at AS expires_at
+                u.is_admin AS is_admin, u.last_ip_at AS last_ip_at,
+                s.expires_at AS expires_at
          FROM auth_sessions s
          JOIN users u ON u.id = s.user_id
          WHERE s.token_hash = ?`
       )
       .get(hashToken(token)) as
-      | { id: number; username: string; email: string | null; is_admin: number; expires_at: number }
+      | {
+          id: number;
+          username: string;
+          email: string | null;
+          is_admin: number;
+          last_ip_at: number | null;
+          expires_at: number;
+        }
       | undefined;
     if (!row) return null;
     if (row.expires_at < Date.now()) {
@@ -94,6 +106,7 @@ export async function readCurrentUser(): Promise<User | null> {
       username: row.username,
       email: row.email,
       isAdmin: row.is_admin === 1,
+      lastIpAt: row.last_ip_at,
     };
   } finally {
     db.close();

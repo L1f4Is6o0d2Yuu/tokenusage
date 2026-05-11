@@ -101,7 +101,12 @@ function bucketKey(ts: number, g: Granularity): string {
 
 export function aggregate(
   records: UsageRecord[],
-  granularity: Granularity = "day"
+  granularity: Granularity = "day",
+  // Window covered by the chart. Used to pre-seed empty buckets for hour
+  // granularity so a quiet hour doesn't get collapsed off the x-axis
+  // (recharts would otherwise put the next non-zero bucket right next to
+  // the previous one and the time spacing reads as uneven).
+  window?: { start: number | null; end: number }
 ): Aggregation {
   const totals = {
     records: records.length,
@@ -172,6 +177,25 @@ export function aggregate(
     }
     p.totalTokens += totalTokens;
     if (r.costUsd != null) p.costUsd += r.costUsd;
+  }
+
+  // Pre-seed hour buckets across the requested window so empty hours
+  // render as zero points (preserving uniform x-axis spacing) instead
+  // of just disappearing from the series.
+  if (granularity === "hour" && window) {
+    const start = window.start ?? records.reduce(
+      (m, r) => (r.startedAt < m ? r.startedAt : m),
+      window.end
+    );
+    const dStart = new Date(start);
+    dStart.setMinutes(0, 0, 0);
+    const stepMs = 60 * 60 * 1000;
+    for (let t = dStart.getTime(); t <= window.end; t += stepMs) {
+      const k = bucketKey(t, "hour");
+      if (!bucketMap.has(k)) {
+        bucketMap.set(k, { date: k, totalTokens: 0, costUsd: 0 });
+      }
+    }
   }
 
   const byModel = [...modelMap.values()].sort((a, b) => b.totalTokens - a.totalTokens);
