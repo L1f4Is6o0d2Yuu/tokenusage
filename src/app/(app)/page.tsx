@@ -124,10 +124,20 @@ export default async function Page({
             />
           )}
 
-          <section className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {/* KPI cards. Labels are period-aware: "All time" stays "Total"; for
+              any other period the headline reads "近 7 天用量" etc. so the user
+              never sees "总" next to a 7-day number. */}
+          <section
+            className="tu-rise mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4"
+            style={{ animationDelay: "40ms" }}
+          >
         <SummaryCard
           accent
-          label={t.cards.totalSpend}
+          label={
+            period === "all"
+              ? t.cards.totalSpend
+              : interp(t.cards.spendInPeriod, { period: t.period[period] })
+          }
           value={
             agg.totals.costKnown
               ? formatUsd(agg.totals.costUsd, { precise: true })
@@ -136,7 +146,11 @@ export default async function Page({
           hint={agg.totals.costKnown ? t.cards.estimated : t.cards.partialCost}
         />
         <SummaryCard
-          label={t.cards.totalTokens}
+          label={
+            period === "all"
+              ? t.cards.totalTokens
+              : interp(t.cards.tokensInPeriod, { period: t.period[period] })
+          }
           value={formatTokens(agg.totals.totalTokens)}
           hint={interp(t.cards.sessions, { n: formatInt(agg.totals.records) })}
         />
@@ -155,7 +169,10 @@ export default async function Page({
         />
       </section>
 
-      <section className="mt-6 grid gap-3 lg:grid-cols-3">
+      <section
+        className="tu-rise mt-6 grid gap-3 lg:grid-cols-3"
+        style={{ animationDelay: "120ms" }}
+      >
         <Card className="lg:col-span-2">
           <CardHeader>
             <CardTitle>
@@ -234,7 +251,10 @@ export default async function Page({
         </Card>
       </section>
 
-      <section className="mt-6">
+      <section
+        className="tu-rise mt-6"
+        style={{ animationDelay: "200ms" }}
+      >
         <Card>
           <CardHeader className="flex flex-col items-start gap-4 sm:flex-row sm:justify-between">
             <div className="space-y-1">
@@ -346,7 +366,10 @@ export default async function Page({
         </Card>
       </section>
 
-      <section className="mt-6">
+      <section
+        className="tu-rise mt-6"
+        style={{ animationDelay: "280ms" }}
+      >
         <Card>
           <CardHeader>
             <CardTitle>{t.recent.title}</CardTitle>

@@ -9,8 +9,12 @@ export function LocaleSwitcher({ active, label }: { active: Locale; label: strin
   const [pending, startTransition] = useTransition();
 
   return (
-    <form ref={formRef} action={setLocaleAction} className="flex items-center gap-2 text-xs">
-      <label htmlFor="locale-select" className="text-muted-foreground">
+    <form
+      ref={formRef}
+      action={setLocaleAction}
+      className="grid grid-cols-[3.5rem_1fr] items-center gap-2 text-xs"
+    >
+      <label htmlFor="locale-select" className="text-fg-muted">
         {label}
       </label>
       <select
@@ -21,7 +25,7 @@ export function LocaleSwitcher({ active, label }: { active: Locale; label: strin
         onChange={() => {
           startTransition(() => formRef.current?.requestSubmit());
         }}
-        className="rounded border bg-background px-2 py-1 font-mono text-foreground"
+        className="w-full min-w-0 rounded border border-border-subtle bg-bg-input px-2 py-1 font-mono text-foreground focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent/40"
       >
         {LOCALES.map((l) => (
           <option key={l} value={l}>

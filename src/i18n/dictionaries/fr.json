@@ -46,7 +46,9 @@
     "partialCost": "données de coût partielles",
     "nonCache": "hors cache",
     "sessions": "{n} sessions",
-    "written": "{f} écrits"
+    "written": "{f} écrits",
+    "spendInPeriod": "Dépense · {period}",
+    "tokensInPeriod": "Tokens · {period}"
   },
   "trend": {
     "titleDay": "Tendance quotidienne",

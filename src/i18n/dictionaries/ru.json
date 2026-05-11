@@ -46,7 +46,9 @@
     "partialCost": "данные о стоимости неполные",
     "nonCache": "без кэша",
     "sessions": "{n} сессий",
-    "written": "записано {f}"
+    "written": "записано {f}",
+    "spendInPeriod": "Расход · {period}",
+    "tokensInPeriod": "Токены · {period}"
   },
   "trend": {
     "titleDay": "Дневная динамика",

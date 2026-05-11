@@ -46,7 +46,9 @@
     "partialCost": "成本資料不完整",
     "nonCache": "非快取",
     "sessions": "{n} 個工作階段",
-    "written": "{f} 已寫入"
+    "written": "{f} 已寫入",
+    "spendInPeriod": "{period}花費",
+    "tokensInPeriod": "{period}用量"
   },
   "trend": {
     "titleDay": "每日趨勢",

@@ -46,7 +46,9 @@
     "partialCost": "コストデータが不完全",
     "nonCache": "非キャッシュ",
     "sessions": "{n} セッション",
-    "written": "{f} 書き込み"
+    "written": "{f} 書き込み",
+    "spendInPeriod": "{period}の支出",
+    "tokensInPeriod": "{period}のトークン"
   },
   "trend": {
     "titleDay": "日別推移",

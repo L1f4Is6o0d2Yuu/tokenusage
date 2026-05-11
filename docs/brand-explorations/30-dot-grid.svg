@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 64" fill="none">
+  
+  <g fill="#5B5BF2">
+    <circle cx="20" cy="20" r="3"/>
+    <circle cx="32" cy="20" r="3" opacity="0.4"/>
+    <circle cx="44" cy="20" r="3" opacity="0.4"/>
+    <circle cx="20" cy="32" r="3" opacity="0.4"/>
+    <circle cx="32" cy="32" r="3"/>
+    <circle cx="44" cy="32" r="3" opacity="0.4"/>
+    <circle cx="20" cy="44" r="3"/>
+    <circle cx="32" cy="44" r="3"/>
+    <circle cx="44" cy="44" r="3" opacity="0.4"/>
+  </g>
+  <text x="76" y="40" fill="#0A0A0A" font-family="ui-monospace, 'Geist Mono', monospace" font-size="22" font-weight="600" letter-spacing="-0.5">tokenusage</text>
+</svg>
