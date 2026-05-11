@@ -67,6 +67,22 @@ export default async function AboutPage() {
         <p className="mt-2 text-sm text-muted-foreground">{t.subtitle}</p>
       </header>
 
+      {/* Buffet metaphor up top — explains the whole point of the
+          product without leading with a schema diagram. */}
+      <Card className="mb-6 border-accent/30 bg-accent/5">
+        <CardHeader>
+          <CardTitle>{t.buffetTitle}</CardTitle>
+          <CardDescription className="text-foreground/80">
+            {t.buffetIntro}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4 text-sm leading-relaxed text-muted-foreground">
+          <p>{t.buffetPara1}</p>
+          <p>{t.buffetPara2}</p>
+          <p>{t.buffetPara3}</p>
+        </CardContent>
+      </Card>
+
       <Card className="mb-6">
         <CardHeader>
           <CardTitle>{t.trackedTitle}</CardTitle>

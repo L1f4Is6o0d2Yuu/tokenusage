@@ -14,6 +14,8 @@ import { UsageTrend } from "@/components/usage-trend";
 import { OnboardingCard } from "@/components/onboarding-card";
 import { AgentStatusBar } from "@/components/agent-status-bar";
 import { ModelPriceTooltip } from "@/components/model-price-tooltip";
+import { computeRoi, periodDays, type PlanLite } from "@/lib/roi-client";
+import { pickEncouragement } from "@/lib/encouragement";
 import {
   Card,
   CardContent,
@@ -59,6 +61,8 @@ export function DashboardClient({
   initialPeriod,
   initialCustomRange,
   username,
+  userId,
+  activePlans,
   locale,
   t,
   showOnboarding,
@@ -72,6 +76,8 @@ export function DashboardClient({
   initialPeriod: Period;
   initialCustomRange?: CustomRange;
   username: string | null;
+  userId: number | null;
+  activePlans: PlanLite[];
   locale: string;
   t: Dictionary;
   showOnboarding: boolean;
@@ -301,6 +307,22 @@ export function DashboardClient({
               )}
             </CardContent>
           </Card>
+        </section>
+
+        {/* Subscription ROI / "arsenal" — sum of declared subscriptions
+            on the left, prorated cost vs. actual API spend on the right,
+            with a milestone-band encouragement line when the user is
+            in profit. Empty state pulls them to /subscriptions. */}
+        <section className="tu-rise mt-6" style={{ animationDelay: "160ms" }}>
+          <SubscriptionRoiPanel
+            plans={activePlans}
+            apiSpendUsd={agg.totals.costUsd}
+            period={period}
+            customRange={customRange}
+            locale={locale}
+            userKey={userId ?? 0}
+            t={t}
+          />
         </section>
 
         <section className="tu-rise mt-6" style={{ animationDelay: "200ms" }}>
@@ -660,6 +682,177 @@ function RecentSessions({
         );
       })}
     </ul>
+  );
+}
+
+// Subscription "weapon arsenal" + ROI readout. We treat the user's
+// declared subscriptions as a portfolio of fixed costs; the panel
+// answers "for the period in view, would pay-per-token usage have
+// cost more or less than what you're already paying?"
+function SubscriptionRoiPanel({
+  plans,
+  apiSpendUsd,
+  period,
+  customRange,
+  locale,
+  userKey,
+  t,
+}: {
+  plans: PlanLite[];
+  apiSpendUsd: number;
+  period: Period;
+  customRange?: CustomRange;
+  locale: string;
+  userKey: number;
+  t: Dictionary;
+}) {
+  if (plans.length === 0) {
+    return (
+      <Card className="border-dashed">
+        <CardHeader>
+          <CardTitle>{t.subs.title}</CardTitle>
+          <CardDescription>{t.subs.emptyDescription}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Link
+            href="/subscriptions"
+            className="inline-flex rounded-md bg-accent px-3 py-1.5 text-xs font-medium text-accent-fg hover:opacity-90"
+          >
+            {t.subs.add}
+          </Link>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const days = periodDays(period, customRange);
+  const roi = computeRoi(apiSpendUsd, plans, days);
+  const encouragement = pickEncouragement(roi.milestoneBand, locale, userKey);
+  const inProfit = roi.netUsd >= 0;
+  const periodLabel = t.period[period].toLowerCase();
+
+  return (
+    <Card className="panel-hover">
+      <CardHeader className="flex flex-col items-start gap-4 sm:flex-row sm:justify-between">
+        <div className="space-y-1">
+          <CardTitle>{t.subs.title}</CardTitle>
+          <CardDescription>
+            {plans.length} {t.subs.activeSuffix} · {formatUsd(plans.reduce((s, p) => s + p.monthlyUsd, 0), { precise: true })}/mo
+          </CardDescription>
+        </div>
+        <Link
+          href="/subscriptions"
+          className="shrink-0 rounded-md border bg-background px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted"
+        >
+          {t.subs.manage}
+        </Link>
+      </CardHeader>
+      <CardContent className="space-y-5">
+        {/* Plan grid — vendor color stripe + name + monthly. The card
+            faces look like equipment cards in a "loadout" screen. */}
+        <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-4">
+          {plans.map((p) => (
+            <PlanCard key={p.id} plan={p} />
+          ))}
+        </div>
+
+        {/* ROI ladder — pro-rated cost vs API spend, big number for
+            "recovered" on the right, progress bar across the bottom. */}
+        <div className="grid grid-cols-1 gap-4 rounded-md border border-border-subtle bg-bg-panel-2/40 p-4 sm:grid-cols-3">
+          <Stat label={interp(t.subs.proratedFor, { period: periodLabel })} value={formatUsd(roi.proratedUsd, { precise: true })} tone="muted" />
+          <Stat label={interp(t.subs.spendFor, { period: periodLabel })} value={formatUsd(roi.apiSpendUsd, { precise: true })} tone="muted" />
+          <Stat
+            label={inProfit ? t.subs.recovered : t.subs.shortBy}
+            value={`${inProfit ? "+" : ""}${formatUsd(Math.abs(roi.netUsd), { precise: true })}`}
+            tone={inProfit ? "success" : "warning"}
+            big
+          />
+          <div className="sm:col-span-3">
+            <div className="flex items-center justify-between text-xs text-fg-muted mb-1.5">
+              <span>{t.subs.progress}</span>
+              <span className="font-mono tabular-nums text-fg-default">
+                {roi.ratioPct}%
+              </span>
+            </div>
+            <div className="h-2 w-full overflow-hidden rounded-full bg-bg-panel-2">
+              <div
+                className={`h-full rounded-full transition-[width] duration-500 ease-out ${
+                  inProfit ? "bg-success" : "bg-accent"
+                }`}
+                style={{ width: `${Math.min(roi.ratioPct, 100)}%` }}
+              />
+            </div>
+            {encouragement && (
+              <p className="mt-3 text-center text-sm italic text-fg-default">
+                {encouragement}
+              </p>
+            )}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function PlanCard({ plan }: { plan: PlanLite }) {
+  // Subtle vendor accent stripe — turns the plan list into a "loadout"
+  // grid rather than a row of identical chips.
+  const vendorColor: Record<string, string> = {
+    Anthropic: "from-orange-500/30 to-orange-500/5",
+    OpenAI: "from-emerald-500/30 to-emerald-500/5",
+    Cursor: "from-indigo-500/30 to-indigo-500/5",
+    GitHub: "from-fuchsia-500/30 to-fuchsia-500/5",
+    DeepSeek: "from-blue-500/30 to-blue-500/5",
+  };
+  const tint = vendorColor[plan.vendor] ?? "from-accent/30 to-accent/5";
+  return (
+    <div className="group/p relative overflow-hidden rounded-md border border-border-subtle bg-bg-panel p-3 transition-[border-color] hover:border-accent/40">
+      <div
+        className={`pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r ${tint}`}
+      />
+      <div className="text-[10px] font-medium uppercase tracking-wider text-fg-faint">
+        {plan.vendor}
+      </div>
+      <div className="mt-1 truncate text-sm font-medium text-fg-strong">
+        {plan.name}
+      </div>
+      <div className="mt-1 font-mono text-xs text-fg-muted">
+        {formatUsd(plan.monthlyUsd, { precise: false })}/mo
+      </div>
+    </div>
+  );
+}
+
+function Stat({
+  label,
+  value,
+  tone,
+  big,
+}: {
+  label: string;
+  value: string;
+  tone: "muted" | "success" | "warning";
+  big?: boolean;
+}) {
+  const toneCls =
+    tone === "success"
+      ? "text-success"
+      : tone === "warning"
+        ? "text-warning"
+        : "text-fg-default";
+  return (
+    <div>
+      <div className="text-[11px] font-medium uppercase tracking-wider text-fg-muted">
+        {label}
+      </div>
+      <div
+        className={`mt-0.5 tabular-nums tracking-tight ${toneCls} ${
+          big ? "text-2xl font-semibold" : "text-base font-medium"
+        }`}
+      >
+        {value}
+      </div>
+    </div>
   );
 }
 

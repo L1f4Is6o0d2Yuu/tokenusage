@@ -5,6 +5,7 @@ import { requireUser } from "@/lib/auth-guard";
 import { getUserSyncState, getLatestAgentSeenAt } from "@/lib/sync-state";
 import { isMultiUserMode } from "@/lib/server-db";
 import { readActivePrices } from "@/lib/pricing";
+import { listUserSubscriptions, PLAN_CATALOG } from "@/lib/subscriptions";
 import { getDictionary, readLocale } from "@/i18n";
 import { DashboardClient } from "./dashboard-client";
 
@@ -69,6 +70,14 @@ export default async function Page({
 
   const { rules } = readActivePrices();
 
+  // Resolve the user's active plan ids to {id, vendor, name, monthlyUsd}
+  // so the client can compute ROI without re-resolving the catalog.
+  const activePlanIds = currentUser ? listUserSubscriptions(currentUser.id) : [];
+  const activePlans = activePlanIds
+    .map((id) => PLAN_CATALOG.find((p) => p.id === id))
+    .filter((p): p is (typeof PLAN_CATALOG)[number] => p != null)
+    .map((p) => ({ id: p.id, vendor: p.vendor, name: p.name, monthlyUsd: p.monthlyUsd }));
+
   return (
     <DashboardClient
       records={records}
@@ -82,6 +91,8 @@ export default async function Page({
       initialPeriod={initialPeriod}
       initialCustomRange={initialCustomRange}
       username={currentUser?.username ?? null}
+      userId={currentUser?.id ?? null}
+      activePlans={activePlans}
       locale={locale}
       t={t}
       showOnboarding={showOnboarding}
