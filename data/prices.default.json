@@ -60,6 +60,12 @@
       "cacheRead": 2.8e-9
     },
     {
+      "match": "deepseek-coder",
+      "input": 2.52e-7,
+      "output": 3.78e-7,
+      "cacheRead": 2.52e-8
+    },
+    {
       "match": "deepseek",
       "input": 3.2e-7,
       "output": 8.9e-7,
@@ -71,6 +77,87 @@
       "output": 0.00001,
       "cacheRead": 1.25e-7,
       "cacheWrite": 3.75e-7
+    },
+    {
+      "match": "gemini.*flash",
+      "input": 3e-7,
+      "output": 0.0000025,
+      "cacheRead": 3e-8,
+      "cacheWrite": 8.333333333333334e-8
+    },
+    {
+      "match": "^(xiaomi[/-])?mimo-flash",
+      "input": 1e-7,
+      "output": 3e-7,
+      "cacheRead": 1e-8
+    },
+    {
+      "match": "^(xiaomi[/-])?mimo",
+      "input": 0.000001,
+      "output": 0.000003,
+      "cacheRead": 2e-7
+    },
+    {
+      "match": "qwen.*coder",
+      "input": 6.5e-7,
+      "output": 0.00000325,
+      "cacheRead": 1.3e-7,
+      "cacheWrite": 8.125e-7
+    },
+    {
+      "match": "qwen.*max",
+      "input": 7.8e-7,
+      "output": 0.0000039
+    },
+    {
+      "match": "qwen.*plus",
+      "input": 4e-7,
+      "output": 0.0000024
+    },
+    {
+      "match": "qwen.*flash",
+      "input": 2.5e-7,
+      "output": 0.0000015,
+      "cacheWrite": 3.125e-7
+    },
+    {
+      "match": "qwen",
+      "input": 2.5e-7,
+      "output": 0.0000015,
+      "cacheWrite": 3.125e-7
+    },
+    {
+      "match": "^(moonshot[/-])?kimi",
+      "input": 7.5e-7,
+      "output": 0.0000035,
+      "cacheRead": 1.5e-7
+    },
+    {
+      "match": "^glm|zhipu",
+      "input": 9.8e-7,
+      "output": 0.00000308,
+      "cacheRead": 1.82e-7
+    },
+    {
+      "match": "minimax",
+      "input": 2.99e-7,
+      "output": 0.0000012
+    },
+    {
+      "match": "ernie|wenxin",
+      "input": 7e-8,
+      "output": 2.8e-7
+    },
+    {
+      "match": "hunyuan|^tencent",
+      "input": 6.6e-8,
+      "output": 2.6e-7,
+      "cacheRead": 2.9e-8
+    },
+    {
+      "match": "^step|stepfun",
+      "input": 1e-7,
+      "output": 3e-7
     }
   ]
 }
