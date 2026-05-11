@@ -212,7 +212,20 @@
     "description": "tokenusage 还看不到任何数据。两步搞定。",
     "step1Title": "点下面的按钮，复制命令，到终端粘贴执行",
     "step2Title": "完事",
-    "step2Body": "安装器会注册一个后台服务（Mac 是 launchd / Linux 是 systemd），开机自启，后台同步。你随时可以在 dashboard 点「立即同步」拉取最新数据，或者点「暂停追踪」停止上传但保留 agent。"
+    "step2Body": "安装器会注册一个后台服务（Mac 是 launchd / Linux 是 systemd），开机自启，后台同步。你随时可以在 dashboard 点「立即同步」拉取最新数据，或者点「暂停追踪」停止上传但保留 agent。",
+    "installTitle": "安装 agent",
+    "installSubtitle": "在你的机器上运行 agent，数据就会汇集到这里。",
+    "statusTitle": "状态",
+    "stages": {
+      "token": "API 令牌已发放",
+      "heartbeat": "Agent 已连接（收到心跳）",
+      "upload": "数据已上传",
+      "data": "Session 已解析"
+    },
+    "diagnoseInitial": "把安装命令粘到终端开始。",
+    "diagnoseNoHeartbeat": "令牌已发，但 agent 还没上线。确认终端里 `tokenusage start` 已经在跑。",
+    "diagnoseNoUpload": "Agent 在线，但还没传过数据。试试 `tokenusage sync` 强制触发一次。",
+    "diagnoseEmptyUpload": "Agent 报到了但没找到本地数据。确认机器上有 `~/.claude/projects`、`~/.codex` 或 `~/.hermes/state.db` 任一目录。"
   },
   "tokensPage": {
     "title": "API tokens",

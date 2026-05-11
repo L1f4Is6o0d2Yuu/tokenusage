@@ -212,7 +212,20 @@
     "description": "tokenusage doesn't see anything yet. Two steps and you're done.",
     "step1Title": "Click below, copy the command, paste it in a terminal",
     "step2Title": "That's it",
-    "step2Body": "The installer registers a background service (launchd on Mac / systemd on Linux) that auto-starts on login and syncs in the background. Click Sync now on the dashboard any time you want fresh data, or Pause tracking to disable uploads without uninstalling."
+    "step2Body": "The installer registers a background service (launchd on Mac / systemd on Linux) that auto-starts on login and syncs in the background. Click Sync now on the dashboard any time you want fresh data, or Pause tracking to disable uploads without uninstalling.",
+    "installTitle": "Install agent",
+    "installSubtitle": "Run the agent on your machine — your data flows here.",
+    "statusTitle": "Status",
+    "stages": {
+      "token": "API token issued",
+      "heartbeat": "Agent connected (heartbeat received)",
+      "upload": "Data uploaded",
+      "data": "Sessions parsed"
+    },
+    "diagnoseInitial": "Paste the install command in your terminal to begin.",
+    "diagnoseNoHeartbeat": "Token issued but the agent hasn't checked in yet. Make sure `tokenusage start` is running.",
+    "diagnoseNoUpload": "Agent is online but hasn't uploaded yet. Try `tokenusage sync` to force a cycle.",
+    "diagnoseEmptyUpload": "Agent reported in but found no local data. Verify `~/.claude/projects`, `~/.codex`, or `~/.hermes/state.db` exists on the machine."
   },
   "tokensPage": {
     "title": "API tokens",

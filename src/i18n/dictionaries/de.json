@@ -212,7 +212,20 @@
     "description": "tokenusage sieht noch nichts. Zwei Schritte und es läuft.",
     "step1Title": "Unten klicken, Befehl kopieren, im Terminal einfügen",
     "step2Title": "Fertig",
-    "step2Body": "Der Installer registriert einen Hintergrunddienst (launchd auf Mac / systemd auf Linux), der bei Anmeldung startet und im Hintergrund synchronisiert. Klick auf Jetzt synchronisieren, wenn du frische Daten brauchst, oder Tracking pausieren, um Uploads ohne Deinstallation zu stoppen."
+    "step2Body": "Der Installer registriert einen Hintergrunddienst (launchd auf Mac / systemd auf Linux), der bei Anmeldung startet und im Hintergrund synchronisiert. Klick auf Jetzt synchronisieren, wenn du frische Daten brauchst, oder Tracking pausieren, um Uploads ohne Deinstallation zu stoppen.",
+    "installTitle": "Agent installieren",
+    "installSubtitle": "Führen Sie den Agent auf Ihrem Rechner aus — Ihre Daten fließen hierher.",
+    "statusTitle": "Status",
+    "stages": {
+      "token": "API-Token ausgestellt",
+      "heartbeat": "Agent verbunden (Heartbeat erhalten)",
+      "upload": "Daten hochgeladen",
+      "data": "Sessions geparst"
+    },
+    "diagnoseInitial": "Fügen Sie den Installationsbefehl im Terminal ein.",
+    "diagnoseNoHeartbeat": "Token ausgestellt, aber Agent hat sich noch nicht gemeldet. Stellen Sie sicher, dass `tokenusage start` läuft.",
+    "diagnoseNoUpload": "Agent online, aber noch nichts hochgeladen. Versuchen Sie `tokenusage sync`.",
+    "diagnoseEmptyUpload": "Agent meldete sich, fand aber keine lokalen Daten. Prüfen Sie `~/.claude/projects`, `~/.codex` oder `~/.hermes/state.db`."
   },
   "tokensPage": {
     "title": "API-Tokens",

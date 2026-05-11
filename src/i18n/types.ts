@@ -258,6 +258,19 @@ export type Dictionary = {
     step1Title: string;
     step2Title: string;
     step2Body: string;
+    installTitle: string;
+    installSubtitle: string;
+    statusTitle: string;
+    stages: {
+      token: string;
+      heartbeat: string;
+      upload: string;
+      data: string;
+    };
+    diagnoseInitial: string;
+    diagnoseNoHeartbeat: string;
+    diagnoseNoUpload: string;
+    diagnoseEmptyUpload: string;
   };
   tokensPage: {
     title: string;

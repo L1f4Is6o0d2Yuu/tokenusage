@@ -212,7 +212,20 @@
     "description": "tokenusage はまだ何も見えていません。2 ステップで完了します。",
     "step1Title": "下のボタンをクリックし、コマンドをコピーして、ターミナルに貼り付けてください",
     "step2Title": "完了",
-    "step2Body": "インストーラはバックグラウンドサービス（Mac は launchd / Linux は systemd）として登録され、ログイン時に自動起動して同期し続けます。最新のデータが欲しい時はダッシュボードの「今すぐ同期」をクリック、アップロードを止めたい時は「追跡を一時停止」をクリックしてください。"
+    "step2Body": "インストーラはバックグラウンドサービス（Mac は launchd / Linux は systemd）として登録され、ログイン時に自動起動して同期し続けます。最新のデータが欲しい時はダッシュボードの「今すぐ同期」をクリック、アップロードを止めたい時は「追跡を一時停止」をクリックしてください。",
+    "installTitle": "エージェントをインストール",
+    "installSubtitle": "あなたのマシンでエージェントを実行すると、データがここに流れ込みます。",
+    "statusTitle": "ステータス",
+    "stages": {
+      "token": "API トークン発行済",
+      "heartbeat": "エージェント接続（ハートビート受信）",
+      "upload": "データアップロード済",
+      "data": "Session 解析済"
+    },
+    "diagnoseInitial": "ターミナルでインストールコマンドを実行してください。",
+    "diagnoseNoHeartbeat": "トークンは発行されましたがエージェントがまだ接続していません。`tokenusage start` が動作しているか確認してください。",
+    "diagnoseNoUpload": "エージェントはオンラインですがまだアップロードしていません。`tokenusage sync` で強制サイクル。",
+    "diagnoseEmptyUpload": "エージェントは接続しましたが、ローカルデータが見つかりません。`~/.claude/projects`、`~/.codex`、`~/.hermes/state.db` のいずれかが存在することを確認してください。"
   },
   "tokensPage": {
     "title": "API トークン",
