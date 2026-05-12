@@ -104,18 +104,29 @@ export async function GET(
   const inProfit = roi.netUsd > 0;
   const hasSubs = activePlans.length > 0;
 
-  // Top 3 models by token share.
-  const topModels = agg.byModel.slice(0, 3).map((m) => ({
-    name: m.model || "unknown",
-    provider: m.provider,
-    pct:
-      agg.totals.totalTokens > 0
-        ? (m.totalTokens / agg.totals.totalTokens) * 100
-        : 0,
-    tokens: m.totalTokens,
-  }));
+  // Top 3 models by token share. The dashboard's byModel keys on
+  // provider+model so the same model name across two providers (e.g.
+  // gpt-5.5 via hermes + via codex) shows up twice. Collapse on
+  // model name for the share image — viewers don't care which gateway
+  // delivered the tokens.
+  const modelMerged = new Map<string, number>();
+  for (const m of agg.byModel) {
+    const key = m.model || "unknown";
+    modelMerged.set(key, (modelMerged.get(key) ?? 0) + m.totalTokens);
+  }
+  const topModels = [...modelMerged.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3)
+    .map(([name, tokens]) => ({
+      name,
+      pct:
+        agg.totals.totalTokens > 0
+          ? (tokens / agg.totals.totalTokens) * 100
+          : 0,
+      tokens,
+    }));
 
-  const codingHours = totalActiveHours(scoped);
+  const codingHours = totalActiveHours(scoped, window);
   const hoursPerDay = codingHours / Math.max(1, days);
   const hoursTaunt = pickHoursTaunt(codingHours, days, "zh-CN", userKey, period);
   const tokenTaunt = pickTokenTaunt(
@@ -560,9 +571,9 @@ function formatTokensShort(n: number): string {
 }
 
 // One-word label for the work-intensity tier — used as a chip next to
-// the avg/day inside the hours panel.
-function hoursOpinion(hpd: number, days: number): string {
-  if (days <= 1) return "";
+// the avg/day inside the hours panel. For 1-day periods we just
+// classify by total hours directly (same number as hpd).
+function hoursOpinion(hpd: number, _days: number): string {
   if (hpd < 1) return "佛系";
   if (hpd < 3) return "摸鱼";
   if (hpd < 5) return "正常";

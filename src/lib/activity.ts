@@ -72,7 +72,22 @@ export function activityWindows(
   return out;
 }
 
-export function totalActiveHours(records: UsageRecord[]): number {
-  const ms = activityWindows(records).reduce((s, w) => s + (w.end - w.start), 0);
+// `clip` (optional) is the displayed period — sessions that started
+// before the period boundary get clipped to it so their full duration
+// doesn't bleed into "today" math (the old behavior gave us 105h/day
+// totals on busy users; the share image's hpd became absurd).
+export function totalActiveHours(
+  records: UsageRecord[],
+  clip?: { start: number | null; end: number }
+): number {
+  const wStart = clip?.start ?? -Infinity;
+  const wEnd = clip?.end ?? Infinity;
+  const windows = activityWindows(records);
+  let ms = 0;
+  for (const w of windows) {
+    const s = Math.max(w.start, wStart);
+    const e = Math.min(w.end, wEnd);
+    if (e > s) ms += e - s;
+  }
   return ms / 3_600_000;
 }

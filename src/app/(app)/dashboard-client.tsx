@@ -18,6 +18,7 @@ import { ModelPriceTooltip } from "@/components/model-price-tooltip";
 import { computeRoi, periodDays, type PlanLite } from "@/lib/roi-client";
 import { pickDailyTaunt, pickRoiLine } from "@/lib/encouragement";
 import { selectLiveSessions, totalActiveHours, type LiveSession } from "@/lib/activity";
+import { periodWindow } from "@/lib/aggregate";
 import {
   computeAllLimitWindows,
   STOCK_WINDOWS,
@@ -130,7 +131,13 @@ export function DashboardClient({
 
   // Coding-hours KPI + the htop-style live panel. Both are pure derivations
   // off the scoped records, so they update for free when the period changes.
-  const codingHours = useMemo(() => totalActiveHours(scoped), [scoped]);
+  // Clip sessions to the period window so a session that spans the
+  // boundary doesn't bleed its full duration into the displayed total
+  // (the unclipped version gave us 177h / 7d → 25h/day on busy users).
+  const codingHours = useMemo(() => {
+    const win = periodWindow(period, new Date(), customRange);
+    return totalActiveHours(scoped, win);
+  }, [scoped, period, customRange]);
   // Live sessions only make sense for "today"/"24h" — looking at "live"
   // sessions inside a 30-day window is just "yesterday's stale rows".
   const isDailyPeriod = period === "today" || period === "24h";
