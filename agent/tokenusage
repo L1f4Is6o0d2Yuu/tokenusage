@@ -13,12 +13,13 @@
 #   tokenusage logs                               # tail the agent log
 #   tokenusage sync                               # manual sync now (server flag)
 #   tokenusage report [today|7d|30d|all]          # print server aggregate as JSON
+#   tokenusage statusline                         # one-line for shell prompts (60s cache)
 #   tokenusage --loop                             # internal: long-poll + upload loop
 #   tokenusage version
 
 set -uo pipefail
 
-VERSION="0.18.1"
+VERSION="0.18.2"
 CONFIG_DIR="$HOME/.tokenusage"
 CONFIG_FILE="$CONFIG_DIR/config.env"
 STATE_FILE="$CONFIG_DIR/state"
@@ -226,6 +227,45 @@ cmd_version() {
   printf 'tokenusage %s\n' "$VERSION"
 }
 
+# `tokenusage statusline` — single-line summary for shell prompts.
+# Hits the same JSON endpoint as `report`, caches the rendered string
+# in ~/.tokenusage/statusline.cache for 60s so prompts (which fire on
+# every keystroke under some setups) don't hammer the server.
+#
+# Designed for starship / oh-my-zsh / p10k right-prompt segments:
+#   eval "$(tokenusage statusline 2>/dev/null)"   # noisy on error → silent
+cmd_statusline() {
+  [ -f "$CONFIG_FILE" ] || exit 0
+  local CACHE="$CONFIG_DIR/statusline.cache"
+  if [ -f "$CACHE" ]; then
+    local mtime
+    mtime=$(stat -f%m "$CACHE" 2>/dev/null || stat -c%Y "$CACHE" 2>/dev/null || echo 0)
+    if [ -n "$mtime" ] && [ $(( $(date +%s) - mtime )) -lt 60 ]; then
+      cat "$CACHE"
+      return
+    fi
+  fi
+  # shellcheck disable=SC1090
+  . "$CONFIG_FILE"
+  local PAYLOAD
+  PAYLOAD=$(curl -fsS --max-time 2 \
+    "$SERVER/api/export?period=today&format=json" \
+    -H "Authorization: Bearer $TOKEN" \
+    -H "X-Agent-Version: $VERSION" 2>/dev/null) || exit 0
+  local LINE
+  if command -v jq >/dev/null 2>&1; then
+    LINE=$(printf '%s' "$PAYLOAD" | jq -r '
+      "$\((.totals.costUsd * 100 | floor) / 100) · \(
+        if .totals.totalTokens >= 1000000 then "\((.totals.totalTokens / 100000 | floor) / 10)M"
+        elif .totals.totalTokens >= 1000 then "\((.totals.totalTokens / 100 | floor) / 10)k"
+        else "\(.totals.totalTokens)"
+        end) tok"')
+  else
+    LINE="(install jq for statusline)"
+  fi
+  printf '%s\n' "$LINE" | tee "$CACHE"
+}
+
 # `tokenusage report [PERIOD]` — pulls the server's JSON aggregate for
 # the requested period and prints a one-screen summary. Default period
 # is "today". The output is grep-friendly so it slots into shell
@@ -413,6 +453,7 @@ case "${1:-help}" in
   logs)      shift; cmd_logs "$@" ;;
   sync)      shift; cmd_sync "$@" ;;
   report)    shift; cmd_report "$@" ;;
+  statusline) shift; cmd_statusline "$@" ;;
   --loop)    cmd_loop ;;
   version|--version|-v) cmd_version ;;
   help|--help|-h) usage ;;

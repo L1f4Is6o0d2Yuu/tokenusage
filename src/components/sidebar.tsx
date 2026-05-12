@@ -7,6 +7,7 @@ import {
   Info,
   LogOut,
   Sword,
+  Sparkles,
 } from "lucide-react";
 import { logoutAction } from "@/app/auth-actions";
 import { ThemeSwitcher } from "@/components/theme-switcher";
@@ -47,6 +48,7 @@ export function Sidebar({
   const primary: Item[] = [
     { href: "/", label: t.nav.dashboard, icon: LayoutDashboard },
     { href: "/subscriptions", label: t.nav.subscriptions, icon: Sword },
+    { href: "/models", label: t.nav.models, icon: Sparkles },
     { href: "/prices", label: t.nav.prices, icon: DollarSign },
   ];
   if (user?.isAdmin) {

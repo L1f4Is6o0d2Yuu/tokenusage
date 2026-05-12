@@ -343,7 +343,8 @@
     "prices": "Prices",
     "users": "Users",
     "about": "About",
-    "subscriptions": "Subscriptions"
+    "subscriptions": "Subscriptions",
+    "models": "Models"
   },
   "forgotPassword": {
     "title": "Forgot password",
@@ -418,5 +419,16 @@
     "copyButton": "Copy command",
     "copied": "Copied!",
     "later": "Later"
+  },
+  "modelsPage": {
+    "title": "Models",
+    "subtitle": "Live catalog from OpenRouter — context, modality, current pricing.",
+    "otherVendors": "Other vendors",
+    "fetchError": "Catalog fetch failed",
+    "colInput": "Input",
+    "colOutput": "Output",
+    "colCacheRead": "Cache",
+    "colContext": "Context",
+    "coveredBy": "Covered by"
   }
 }

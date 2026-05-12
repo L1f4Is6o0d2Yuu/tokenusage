@@ -115,6 +115,17 @@ export type Dictionary = {
     copied: string;
     later: string;
   };
+  modelsPage: {
+    title: string;
+    subtitle: string;
+    otherVendors: string;
+    fetchError: string;
+    colInput: string;
+    colOutput: string;
+    colCacheRead: string;
+    colContext: string;
+    coveredBy: string;
+  };
   topModels: {
     title: string;
     description: string;
@@ -242,6 +253,7 @@ export type Dictionary = {
     account: string;
     dashboard: string;
     subscriptions: string;
+    models: string;
     tokens: string;
     prices: string;
     users: string;

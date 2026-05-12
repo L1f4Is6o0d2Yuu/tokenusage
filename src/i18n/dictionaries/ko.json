@@ -343,7 +343,8 @@
     "prices": "요금",
     "users": "사용자",
     "about": "소개",
-    "subscriptions": "구독"
+    "subscriptions": "구독",
+    "models": "모델"
   },
   "forgotPassword": {
     "title": "비밀번호 찾기",
@@ -418,5 +419,16 @@
     "copyButton": "Copy command",
     "copied": "Copied!",
     "later": "Later"
+  },
+  "modelsPage": {
+    "title": "Models",
+    "subtitle": "Live catalog from OpenRouter — context, modality, current pricing.",
+    "otherVendors": "Other vendors",
+    "fetchError": "Catalog fetch failed",
+    "colInput": "Input",
+    "colOutput": "Output",
+    "colCacheRead": "Cache",
+    "colContext": "Context",
+    "coveredBy": "Covered by"
   }
 }
