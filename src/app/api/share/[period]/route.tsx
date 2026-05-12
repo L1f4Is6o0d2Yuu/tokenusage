@@ -12,7 +12,11 @@ import {
 import { listUserSubscriptions, PLAN_CATALOG } from "@/lib/subscriptions";
 import { computeRoi, periodDays } from "@/lib/roi-client";
 import { totalActiveHours } from "@/lib/activity";
-import { pickDailyTaunt, pickRoiLine } from "@/lib/encouragement";
+import {
+  pickHoursTaunt,
+  pickTokenTaunt,
+  tokenComparison,
+} from "@/lib/encouragement";
 import type { Period } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -72,11 +76,7 @@ export async function GET(
 
   const days = periodDays(period);
   const roi = computeRoi(agg.totals.costUsd, activePlans, days);
-  const isDaily = period === "today" || period === "24h";
   const userKey = `${user.id}:${Date.now()}`;
-  const message = isDaily
-    ? pickDailyTaunt(agg.totals.costUsd, activePlans, "zh-CN", userKey, period)
-    : pickRoiLine(roi.ratioPct, roi.netUsd, activePlans, "zh-CN", userKey, period);
 
   const periodLabel: Record<Period, string> = {
     today: "今天",
@@ -115,26 +115,20 @@ export async function GET(
     tokens: m.totalTokens,
   }));
 
-  // Trend bars — up to 14 buckets, height-normalized.
-  const trendBuckets = agg.byDay.slice(-14);
-  const maxTokens = trendBuckets.reduce(
-    (m, d) => (d.totalTokens > m ? d.totalTokens : m),
-    1
-  );
-  const trendBars = trendBuckets.map((d) => ({
-    h: Math.max(0.04, d.totalTokens / maxTokens),
-  }));
-
   const codingHours = totalActiveHours(scoped);
-
-  // Cache hit rate over input+cache-read mass — same formula as
-  // the dashboard's CacheStat card.
-  const cacheHitDenom =
-    agg.totals.cacheReadTokens + agg.totals.inputTokens;
-  const cacheHitRate =
-    cacheHitDenom > 0
-      ? (agg.totals.cacheReadTokens / cacheHitDenom) * 100
-      : 0;
+  const hoursPerDay = codingHours / Math.max(1, days);
+  const hoursTaunt = pickHoursTaunt(codingHours, days, "zh-CN", userKey, period);
+  const tokenTaunt = pickTokenTaunt(
+    agg.totals.totalTokens,
+    "zh-CN",
+    userKey,
+    period
+  );
+  const tokenRef = tokenComparison(
+    agg.totals.totalTokens,
+    userKey,
+    period
+  );
 
   const apiValue = agg.totals.costUsd;
   const subFee = roi.proratedUsd;
@@ -173,31 +167,6 @@ export async function GET(
   })();
 
   const heroColor = inProfit ? "#88FFAB" : "#FFA88A";
-  const toneStyle: Record<
-    "roast" | "tease" | "shade" | "celebration",
-    { bg: string; border: string; tag: string }
-  > = {
-    roast: {
-      bg: "rgba(255, 95, 95, 0.14)",
-      border: "rgba(255, 95, 95, 0.5)",
-      tag: "🌶️ 锐评",
-    },
-    tease: {
-      bg: "rgba(255, 168, 138, 0.14)",
-      border: "rgba(255, 168, 138, 0.5)",
-      tag: "😏 调侃",
-    },
-    shade: {
-      bg: "rgba(255, 200, 122, 0.12)",
-      border: "rgba(255, 200, 122, 0.5)",
-      tag: "🍵 阴阳",
-    },
-    celebration: {
-      bg: "rgba(136, 255, 171, 0.14)",
-      border: "rgba(136, 255, 171, 0.5)",
-      tag: "🎉 喜报",
-    },
-  };
 
   return new ImageResponse(
     (
@@ -313,23 +282,9 @@ export async function GET(
               lineHeight: 1,
               marginTop: 10,
               color: heroColor,
-              textShadow: inProfit
-                ? "0 0 60px rgba(136, 255, 171, 0.35)"
-                : "0 0 60px rgba(255, 168, 138, 0.25)",
             }}
           >
             ${apiValue.toFixed(2)}
-          </div>
-          <div
-            style={{
-              display: "flex",
-              fontSize: 26,
-              color: "#8d87aa",
-              marginTop: 14,
-              letterSpacing: 1,
-            }}
-          >
-            的活 — 按 API 官网价
           </div>
 
           {hasSubs && (
@@ -371,7 +326,7 @@ export async function GET(
                       letterSpacing: 0.5,
                     }}
                   >
-                    {compare}
+                    {inProfit ? "白嫖" : "差"} {compare.replace(/^≈\s*/, "")}
                   </div>
                 )}
               </div>
@@ -528,133 +483,35 @@ export async function GET(
           </div>
         )}
 
-        {/* Stats row + sparkline */}
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            marginTop: 24,
-            padding: "30px 36px 32px",
-            borderRadius: 24,
-            background: "rgba(157, 141, 255, 0.05)",
-            border: "1px solid rgba(157, 141, 255, 0.18)",
-            zIndex: 1,
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              alignItems: "flex-end",
-              justifyContent: "space-between",
-              gap: 24,
-            }}
-          >
-            <Stat label="TOKENS" value={formatTokensShort(agg.totals.totalTokens)} />
-            <Stat label="会话" value={String(agg.totals.records)} />
-            <Stat label="编程时长" value={`${codingHours.toFixed(0)}h`} />
-            <Stat
-              label="缓存命中"
-              value={
-                cacheHitDenom === 0
-                  ? "—"
-                  : cacheHitRate >= 99.95
-                    ? "100%"
-                    : `${cacheHitRate.toFixed(1)}%`
-              }
-              accent={cacheHitRate >= 80 ? "#88FFAB" : undefined}
-            />
-          </div>
-          {trendBars.length >= 2 && (
-            <div
-              style={{
-                display: "flex",
-                marginTop: 28,
-                height: 110,
-                alignItems: "flex-end",
-                gap: 8,
-              }}
-            >
-              {trendBars.map((b, i) => {
-                const isPeak = b.h > 0.95;
-                return (
-                  <div
-                    key={i}
-                    style={{
-                      display: "flex",
-                      flex: 1,
-                      height: `${b.h * 100}%`,
-                      minHeight: 6,
-                      background: isPeak
-                        ? "linear-gradient(180deg, #88FFAB 0%, #4dd47a 100%)"
-                        : "linear-gradient(180deg, #C9BEFF 0%, #7B6FFF 100%)",
-                      borderRadius: 5,
-                    }}
-                  />
-                );
-              })}
-            </div>
-          )}
-        </div>
+        {/* Token panel */}
+        <DataPanel
+          label="烧了多少 TOKEN"
+          accentColor="#9D8DFF"
+          big={formatTokensShort(agg.totals.totalTokens)}
+          bigUnit="tokens"
+          sub={tokenRef}
+          subRight={`${agg.totals.records} 个会话`}
+          taunt={tokenTaunt}
+          toneBg="rgba(123, 111, 255, 0.10)"
+          toneBorder="rgba(123, 111, 255, 0.35)"
+        />
 
-        {/* Taunt card — the actual shareable hook */}
-        {message && (
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              marginTop: 24,
-              padding: "30px 34px 34px",
-              borderRadius: 26,
-              background: toneStyle[message.tone].bg,
-              border: `2px solid ${toneStyle[message.tone].border}`,
-              boxShadow: `0 20px 60px -30px ${toneStyle[message.tone].border}`,
-              position: "relative",
-              zIndex: 1,
-            }}
-          >
-            {/* Big decorative quote glyph in the corner */}
-            <div
-              style={{
-                display: "flex",
-                position: "absolute",
-                top: -16,
-                left: 28,
-                fontSize: 100,
-                lineHeight: 1,
-                color: toneStyle[message.tone].border,
-                fontWeight: 900,
-                fontFamily: "ui-serif, Georgia, serif",
-              }}
-            >
-              “
-            </div>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 12,
-                fontSize: 24,
-                color: "#dcd3ff",
-                marginBottom: 14,
-                letterSpacing: 2,
-                marginLeft: 80,
-              }}
-            >
-              {toneStyle[message.tone].tag}
-            </div>
-            <div
-              style={{
-                display: "flex",
-                fontSize: 38,
-                lineHeight: 1.4,
-                fontWeight: 500,
-                color: "#FFFFFF",
-              }}
-            >
-              {message.text}
-            </div>
-          </div>
-        )}
+        {/* Hours panel */}
+        <DataPanel
+          label="编程时长"
+          accentColor="#FFC589"
+          big={`${codingHours.toFixed(0)}`}
+          bigUnit="h"
+          sub={
+            days > 1
+              ? `${hoursPerDay >= 10 ? hoursPerDay.toFixed(0) : hoursPerDay.toFixed(1)} h / 天`
+              : ""
+          }
+          subRight={hoursOpinion(hoursPerDay, days)}
+          taunt={hoursTaunt}
+          toneBg="rgba(255, 197, 137, 0.10)"
+          toneBorder="rgba(255, 197, 137, 0.4)"
+        />
 
         {/* Footer */}
         <div
@@ -694,46 +551,153 @@ export async function GET(
   );
 }
 
-function Stat({
-  label,
-  value,
-  accent,
-}: {
-  label: string;
-  value: string;
-  accent?: string;
-}) {
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-      <div
-        style={{
-          display: "flex",
-          fontSize: 20,
-          color: "#9D8DFF",
-          textTransform: "uppercase",
-          letterSpacing: 3,
-        }}
-      >
-        {label}
-      </div>
-      <div
-        style={{
-          display: "flex",
-          fontSize: 52,
-          fontWeight: 700,
-          lineHeight: 1,
-          color: accent ?? "white",
-        }}
-      >
-        {value}
-      </div>
-    </div>
-  );
-}
-
 function formatTokensShort(n: number): string {
   if (n >= 1_000_000_000) return `${(n / 1_000_000_000).toFixed(1)}B`;
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
   if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
   return String(Math.round(n));
+}
+
+// One-word label for the work-intensity tier — used as a chip next to
+// the avg/day inside the hours panel.
+function hoursOpinion(hpd: number, days: number): string {
+  if (days <= 1) return "";
+  if (hpd < 1) return "佛系";
+  if (hpd < 3) return "摸鱼";
+  if (hpd < 5) return "正常";
+  if (hpd < 7) return "班味";
+  if (hpd < 9) return "班味浓郁";
+  if (hpd < 12) return "卷王预备";
+  if (hpd < 16) return "真·卷王";
+  if (hpd < 20) return "不分日夜";
+  return "AGI 化身";
+}
+
+// Shared panel — accent-coloured card with a big stat, a sub-line on
+// the left + right, and a single taunt line. The two panels (token,
+// hours) reuse this so they read as a series.
+function DataPanel({
+  label,
+  accentColor,
+  big,
+  bigUnit,
+  sub,
+  subRight,
+  taunt,
+  toneBg,
+  toneBorder,
+}: {
+  label: string;
+  accentColor: string;
+  big: string;
+  bigUnit: string;
+  sub: string;
+  subRight: string;
+  taunt: string | null;
+  toneBg: string;
+  toneBorder: string;
+}) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        marginTop: 22,
+        padding: "26px 34px 28px",
+        borderRadius: 26,
+        background: toneBg,
+        border: `1px solid ${toneBorder}`,
+        zIndex: 1,
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            fontSize: 22,
+            color: accentColor,
+            textTransform: "uppercase",
+            letterSpacing: 4,
+          }}
+        >
+          {label}
+        </div>
+        {subRight && (
+          <div
+            style={{
+              display: "flex",
+              fontSize: 22,
+              color: "#a39dc0",
+              letterSpacing: 1,
+            }}
+          >
+            {subRight}
+          </div>
+        )}
+      </div>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "baseline",
+          gap: 14,
+          marginTop: 8,
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            fontSize: 92,
+            fontWeight: 800,
+            lineHeight: 1,
+            color: "white",
+            letterSpacing: -2,
+          }}
+        >
+          {big}
+        </div>
+        <div
+          style={{
+            display: "flex",
+            fontSize: 30,
+            color: "#a39dc0",
+            fontWeight: 600,
+          }}
+        >
+          {bigUnit}
+        </div>
+        {sub && (
+          <div
+            style={{
+              display: "flex",
+              fontSize: 26,
+              color: "#c4bce0",
+              marginLeft: "auto",
+            }}
+          >
+            {sub}
+          </div>
+        )}
+      </div>
+      {taunt && (
+        <div
+          style={{
+            display: "flex",
+            marginTop: 18,
+            fontSize: 30,
+            lineHeight: 1.4,
+            color: "white",
+            fontWeight: 500,
+          }}
+        >
+          「{taunt}」
+        </div>
+      )}
+    </div>
+  );
 }
