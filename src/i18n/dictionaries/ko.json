@@ -303,7 +303,8 @@
     "editNote": "메모 편집",
     "columnIp": "최근 IP",
     "columnLocation": "위치",
-    "ipPingTooltip": "ping0.cc 에서 IP 확인"
+    "ipPingTooltip": "ping0.cc 에서 IP 확인",
+    "copyCode": "코드 복사"
   },
   "authForms": {
     "signIn": "로그인",

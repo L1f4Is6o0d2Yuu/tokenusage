@@ -303,7 +303,8 @@
     "editNote": "Edit note",
     "columnIp": "Last IP",
     "columnLocation": "Location",
-    "ipPingTooltip": "Check IP purity on ping0.cc"
+    "ipPingTooltip": "Check IP purity on ping0.cc",
+    "copyCode": "Copy code"
   },
   "authForms": {
     "signIn": "Sign in",

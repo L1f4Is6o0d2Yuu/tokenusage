@@ -303,7 +303,8 @@
     "editNote": "编辑备注",
     "columnIp": "上次 IP",
     "columnLocation": "归属地",
-    "ipPingTooltip": "在 ping0.cc 查 IP 纯净度"
+    "ipPingTooltip": "在 ping0.cc 查 IP 纯净度",
+    "copyCode": "复制邀请码"
   },
   "authForms": {
     "signIn": "登录",

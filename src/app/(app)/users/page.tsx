@@ -80,8 +80,14 @@ export default async function UsersPage({
           </CardHeader>
           <CardContent>
             <CopyInviteLink
+              code={newInvite}
               url={`${origin}/signup?invite=${newInvite}`}
-              t={{ copyLink: t.copyLink, copied: t.copied, copyError: t.copyError }}
+              t={{
+                copyCode: t.copyCode,
+                copyLink: t.copyLink,
+                copied: t.copied,
+                copyError: t.copyError,
+              }}
             />
           </CardContent>
         </Card>

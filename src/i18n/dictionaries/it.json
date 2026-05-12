@@ -303,7 +303,8 @@
     "editNote": "Modifica nota",
     "columnIp": "Ultimo IP",
     "columnLocation": "Posizione",
-    "ipPingTooltip": "Verifica IP su ping0.cc"
+    "ipPingTooltip": "Verifica IP su ping0.cc",
+    "copyCode": "Copia codice"
   },
   "authForms": {
     "signIn": "Accedi",

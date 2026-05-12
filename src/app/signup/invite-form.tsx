@@ -21,6 +21,18 @@ export function InviteForm({
   const [state, action, pending] = useActionState(redeemInviteAction, {});
   return (
     <form action={action} className="space-y-4">
+      {/* Invite code is auto-filled from the URL and intentionally
+          read-only — once you've clicked an invite link, the code is
+          locked in. We still surface it so the user can sanity-check
+          which invite they're redeeming. */}
+      <div className="rounded-md border border-border-subtle bg-bg-panel-2/40 p-3 text-center">
+        <div className="text-[10px] uppercase tracking-wider text-fg-muted">
+          invite code
+        </div>
+        <div className="mt-1 font-mono text-xl font-semibold tracking-[0.2em] text-fg-strong">
+          {invite}
+        </div>
+      </div>
       <input type="hidden" name="invite" value={invite} />
       <div>
         <label className="text-xs text-fg-muted" htmlFor="email">
