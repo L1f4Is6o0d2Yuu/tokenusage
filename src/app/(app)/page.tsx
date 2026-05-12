@@ -85,6 +85,13 @@ export default async function Page({
 
   const { rules } = readActivePrices();
 
+  // Per-request random seed for the encouragement picker. Generating
+  // it server-side and threading it through as a prop keeps SSR and
+  // client hydration in sync — they hash off the same string and pick
+  // the same line, no first-frame flicker. New seed each refresh
+  // means the line rolls fresh, which is what the user expects.
+  const mountSeed = Math.floor(Math.random() * 1_000_000_000);
+
   // Resolve the user's active plan ids to {id, vendor, name, monthlyUsd}
   // so the client can compute ROI without re-resolving the catalog.
   const activePlanIds = currentUser ? listUserSubscriptions(currentUser.id) : [];
@@ -113,6 +120,7 @@ export default async function Page({
       initialCustomRange={initialCustomRange}
       username={currentUser?.username ?? null}
       userId={currentUser?.id ?? null}
+      mountSeed={mountSeed}
       activePlans={activePlans}
       locale={locale}
       t={t}
