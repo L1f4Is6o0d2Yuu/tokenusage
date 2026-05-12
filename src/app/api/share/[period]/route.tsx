@@ -247,12 +247,13 @@ export async function GET(
           style={{
             display: "flex",
             flexDirection: "column",
-            marginTop: 30,
-            padding: "44px 44px 40px",
+            marginTop: 28,
+            padding: "44px 48px 42px",
             borderRadius: 32,
             background:
-              "linear-gradient(165deg, rgba(123, 111, 255, 0.18) 0%, rgba(123, 111, 255, 0.04) 100%)",
-            border: "1px solid rgba(157, 141, 255, 0.28)",
+              "linear-gradient(165deg, rgba(123, 111, 255, 0.20) 0%, rgba(123, 111, 255, 0.04) 100%)",
+            border: "1px solid rgba(157, 141, 255, 0.30)",
+            boxShadow: "0 30px 80px -40px rgba(123, 111, 255, 0.6)",
             zIndex: 1,
           }}
         >
@@ -269,12 +270,15 @@ export async function GET(
           <div
             style={{
               display: "flex",
-              fontSize: 180,
+              fontSize: 188,
               fontWeight: 800,
-              letterSpacing: -5,
+              letterSpacing: -6,
               lineHeight: 1,
               marginTop: 10,
               color: heroColor,
+              textShadow: inProfit
+                ? "0 0 60px rgba(136, 255, 171, 0.35)"
+                : "0 0 60px rgba(255, 168, 138, 0.25)",
             }}
           >
             ${apiValue.toFixed(2)}
@@ -282,22 +286,64 @@ export async function GET(
           <div
             style={{
               display: "flex",
-              fontSize: 28,
-              color: "#c4bce0",
-              marginTop: 12,
+              fontSize: 26,
+              color: "#8d87aa",
+              marginTop: 14,
+              letterSpacing: 1,
             }}
           >
-            的活 — 这是 API 官网价
+            的活 — 按 API 官网价
           </div>
 
           {hasSubs && (
-            <>
-              {/* Subscription comparison bar */}
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                marginTop: 36,
+              }}
+            >
+              {/* Multiplier headline + comparison */}
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "baseline",
+                  flexWrap: "wrap",
+                  gap: 22,
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    fontSize: 64,
+                    fontWeight: 800,
+                    letterSpacing: -1,
+                    lineHeight: 1,
+                    color: heroColor,
+                  }}
+                >
+                  {multiplier}
+                </div>
+                {compare && (
+                  <div
+                    style={{
+                      display: "flex",
+                      fontSize: 28,
+                      color: "#a39dc0",
+                      letterSpacing: 0.5,
+                    }}
+                  >
+                    {compare}
+                  </div>
+                )}
+              </div>
+
+              {/* Single stacked savings bar */}
               <div
                 style={{
                   display: "flex",
                   flexDirection: "column",
-                  marginTop: 38,
+                  marginTop: 32,
                   gap: 14,
                 }}
               >
@@ -306,21 +352,22 @@ export async function GET(
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "space-between",
+                    fontSize: 24,
                   }}
                 >
-                  <div style={{ display: "flex", fontSize: 26, color: "#9D8DFF" }}>
-                    套餐花了
+                  <div style={{ display: "flex", color: "#9D8DFF" }}>
+                    套餐 ${subFee.toFixed(2)}
                   </div>
-                  <div style={{ display: "flex", fontSize: 32, fontWeight: 600, color: "white" }}>
-                    ${subFee.toFixed(2)}
+                  <div style={{ display: "flex", color: heroColor, fontWeight: 600 }}>
+                    {inProfit ? "省下" : "还差"} ${Math.abs(savings).toFixed(2)}
                   </div>
                 </div>
                 <div
                   style={{
                     display: "flex",
-                    height: 14,
+                    height: 22,
                     width: "100%",
-                    background: "rgba(157, 141, 255, 0.12)",
+                    background: "rgba(157, 141, 255, 0.10)",
                     borderRadius: 999,
                     overflow: "hidden",
                   }}
@@ -333,44 +380,11 @@ export async function GET(
                       background: "linear-gradient(90deg, #7B6FFF 0%, #9D8DFF 100%)",
                     }}
                   />
-                </div>
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    marginTop: 6,
-                  }}
-                >
-                  <div style={{ display: "flex", fontSize: 26, color: heroColor }}>
-                    {inProfit ? "省下" : "还差"}
-                  </div>
-                  <div
-                    style={{
-                      display: "flex",
-                      fontSize: 32,
-                      fontWeight: 600,
-                      color: heroColor,
-                    }}
-                  >
-                    ${Math.abs(savings).toFixed(2)}
-                  </div>
-                </div>
-                <div
-                  style={{
-                    display: "flex",
-                    height: 14,
-                    width: "100%",
-                    background: "rgba(157, 141, 255, 0.12)",
-                    borderRadius: 999,
-                    overflow: "hidden",
-                  }}
-                >
                   <div
                     style={{
                       display: "flex",
                       height: "100%",
-                      width: `${Math.min(100, (Math.abs(savings) / Math.max(apiValue, subFee)) * 100)}%`,
+                      flex: 1,
                       background: inProfit
                         ? "linear-gradient(90deg, #4dd47a 0%, #88FFAB 100%)"
                         : "linear-gradient(90deg, #d47a5a 0%, #FFA88A 100%)",
@@ -378,46 +392,7 @@ export async function GET(
                   />
                 </div>
               </div>
-
-              {/* Multiplier + comparison */}
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  marginTop: 30,
-                  gap: 20,
-                }}
-              >
-                <div
-                  style={{
-                    display: "flex",
-                    padding: "12px 22px",
-                    borderRadius: 12,
-                    background: inProfit
-                      ? "rgba(136, 255, 171, 0.14)"
-                      : "rgba(255, 168, 138, 0.14)",
-                    border: `1px solid ${inProfit ? "rgba(136, 255, 171, 0.4)" : "rgba(255, 168, 138, 0.4)"}`,
-                    fontSize: 32,
-                    fontWeight: 600,
-                    color: heroColor,
-                  }}
-                >
-                  {multiplier}
-                </div>
-                {compare && (
-                  <div
-                    style={{
-                      display: "flex",
-                      fontSize: 30,
-                      color: "#c4bce0",
-                    }}
-                  >
-                    {compare}
-                  </div>
-                )}
-              </div>
-            </>
+            </div>
           )}
         </div>
 
