@@ -45,6 +45,16 @@ export default async function AppLayout({
     if (ip) recordUserIp(user.id, ip);
   }
 
+  // In multi-user mode, an unauthed visitor at / hits the public
+  // landing page (rendered by (app)/page.tsx). The dashboard sidebar
+  // makes no sense for that audience and leaks the dashboard nav into
+  // marketing — skip the shell entirely when there's no user.
+  const showShell = !isMultiUserMode() || user != null;
+
+  if (!showShell) {
+    return <>{children}</>;
+  }
+
   return (
     <div className="flex min-h-dvh">
       <Sidebar
