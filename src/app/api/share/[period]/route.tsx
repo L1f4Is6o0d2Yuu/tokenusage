@@ -530,7 +530,13 @@ export async function GET(
             <Stat label="编程时长" value={`${codingHours.toFixed(0)}h`} />
             <Stat
               label="缓存命中"
-              value={cacheHitDenom === 0 ? "—" : `${cacheHitRate.toFixed(0)}%`}
+              value={
+                cacheHitDenom === 0
+                  ? "—"
+                  : cacheHitRate >= 99.95
+                    ? "100%"
+                    : `${cacheHitRate.toFixed(1)}%`
+              }
               accent={cacheHitRate >= 80 ? "#88FFAB" : undefined}
             />
           </div>
@@ -538,51 +544,76 @@ export async function GET(
             <div
               style={{
                 display: "flex",
-                marginTop: 26,
-                height: 80,
+                marginTop: 28,
+                height: 110,
                 alignItems: "flex-end",
-                gap: 6,
+                gap: 8,
               }}
             >
-              {trendBars.map((b, i) => (
-                <div
-                  key={i}
-                  style={{
-                    display: "flex",
-                    flex: 1,
-                    height: `${b.h * 100}%`,
-                    minHeight: 4,
-                    background:
-                      "linear-gradient(180deg, #C9BEFF 0%, #7B6FFF 100%)",
-                    borderRadius: 4,
-                  }}
-                />
-              ))}
+              {trendBars.map((b, i) => {
+                const isPeak = b.h > 0.95;
+                return (
+                  <div
+                    key={i}
+                    style={{
+                      display: "flex",
+                      flex: 1,
+                      height: `${b.h * 100}%`,
+                      minHeight: 6,
+                      background: isPeak
+                        ? "linear-gradient(180deg, #88FFAB 0%, #4dd47a 100%)"
+                        : "linear-gradient(180deg, #C9BEFF 0%, #7B6FFF 100%)",
+                      borderRadius: 5,
+                    }}
+                  />
+                );
+              })}
             </div>
           )}
         </div>
 
-        {/* Taunt card */}
+        {/* Taunt card — the actual shareable hook */}
         {message && (
           <div
             style={{
               display: "flex",
               flexDirection: "column",
               marginTop: 24,
-              padding: "28px 32px 30px",
-              borderRadius: 24,
+              padding: "30px 34px 34px",
+              borderRadius: 26,
               background: toneStyle[message.tone].bg,
               border: `2px solid ${toneStyle[message.tone].border}`,
+              boxShadow: `0 20px 60px -30px ${toneStyle[message.tone].border}`,
+              position: "relative",
               zIndex: 1,
             }}
           >
+            {/* Big decorative quote glyph in the corner */}
             <div
               style={{
                 display: "flex",
+                position: "absolute",
+                top: -16,
+                left: 28,
+                fontSize: 100,
+                lineHeight: 1,
+                color: toneStyle[message.tone].border,
+                fontWeight: 900,
+                fontFamily: "ui-serif, Georgia, serif",
+              }}
+            >
+              “
+            </div>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 12,
                 fontSize: 24,
-                color: "#C9BEFF",
-                marginBottom: 12,
+                color: "#dcd3ff",
+                marginBottom: 14,
                 letterSpacing: 2,
+                marginLeft: 80,
               }}
             >
               {toneStyle[message.tone].tag}
@@ -590,13 +621,13 @@ export async function GET(
             <div
               style={{
                 display: "flex",
-                fontSize: 36,
+                fontSize: 38,
                 lineHeight: 1.4,
                 fontWeight: 500,
                 color: "#FFFFFF",
               }}
             >
-              「{message.text}」
+              {message.text}
             </div>
           </div>
         )}
