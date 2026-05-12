@@ -290,6 +290,9 @@ export function listUserSubscriptions(userId: number): PlanId[] {
 
 export function setUserSubscriptions(userId: number, plans: PlanId[]): void {
   // Replace the user's set in one txn — simpler than diff-then-apply.
+  // Also stamps `subscriptions_setup_at` so the welcome gate doesn't
+  // re-fire on the next dashboard visit even when the user submits an
+  // empty set (i.e. explicitly skipped).
   const valid = plans.filter((p) => PLAN_BY_ID.has(p));
   const db = openServerDb();
   try {
@@ -301,8 +304,26 @@ export function setUserSubscriptions(userId: number, plans: PlanId[]): void {
       );
       const now = Date.now();
       for (const p of valid) ins.run(userId, p, now);
+      db.prepare(
+        `UPDATE users SET subscriptions_setup_at = ? WHERE id = ?`
+      ).run(now, userId);
     });
     txn();
+  } finally {
+    db.close();
+  }
+}
+
+// Has the user been through the first-time arsenal-picking screen
+// (regardless of whether they actually picked any plans)? Drives the
+// welcome redirect on the dashboard.
+export function hasFinishedSubscriptionsSetup(userId: number): boolean {
+  const db = openServerDb();
+  try {
+    const row = db
+      .prepare(`SELECT subscriptions_setup_at AS t FROM users WHERE id = ?`)
+      .get(userId) as { t: number | null } | undefined;
+    return row?.t != null;
   } finally {
     db.close();
   }

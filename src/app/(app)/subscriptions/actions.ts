@@ -24,5 +24,10 @@ export async function saveSubscriptionsAction(formData: FormData): Promise<void>
   setUserSubscriptions(user.id, picked);
   revalidatePath("/");
   revalidatePath("/subscriptions");
+  // If the user landed here from the first-time welcome gate, send
+  // them on to the dashboard once they're done picking. Otherwise
+  // they came in to edit — keep them on the page with a saved badge.
+  const fromWelcome = formData.get("welcome") === "1";
+  if (fromWelcome) redirect("/");
   redirect("/subscriptions?saved=1");
 }

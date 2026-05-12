@@ -386,6 +386,11 @@
     "columnPlan": "套餐",
     "columnVendor": "厂商",
     "columnPrice": "月费",
-    "columnActive": "在用"
+    "columnActive": "在用",
+    "welcomeTitle": "选择你的武器库",
+    "welcomeSubtitle": "勾选你实际付费的套餐，我们帮你算用量回没回本。",
+    "welcomeBannerTitle": "欢迎 —— 先把订阅设一下",
+    "welcomeBannerBody": "勾选你实际付费的套餐。一个都没有就直接保存，以后随时回来改。仪表盘的回本面板需要这个信息。",
+    "welcomeSave": "保存并继续"
   }
 }

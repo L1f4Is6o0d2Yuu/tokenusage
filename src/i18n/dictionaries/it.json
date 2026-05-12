@@ -386,6 +386,11 @@
     "columnPlan": "Plan",
     "columnVendor": "Vendor",
     "columnPrice": "Monthly",
-    "columnActive": "Active"
+    "columnActive": "Active",
+    "welcomeTitle": "Scegli il tuo arsenale",
+    "welcomeSubtitle": "Imposta gli abbonamenti che paghi — calcoliamo il ROI.",
+    "welcomeBannerTitle": "Benvenuto — imposta prima gli abbonamenti",
+    "welcomeBannerBody": "Seleziona i piani che paghi davvero. Altrimenti salva vuoto.",
+    "welcomeSave": "Salva e continua"
   }
 }

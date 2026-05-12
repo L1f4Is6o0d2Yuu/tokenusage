@@ -190,6 +190,14 @@ function migrate(db: Database.Database): void {
     );
     CREATE INDEX IF NOT EXISTS idx_user_subscriptions_user ON user_subscriptions(user_id);
   `);
+
+  // v0.18: marker so we can force the arsenal-picking screen on first
+  // dashboard visit and never again. Set by `saveSubscriptionsAction`
+  // regardless of whether the form submitted any plans, so users who
+  // "skip" don't get re-prompted.
+  if (!hasColumn(db, "users", "subscriptions_setup_at")) {
+    db.exec(`ALTER TABLE users ADD COLUMN subscriptions_setup_at INTEGER`);
+  }
 }
 
 export function openServerDb(): Database.Database {
