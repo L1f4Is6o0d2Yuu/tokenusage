@@ -248,6 +248,10 @@ export function SharePoster({ data }: { data: SharePosterData }) {
         padding: "70px 60px 50px",
         fontFamily: "'Noto Sans SC', ui-monospace, monospace",
         position: "relative",
+        // CJK chars can break at every character boundary; the
+        // default tightens single-line text in flex items so the
+        // browser render matches Satori's "don't shrink unless told".
+        whiteSpace: "nowrap",
       }}
     >
       {/* Background grid */}
@@ -733,6 +737,9 @@ function DataPanel({
             lineHeight: 1.4,
             color: "white",
             fontWeight: 500,
+            // Override the root's nowrap so multi-sentence taunts
+            // wrap naturally instead of overflowing the card.
+            whiteSpace: "normal",
           }}
         >
           {taunt}
