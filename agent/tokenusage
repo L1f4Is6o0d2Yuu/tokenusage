@@ -12,12 +12,13 @@
 #   tokenusage status                             # show config + last-upload time
 #   tokenusage logs                               # tail the agent log
 #   tokenusage sync                               # manual sync now (server flag)
+#   tokenusage report [today|7d|30d|all]          # print server aggregate as JSON
 #   tokenusage --loop                             # internal: long-poll + upload loop
 #   tokenusage version
 
 set -uo pipefail
 
-VERSION="0.17.0"
+VERSION="0.18.0"
 CONFIG_DIR="$HOME/.tokenusage"
 CONFIG_FILE="$CONFIG_DIR/config.env"
 STATE_FILE="$CONFIG_DIR/state"
@@ -225,6 +226,38 @@ cmd_version() {
   printf 'tokenusage %s\n' "$VERSION"
 }
 
+# `tokenusage report [PERIOD]` — pulls the server's JSON aggregate for
+# the requested period and prints a one-screen summary. Default period
+# is "today". The output is grep-friendly so it slots into shell
+# prompts (\`$(tokenusage report today | head -1)\`) and CI pipelines.
+cmd_report() {
+  [ -f "$CONFIG_FILE" ] || { err "not configured"; exit 1; }
+  # shellcheck disable=SC1090
+  . "$CONFIG_FILE"
+  local PERIOD="${1:-today}"
+  local PAYLOAD
+  PAYLOAD=$(curl -fsS "$SERVER/api/export?period=$PERIOD&format=json" \
+    -H "Authorization: Bearer $TOKEN" 2>/dev/null) || {
+    err "report request failed (check server / token)"; exit 1;
+  }
+  if command -v jq >/dev/null 2>&1; then
+    printf '%s\n' "$PAYLOAD" | jq -r '
+      "period:        \(.period)",
+      "generated:     \(.generatedAt)",
+      "tokens total:  \(.totals.totalTokens)",
+      "  input:       \(.totals.inputTokens)",
+      "  output:      \(.totals.outputTokens)",
+      "  cache_r/w:   \(.totals.cacheReadTokens) / \(.totals.cacheWriteTokens)",
+      "cost USD:      \(.totals.costUsd | (. * 10000 | floor) / 10000)",
+      "sessions:      \(.totals.records)",
+      "top model:     \(.byModel[0].provider // "-")/\(.byModel[0].model // "-")"
+    '
+  else
+    # No jq — dump the raw JSON. Less pretty but works on bare boxes.
+    printf '%s\n' "$PAYLOAD"
+  fi
+}
+
 # ---------- the long-poll loop (--loop) ----------
 
 upload() {
@@ -274,6 +307,26 @@ upload() {
       break
     fi
   done
+
+  # Cursor / Windsurf — preview support. Collect working dirs so the
+  # server has raw data when adapters land. Each capped at 200MB so
+  # a chatty Codeium cache can't tank an upload.
+  for cursor_dir in "$HOME/.cursor" "$HOME/Library/Application Support/Cursor/User/workspaceStorage"; do
+    if [ -d "$cursor_dir" ]; then
+      _sz=$(du -sk "$cursor_dir" 2>/dev/null | awk '{print $1}')
+      if [ -n "$_sz" ] && [ "$_sz" -lt 204800 ]; then
+        mkdir -p "$TMP/payload/cursor"
+        cp -R "$cursor_dir" "$TMP/payload/cursor/" 2>/dev/null || true
+      fi
+    fi
+  done
+  if [ -d "$HOME/.codeium/windsurf" ]; then
+    _sz=$(du -sk "$HOME/.codeium/windsurf" 2>/dev/null | awk '{print $1}')
+    if [ -n "$_sz" ] && [ "$_sz" -lt 204800 ]; then
+      mkdir -p "$TMP/payload/windsurf"
+      cp -R "$HOME/.codeium/windsurf" "$TMP/payload/windsurf/" 2>/dev/null || true
+    fi
+  fi
 
   # Even when none of the source dirs exist, send the (empty) tarball
   # anyway. Server-side it costs ~nothing — 0 records insert, 0 bytes
@@ -358,6 +411,7 @@ case "${1:-help}" in
   status)    shift; cmd_status "$@" ;;
   logs)      shift; cmd_logs "$@" ;;
   sync)      shift; cmd_sync "$@" ;;
+  report)    shift; cmd_report "$@" ;;
   --loop)    cmd_loop ;;
   version|--version|-v) cmd_version ;;
   help|--help|-h) usage ;;

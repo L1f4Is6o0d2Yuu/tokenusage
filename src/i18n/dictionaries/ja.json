@@ -392,5 +392,18 @@
     "welcomeBannerTitle": "ようこそ — まずサブスクの設定を",
     "welcomeBannerBody": "実際に支払っているプランをチェックしてください。何もなければそのまま保存を。",
     "welcomeSave": "保存して続ける"
+  },
+  "activity": {
+    "label": "Coding time",
+    "hoursSuffix": "h"
+  },
+  "live": {
+    "title": "Live sessions",
+    "description": "Active or recently active (last 5 min), sorted by burn rate.",
+    "colSource": "Source",
+    "colModel": "Model",
+    "colDuration": "Duration",
+    "colTokens": "Tokens",
+    "colRate": "Burn rate"
   }
 }

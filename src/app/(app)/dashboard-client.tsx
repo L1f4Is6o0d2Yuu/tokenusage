@@ -16,6 +16,7 @@ import { AgentStatusBar } from "@/components/agent-status-bar";
 import { ModelPriceTooltip } from "@/components/model-price-tooltip";
 import { computeRoi, periodDays, type PlanLite } from "@/lib/roi-client";
 import { pickDailyTaunt, pickRoiLine } from "@/lib/encouragement";
+import { selectLiveSessions, totalActiveHours, type LiveSession } from "@/lib/activity";
 import {
   Card,
   CardContent,
@@ -119,6 +120,17 @@ export function DashboardClient({
     [scoped]
   );
 
+  // Coding-hours KPI + the htop-style live panel. Both are pure derivations
+  // off the scoped records, so they update for free when the period changes.
+  const codingHours = useMemo(() => totalActiveHours(scoped), [scoped]);
+  // Live sessions only make sense for "today"/"24h" — looking at "live"
+  // sessions inside a 30-day window is just "yesterday's stale rows".
+  const isDailyPeriod = period === "today" || period === "24h";
+  const liveSessions = useMemo(
+    () => (isDailyPeriod ? selectLiveSessions(records) : []),
+    [records, isDailyPeriod]
+  );
+
   const handlePeriod = (next: Period) => {
     startTransition(() => setPeriod(next));
   };
@@ -170,6 +182,31 @@ export function DashboardClient({
             t={t.onboarding}
             installT={t.install}
           />
+        )}
+
+        {/* Activity-window inference strip. Renders only when there's
+            any usage in the visible window — a sub-line factoid that
+            answers "how much *time* did this represent" alongside the
+            money KPIs that follow. */}
+        {codingHours > 0 && (
+          <div
+            className="tu-rise mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 rounded-md border border-border-subtle bg-bg-panel-2/40 px-4 py-2.5 text-xs"
+            style={{ animationDelay: "20ms" }}
+          >
+            <span className="text-fg-muted">{t.activity.label}</span>
+            <span className="font-mono tabular-nums text-fg-strong">
+              {codingHours.toFixed(1)}{t.activity.hoursSuffix}
+            </span>
+            {agg.totals.totalTokens > 0 && (
+              <>
+                <span className="text-fg-faint">·</span>
+                <span className="text-fg-muted">
+                  {formatTokens(Math.round(agg.totals.totalTokens / Math.max(codingHours, 0.1)))}
+                  /{t.activity.hoursSuffix}
+                </span>
+              </>
+            )}
+          </div>
         )}
 
         <section
@@ -324,6 +361,15 @@ export function DashboardClient({
             t={t}
           />
         </section>
+
+        {liveSessions.length > 0 && (
+          <section
+            className="tu-rise mt-6"
+            style={{ animationDelay: "180ms" }}
+          >
+            <LiveSessionsPanel sessions={liveSessions} t={t.live} />
+          </section>
+        )}
 
         <section className="tu-rise mt-6" style={{ animationDelay: "200ms" }}>
           <Card>
@@ -683,6 +729,74 @@ function RecentSessions({
       })}
     </ul>
   );
+}
+
+// htop-style live-session panel. Shows sessions that ended in the last
+// 5 minutes (or are still open) sorted by burn rate — useful for
+// catching "wait, what's still running and eating tokens?" in real
+// time. Pure derivation off the records prop, no extra fetches.
+function LiveSessionsPanel({
+  sessions,
+  t,
+}: {
+  sessions: LiveSession[];
+  t: Dictionary["live"];
+}) {
+  return (
+    <Card className="panel-hover">
+      <CardHeader>
+        <div className="flex items-center gap-2">
+          <span className="relative flex h-2 w-2" aria-hidden>
+            <span className="absolute inline-flex h-full w-full motion-safe:animate-ping rounded-full bg-success opacity-60" />
+            <span className="relative inline-flex h-2 w-2 rounded-full bg-success" />
+          </span>
+          <CardTitle>{t.title}</CardTitle>
+        </div>
+        <CardDescription>{t.description}</CardDescription>
+      </CardHeader>
+      <CardContent className="p-0">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>{t.colSource}</TableHead>
+              <TableHead>{t.colModel}</TableHead>
+              <TableHead className="text-right">{t.colDuration}</TableHead>
+              <TableHead className="text-right">{t.colTokens}</TableHead>
+              <TableHead className="text-right">{t.colRate}</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {sessions.map((s) => (
+              <TableRow key={s.id}>
+                <TableCell>
+                  <Badge variant="outline">{s.provider}</Badge>
+                </TableCell>
+                <TableCell className="font-mono text-xs">{s.model ?? "?"}</TableCell>
+                <TableCell className="text-right tabular-nums text-xs text-muted-foreground">
+                  {formatDuration(s.durationMs)}
+                </TableCell>
+                <TableCell className="text-right tabular-nums">
+                  {formatTokens(s.totalTokens)}
+                </TableCell>
+                <TableCell className="text-right tabular-nums font-medium text-accent">
+                  {formatTokens(Math.round(s.tokensPerMin))}/min
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </CardContent>
+    </Card>
+  );
+}
+
+function formatDuration(ms: number): string {
+  const s = Math.floor(ms / 1000);
+  if (s < 60) return `${s}s`;
+  const m = Math.floor(s / 60);
+  if (m < 60) return `${m}m`;
+  const h = Math.floor(m / 60);
+  return `${h}h${m % 60 ? `${m % 60}m` : ""}`;
 }
 
 // Subscription "weapon arsenal" + ROI readout. We treat the user's

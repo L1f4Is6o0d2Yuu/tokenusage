@@ -392,5 +392,18 @@
     "welcomeBannerTitle": "Bem-vindo — configura primeiro as subscrições",
     "welcomeBannerBody": "Marca os planos que realmente pagas. Se nenhum, guarda vazio.",
     "welcomeSave": "Guardar e continuar"
+  },
+  "activity": {
+    "label": "Coding time",
+    "hoursSuffix": "h"
+  },
+  "live": {
+    "title": "Live sessions",
+    "description": "Active or recently active (last 5 min), sorted by burn rate.",
+    "colSource": "Source",
+    "colModel": "Model",
+    "colDuration": "Duration",
+    "colTokens": "Tokens",
+    "colRate": "Burn rate"
   }
 }

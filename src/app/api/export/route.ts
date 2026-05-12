@@ -1,6 +1,8 @@
 import type { NextRequest } from "next/server";
 import { loadRecords } from "@/lib/adapters";
 import { aggregate, filterByPeriod } from "@/lib/aggregate";
+import { authenticateApiToken } from "@/lib/auth";
+import { loadServerRecords } from "@/lib/adapters/server";
 import type { CustomRange, Period } from "@/lib/types";
 
 const VALID: Period[] = ["today", "24h", "7d", "30d", "month", "year", "all", "custom"];
@@ -30,10 +32,42 @@ export async function GET(req: NextRequest) {
   const sp = new URL(req.url).searchParams;
   const period = parsePeriod(sp.get("period"));
   const custom = period === "custom" ? parseCustomRange(sp.get("from"), sp.get("to")) : undefined;
+  // `?format=json` returns the full aggregate as JSON — useful for the
+  // `tokenusage report` CLI subcommand and any CI / shell-prompt
+  // integration that wants structured data. CSV stays the default for
+  // the dashboard's "Export" button (spreadsheet-friendly).
+  const wantJson = sp.get("format") === "json";
 
-  const { records } = await loadRecords();
+  // Two auth paths: session cookie (browser export click) or Bearer
+  // API token (the `tokenusage report` CLI). Bearer wins if both are
+  // present — agent shouldn't fall back to a stray cookie.
+  const auth = req.headers.get("authorization") ?? "";
+  let records;
+  if (auth.toLowerCase().startsWith("bearer ")) {
+    const user = authenticateApiToken(auth.slice(7).trim());
+    if (!user) {
+      return new Response(JSON.stringify({ ok: false, message: "invalid token" }), {
+        status: 401,
+        headers: { "content-type": "application/json" },
+      });
+    }
+    records = loadServerRecords(user.id);
+  } else {
+    ({ records } = await loadRecords());
+  }
   const scoped = filterByPeriod(records, period, custom);
   const agg = aggregate(scoped);
+
+  if (wantJson) {
+    const periodLabel = period === "custom" && custom ? `custom:${custom.from || "any"}..${custom.to || "now"}` : period;
+    return Response.json({
+      period: periodLabel,
+      generatedAt: new Date().toISOString(),
+      totals: agg.totals,
+      byModel: agg.byModel,
+      byDay: agg.byDay,
+    });
+  }
 
   const header = [
     "provider",

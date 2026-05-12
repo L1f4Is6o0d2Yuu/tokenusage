@@ -392,5 +392,18 @@
     "welcomeBannerTitle": "Добро пожаловать — сначала настройте подписки",
     "welcomeBannerBody": "Отметьте оплачиваемые планы. Если нет — просто сохраните.",
     "welcomeSave": "Сохранить и продолжить"
+  },
+  "activity": {
+    "label": "Coding time",
+    "hoursSuffix": "h"
+  },
+  "live": {
+    "title": "Live sessions",
+    "description": "Active or recently active (last 5 min), sorted by burn rate.",
+    "colSource": "Source",
+    "colModel": "Model",
+    "colDuration": "Duration",
+    "colTokens": "Tokens",
+    "colRate": "Burn rate"
   }
 }

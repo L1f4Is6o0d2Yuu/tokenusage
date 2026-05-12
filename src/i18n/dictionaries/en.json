@@ -392,5 +392,18 @@
     "welcomeBannerTitle": "Welcome — set up your subscriptions",
     "welcomeBannerBody": "Check the plans you actually pay for. If none, just hit save — you can come back later. The recovery panel on the dashboard needs this to compute ROI.",
     "welcomeSave": "Save and continue"
+  },
+  "activity": {
+    "label": "Coding time",
+    "hoursSuffix": "h"
+  },
+  "live": {
+    "title": "Live sessions",
+    "description": "Active or recently active (last 5 min), sorted by burn rate.",
+    "colSource": "Source",
+    "colModel": "Model",
+    "colDuration": "Duration",
+    "colTokens": "Tokens",
+    "colRate": "Burn rate"
   }
 }

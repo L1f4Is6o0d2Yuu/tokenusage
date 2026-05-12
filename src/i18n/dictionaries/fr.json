@@ -392,5 +392,18 @@
     "welcomeBannerTitle": "Bienvenue — configurez d'abord vos abonnements",
     "welcomeBannerBody": "Cochez les plans que vous payez réellement. Sinon, enregistrez vide — vous reviendrez plus tard.",
     "welcomeSave": "Enregistrer et continuer"
+  },
+  "activity": {
+    "label": "Coding time",
+    "hoursSuffix": "h"
+  },
+  "live": {
+    "title": "Live sessions",
+    "description": "Active or recently active (last 5 min), sorted by burn rate.",
+    "colSource": "Source",
+    "colModel": "Model",
+    "colDuration": "Duration",
+    "colTokens": "Tokens",
+    "colRate": "Burn rate"
   }
 }
