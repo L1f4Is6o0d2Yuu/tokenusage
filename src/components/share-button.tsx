@@ -158,12 +158,18 @@ export function ShareButton({
             position: "fixed",
             left: -99999,
             top: 0,
+            width: "1080px",
+            height: "1920px",
             pointerEvents: "none",
             zIndex: -1,
+            overflow: "hidden",
           }}
           aria-hidden
         >
-          <div ref={posterRef}>
+          <div
+            ref={posterRef}
+            style={{ width: "1080px", height: "1920px" }}
+          >
             <SharePoster data={posterData} />
           </div>
         </div>
