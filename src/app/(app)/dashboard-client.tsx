@@ -18,6 +18,11 @@ import { computeRoi, periodDays, type PlanLite } from "@/lib/roi-client";
 import { pickDailyTaunt, pickRoiLine } from "@/lib/encouragement";
 import { selectLiveSessions, totalActiveHours, type LiveSession } from "@/lib/activity";
 import {
+  computeAllLimitWindows,
+  STOCK_WINDOWS,
+  type LimitWindow,
+} from "@/lib/limit-windows";
+import {
   Card,
   CardContent,
   CardDescription,
@@ -129,6 +134,13 @@ export function DashboardClient({
   const liveSessions = useMemo(
     () => (isDailyPeriod ? selectLiveSessions(records) : []),
     [records, isDailyPeriod]
+  );
+  // Rolling-window burn — derived from records, independent of the
+  // currently-selected period so the 5h/24h/7d/30d numbers stay
+  // honest regardless of what tab the user is on.
+  const limitWindows = useMemo(
+    () => computeAllLimitWindows(records),
+    [records]
   );
 
   const handlePeriod = (next: Period) => {
@@ -370,6 +382,13 @@ export function DashboardClient({
             <LiveSessionsPanel sessions={liveSessions} t={t.live} />
           </section>
         )}
+
+        <section
+          className="tu-rise mt-6"
+          style={{ animationDelay: "190ms" }}
+        >
+          <LimitWindowsPanel windows={limitWindows} t={t.limits} />
+        </section>
 
         <section className="tu-rise mt-6" style={{ animationDelay: "200ms" }}>
           <Card>
@@ -785,6 +804,53 @@ function LiveSessionsPanel({
             ))}
           </TableBody>
         </Table>
+      </CardContent>
+    </Card>
+  );
+}
+
+// Rolling-window burn panel. Shows tokens / messages / cost in the
+// stock 5h / 24h / 7d / 30d buckets so the user can eyeball "how
+// close am I to Anthropic / OpenAI's invisible cap" without us
+// pretending to know the exact cap (we don't — and it changes).
+function LimitWindowsPanel({
+  windows,
+  t,
+}: {
+  windows: Record<string, LimitWindow>;
+  t: Dictionary["limits"];
+}) {
+  return (
+    <Card className="panel-hover">
+      <CardHeader>
+        <CardTitle>{t.title}</CardTitle>
+        <CardDescription>{t.description}</CardDescription>
+      </CardHeader>
+      <CardContent className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        {STOCK_WINDOWS.map((spec) => {
+          const w = windows[spec.id];
+          if (!w) return null;
+          const label = (t.windowLabels as Record<string, string>)[spec.labelKey];
+          return (
+            <div
+              key={spec.id}
+              className="rounded-md border border-border-subtle bg-bg-panel-2/40 p-3"
+            >
+              <div className="text-[10px] font-medium uppercase tracking-wider text-fg-muted">
+                {label}
+              </div>
+              <div className="mt-1 text-xl font-semibold tabular-nums tracking-tight text-fg-strong">
+                {formatTokens(Math.round(w.tokens))}
+              </div>
+              <div className="mt-1 flex items-center justify-between text-xs text-fg-muted tabular-nums">
+                <span>
+                  {Math.round(w.messages)} {t.msgsSuffix}
+                </span>
+                <span>{formatUsd(w.costUsd, { precise: true })}</span>
+              </div>
+            </div>
+          );
+        })}
       </CardContent>
     </Card>
   );

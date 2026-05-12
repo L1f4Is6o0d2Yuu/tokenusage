@@ -61,7 +61,12 @@ export default async function SubscriptionsPage({
             <form action={saveSubscriptionsAction} className="space-y-4">
               {isWelcome && <input type="hidden" name="welcome" value="1" />}
               <SubscriptionsPicker
-                plans={[...PLAN_CATALOG]}
+                plans={PLAN_CATALOG.map((p) => ({
+                  id: p.id,
+                  vendor: p.vendor,
+                  name: p.name,
+                  monthlyUsd: p.monthlyUsd,
+                }))}
                 active={active}
                 vendorLabel={t.filterByVendor}
                 teamLabel={t.sectionTeam}

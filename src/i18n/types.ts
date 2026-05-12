@@ -126,6 +126,17 @@ export type Dictionary = {
     colContext: string;
     coveredBy: string;
   };
+  limits: {
+    title: string;
+    description: string;
+    msgsSuffix: string;
+    windowLabels: {
+      fiveHours: string;
+      day: string;
+      week: string;
+      month: string;
+    };
+  };
   topModels: {
     title: string;
     description: string;
