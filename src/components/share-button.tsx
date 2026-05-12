@@ -19,6 +19,74 @@ import {
 // The server route is still alive (Open Graph, future public share
 // URLs) — it just isn't used by this button.
 
+// Lightweight UA → "macOS · Apple Silicon" label. userAgentData is
+// Chromium-only; Safari/Firefox fall through to a regex over the UA.
+async function detectDeviceLabel(): Promise<string> {
+  if (typeof navigator === "undefined") return "";
+  // Chromium high-entropy hints — most accurate, gives architecture.
+  type UAD = {
+    platform?: string;
+    getHighEntropyValues?: (hints: string[]) => Promise<{
+      platform?: string;
+      architecture?: string;
+    }>;
+  };
+  const uad = (navigator as unknown as { userAgentData?: UAD }).userAgentData;
+  if (uad?.getHighEntropyValues) {
+    try {
+      const r = await uad.getHighEntropyValues(["platform", "architecture"]);
+      const p = r.platform ?? uad.platform ?? "";
+      const a = r.architecture === "arm" ? "ARM" : "x64";
+      if (p === "macOS")
+        return `macOS · ${r.architecture === "arm" ? "Apple Silicon" : "Intel"}`;
+      if (p === "Windows") return `Windows · ${a}`;
+      if (p === "Linux") return `Linux · ${a}`;
+      if (p === "Android") return "Android";
+      if (p === "Chrome OS") return "ChromeOS";
+    } catch {
+      // fall through to UA parsing
+    }
+  }
+  const ua = navigator.userAgent;
+  if (/iPad/.test(ua)) return "iPad";
+  if (/iPhone|iPod/.test(ua)) return "iPhone";
+  if (/Mac OS X|Macintosh/.test(ua)) return "macOS";
+  if (/Windows/.test(ua)) return "Windows";
+  if (/Android/.test(ua)) return "Android";
+  if (/Linux/.test(ua)) return "Linux";
+  return "Web";
+}
+
+// Best-effort city/country fetch from /api/whoami. Auth-gated so we
+// don't expose a free geo proxy. Cached per session.
+let geoPromise: Promise<string> | null = null;
+function fetchGeoLabel(): Promise<string> {
+  if (geoPromise) return geoPromise;
+  geoPromise = (async () => {
+    try {
+      const r = await fetch("/api/whoami", {
+        signal: AbortSignal.timeout(2500),
+      });
+      if (!r.ok) return "";
+      const j: { city?: string; country?: string } = await r.json();
+      if (j.city) return j.city;
+      if (j.country) return j.country;
+      return "";
+    } catch {
+      return "";
+    }
+  })();
+  return geoPromise;
+}
+
+function todayStamp(): string {
+  const d = new Date();
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
+}
+
 // Font loader — Noto Sans SC chinese-simplified subset, fetched once
 // per browser tab and cached at the FontFace layer. First click pays
 // the ~1.5MB download; subsequent shares are instant.
@@ -76,6 +144,10 @@ export function ShareButton({
     try {
       const days = periodDays(period);
       const roi = computeRoi(agg.totals.costUsd, activePlans, days);
+      const [deviceLabel, geoLabel] = await Promise.all([
+        detectDeviceLabel(),
+        fetchGeoLabel(),
+      ]);
       const data = computeSharePosterData({
         username,
         period,
@@ -85,6 +157,9 @@ export function ShareButton({
         days,
         codingHours,
         userKey: `${userId}:${Date.now()}`,
+        deviceLabel,
+        geoLabel,
+        savedAt: todayStamp(),
       });
 
       setPosterData(data);

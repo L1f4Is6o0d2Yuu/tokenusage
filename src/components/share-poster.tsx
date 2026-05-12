@@ -41,6 +41,10 @@ export type SharePosterData = {
   hoursOpinionLabel: string;
   hoursOpinionAccent: { fg: string; bg: string; border: string };
   heroColor: string;
+  // Meta chips next to @username — optional, won't render if empty.
+  deviceLabel?: string; // "macOS · Apple Silicon"
+  geoLabel?: string; // "上海" / "Shanghai" / "China"
+  savedAt?: string; // "2026-05-13"
 };
 
 const PERIOD_LABEL: Record<Period, string> = {
@@ -138,8 +142,23 @@ export function computeSharePosterData(args: {
   days: number;
   codingHours: number;
   userKey: string;
+  deviceLabel?: string;
+  geoLabel?: string;
+  savedAt?: string;
 }): SharePosterData {
-  const { username, period, agg, roi, activePlans, days, codingHours, userKey } = args;
+  const {
+    username,
+    period,
+    agg,
+    roi,
+    activePlans,
+    days,
+    codingHours,
+    userKey,
+    deviceLabel,
+    geoLabel,
+    savedAt,
+  } = args;
 
   const hasSubs = activePlans.length > 0;
   const inProfit = roi.netUsd > 0;
@@ -202,6 +221,9 @@ export function computeSharePosterData(args: {
     hoursOpinionLabel: hoursOpinion(hoursPerDay),
     hoursOpinionAccent: hoursOpinionAccent(hoursPerDay),
     heroColor: inProfit ? "#88FFAB" : "#FFA88A",
+    deviceLabel,
+    geoLabel,
+    savedAt,
   };
 }
 
@@ -305,17 +327,37 @@ export function SharePoster({ data }: { data: SharePosterData }) {
         </div>
       </div>
 
-      {/* User chip */}
+      {/* User chip + meta (device · geo · timestamp) */}
       <div
         style={{
           display: "flex",
+          alignItems: "center",
           marginTop: 28,
-          fontSize: 30,
-          color: "#9D8DFF",
+          gap: 14,
+          flexWrap: "wrap",
           zIndex: 1,
         }}
       >
-        @{username}
+        <div style={{ display: "flex", fontSize: 30, color: "#9D8DFF" }}>
+          @{username}
+        </div>
+        {[data.deviceLabel, data.geoLabel, data.savedAt]
+          .filter((x): x is string => Boolean(x))
+          .map((text, i) => (
+            <div
+              key={i}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                fontSize: 20,
+                color: "#8a85a8",
+              }}
+            >
+              <div style={{ display: "flex", color: "#5a5570" }}>·</div>
+              <div style={{ display: "flex" }}>{text}</div>
+            </div>
+          ))}
       </div>
 
       {/* HERO CARD */}
