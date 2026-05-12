@@ -198,6 +198,13 @@ function migrate(db: Database.Database): void {
   if (!hasColumn(db, "users", "subscriptions_setup_at")) {
     db.exec(`ALTER TABLE users ADD COLUMN subscriptions_setup_at INTEGER`);
   }
+
+  // v0.18: agent version self-report on heartbeat / upload. Drives the
+  // sidebar's "update available" red dot when an agent reports a
+  // version older than LATEST_AGENT_VERSION.
+  if (!hasColumn(db, "users", "agent_version")) {
+    db.exec(`ALTER TABLE users ADD COLUMN agent_version TEXT`);
+  }
 }
 
 export function openServerDb(): Database.Database {

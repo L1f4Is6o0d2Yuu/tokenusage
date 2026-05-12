@@ -391,7 +391,12 @@
     "welcomeSubtitle": "勾选你实际付费的套餐，我们帮你算用量回没回本。",
     "welcomeBannerTitle": "欢迎 —— 先把订阅设一下",
     "welcomeBannerBody": "勾选你实际付费的套餐。一个都没有就直接保存，以后随时回来改。仪表盘的回本面板需要这个信息。",
-    "welcomeSave": "保存并继续"
+    "welcomeSave": "保存并继续",
+    "filterByVendor": "厂商",
+    "filterAll": "全部",
+    "sectionTeam": "Team / 企业版",
+    "sectionSolo": "个人版",
+    "paygNote": "按量付费 · 估算月费"
   },
   "activity": {
     "label": "实际编程时长",
@@ -405,5 +410,13 @@
     "colDuration": "时长",
     "colTokens": "Tokens",
     "colRate": "烧率"
+  },
+  "agentUpdate": {
+    "update": "Agent 有新版本",
+    "bodyLine1": "{current} → {latest}",
+    "bodyLine2": "把下面这行粘到终端运行就能升级，配置不会丢。",
+    "copyButton": "复制命令",
+    "copied": "已复制",
+    "later": "稍后"
   }
 }

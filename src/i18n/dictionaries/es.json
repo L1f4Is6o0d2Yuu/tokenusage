@@ -391,7 +391,12 @@
     "welcomeSubtitle": "Configura las suscripciones que pagas — calcularemos el ROI.",
     "welcomeBannerTitle": "Bienvenido — configura primero tus suscripciones",
     "welcomeBannerBody": "Marca los planes que realmente pagas. Si ninguno, guarda vacío.",
-    "welcomeSave": "Guardar y continuar"
+    "welcomeSave": "Guardar y continuar",
+    "filterByVendor": "Vendor",
+    "filterAll": "All",
+    "sectionTeam": "Team / Business / Enterprise",
+    "sectionSolo": "Solo",
+    "paygNote": "PAYG · est. monthly"
   },
   "activity": {
     "label": "Coding time",
@@ -405,5 +410,13 @@
     "colDuration": "Duration",
     "colTokens": "Tokens",
     "colRate": "Burn rate"
+  },
+  "agentUpdate": {
+    "update": "Agent update available",
+    "bodyLine1": "{current} → {latest}",
+    "bodyLine2": "Paste this in your terminal to upgrade. Your config is preserved.",
+    "copyButton": "Copy command",
+    "copied": "Copied!",
+    "later": "Later"
   }
 }

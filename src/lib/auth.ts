@@ -393,6 +393,34 @@ export function listUsers(): Array<{
   }
 }
 
+// Record the agent's self-reported version. Called from the heartbeat
+// (/api/agent) and upload endpoints when they see an X-Agent-Version
+// header. No-op for unknown / empty version strings.
+export function recordAgentVersion(userId: number, version: string): void {
+  if (!version || version.length > 32) return;
+  const db = openServerDb();
+  try {
+    db.prepare(`UPDATE users SET agent_version = ? WHERE id = ?`).run(
+      version,
+      userId
+    );
+  } finally {
+    db.close();
+  }
+}
+
+export function readAgentVersion(userId: number): string | null {
+  const db = openServerDb();
+  try {
+    const row = db
+      .prepare(`SELECT agent_version AS v FROM users WHERE id = ?`)
+      .get(userId) as { v: string | null } | undefined;
+    return row?.v ?? null;
+  } finally {
+    db.close();
+  }
+}
+
 // Stamp a login event onto the user row. Called from loginAction with
 // the request's client IP (resolved from X-Forwarded-For, since we sit
 // behind Caddy). No-op if the ip string is empty.

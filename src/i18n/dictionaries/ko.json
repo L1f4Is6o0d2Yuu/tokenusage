@@ -391,7 +391,12 @@
     "welcomeSubtitle": "실제로 결제하는 구독을 골라 — ROI 를 계산합니다.",
     "welcomeBannerTitle": "환영 — 먼저 구독을 설정하세요",
     "welcomeBannerBody": "실제 결제 중인 플랜을 체크하세요. 없다면 그냥 저장.",
-    "welcomeSave": "저장하고 계속"
+    "welcomeSave": "저장하고 계속",
+    "filterByVendor": "Vendor",
+    "filterAll": "All",
+    "sectionTeam": "Team / Business / Enterprise",
+    "sectionSolo": "Solo",
+    "paygNote": "PAYG · est. monthly"
   },
   "activity": {
     "label": "Coding time",
@@ -405,5 +410,13 @@
     "colDuration": "Duration",
     "colTokens": "Tokens",
     "colRate": "Burn rate"
+  },
+  "agentUpdate": {
+    "update": "Agent update available",
+    "bodyLine1": "{current} → {latest}",
+    "bodyLine2": "Paste this in your terminal to upgrade. Your config is preserved.",
+    "copyButton": "Copy command",
+    "copied": "Copied!",
+    "later": "Later"
   }
 }

@@ -1,5 +1,5 @@
 import type { NextRequest } from "next/server";
-import { authenticateApiToken } from "@/lib/auth";
+import { authenticateApiToken, recordAgentVersion } from "@/lib/auth";
 import { getUserSyncState } from "@/lib/sync-state";
 import { waitSync } from "@/lib/sync-events";
 
@@ -20,6 +20,11 @@ export async function GET(req: NextRequest): Promise<Response> {
   if (!auth.toLowerCase().startsWith("bearer ")) return err(401, "missing bearer token");
   const user = authenticateApiToken(auth.slice(7).trim());
   if (!user) return err(401, "invalid token");
+
+  // Capture the agent's self-reported version on every long-poll so
+  // the sidebar's "update available" badge has a fresh number.
+  const reportedVersion = req.headers.get("x-agent-version");
+  if (reportedVersion) recordAgentVersion(user.id, reportedVersion);
 
   const state = getUserSyncState(user.id);
   const userIntervalMs = state.syncIntervalSeconds * 1000;

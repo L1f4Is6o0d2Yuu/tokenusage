@@ -7,6 +7,7 @@ import {
 import { getDictionary, readLocale } from "@/i18n";
 import { saveSubscriptionsAction } from "./actions";
 import { SubmitButton } from "@/components/submit-button";
+import { SubscriptionsPicker } from "@/components/subscriptions-picker";
 import {
   Card,
   CardContent,
@@ -59,54 +60,16 @@ export default async function SubscriptionsPage({
           <CardContent>
             <form action={saveSubscriptionsAction} className="space-y-4">
               {isWelcome && <input type="hidden" name="welcome" value="1" />}
-              <div className="overflow-hidden rounded-md border border-border-subtle">
-                <table className="w-full text-sm">
-                  <thead className="bg-bg-panel-2 text-[11px] uppercase tracking-wider text-fg-muted">
-                    <tr>
-                      <th className="w-12 px-3 py-2 text-left">{t.columnActive}</th>
-                      <th className="px-3 py-2 text-left">{t.columnPlan}</th>
-                      <th className="px-3 py-2 text-left">{t.columnVendor}</th>
-                      <th className="px-3 py-2 text-right">{t.columnPrice}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {PLAN_CATALOG.map((p, i) => (
-                      <tr
-                        key={p.id}
-                        className={
-                          i % 2 === 1
-                            ? "border-t border-border-subtle bg-bg-panel-2/30"
-                            : "border-t border-border-subtle"
-                        }
-                      >
-                        <td className="px-3 py-2.5">
-                          <input
-                            id={`plan-${p.id}`}
-                            type="checkbox"
-                            name="plan"
-                            value={p.id}
-                            defaultChecked={active.has(p.id)}
-                            className="h-4 w-4 cursor-pointer accent-accent"
-                          />
-                        </td>
-                        <td className="px-3 py-2.5">
-                          <label
-                            htmlFor={`plan-${p.id}`}
-                            className="cursor-pointer font-medium text-fg-strong"
-                          >
-                            {p.name}
-                          </label>
-                        </td>
-                        <td className="px-3 py-2.5 text-fg-muted">{p.vendor}</td>
-                        <td className="px-3 py-2.5 text-right font-mono tabular-nums">
-                          ${p.monthlyUsd}/mo
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              <div className="flex items-center justify-between gap-3">
+              <SubscriptionsPicker
+                plans={[...PLAN_CATALOG]}
+                active={active}
+                vendorLabel={t.filterByVendor}
+                teamLabel={t.sectionTeam}
+                soloLabel={t.sectionSolo}
+                allVendors={t.filterAll}
+                payAsYouGoNote={t.paygNote}
+              />
+              <div className="flex items-center justify-between gap-3 border-t border-border-subtle pt-4">
                 {saved ? (
                   <span className="text-xs text-success">{t.saved}</span>
                 ) : (

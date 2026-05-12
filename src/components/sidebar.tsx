@@ -13,6 +13,8 @@ import { ThemeSwitcher } from "@/components/theme-switcher";
 import { LocaleSwitcher } from "@/components/locale-switcher";
 import { SidebarNavLink } from "@/components/sidebar-nav-link";
 import { Logomark, Wordmark } from "@/components/logomark";
+import { AgentUpdateBadge } from "@/components/agent-update-badge";
+import { isAgentOutdated, LATEST_AGENT_VERSION } from "@/lib/version";
 import type { ComponentType, SVGProps } from "react";
 import type { Theme } from "@/lib/theme";
 import type { Dictionary, Locale } from "@/i18n/types";
@@ -27,11 +29,13 @@ type Item = { href: string; label: string; icon: IconComponent };
 
 export function Sidebar({
   user,
+  agentVersion,
   theme,
   locale,
   t,
 }: {
   user: SidebarUser;
+  agentVersion: string | null;
   theme: Theme;
   locale: Locale;
   t: Dictionary;
@@ -57,14 +61,23 @@ export function Sidebar({
     <aside className="tu-slide-in sticky top-0 flex h-dvh w-60 shrink-0 flex-col border-r border-border-subtle bg-bg-sidebar text-sm">
       {/* Brand: sparkline mark (animates on first paint) + word "tokenusage"
           with the central 'u' painted in the accent indigo. */}
-      <Link
-        href="/"
-        className="flex h-14 items-center gap-2.5 px-4 text-accent transition-opacity hover:opacity-90"
-        aria-label="tokenusage"
-      >
-        <Logomark className="h-5 w-7 text-accent" />
-        <Wordmark className="text-[15px]" />
-      </Link>
+      <div className="flex h-14 items-center px-4">
+        <Link
+          href="/"
+          className="flex items-center gap-2.5 text-accent transition-opacity hover:opacity-90"
+          aria-label="tokenusage"
+        >
+          <Logomark className="h-5 w-7 text-accent" />
+          <Wordmark className="text-[15px]" />
+        </Link>
+        {isAgentOutdated(agentVersion) && agentVersion && (
+          <AgentUpdateBadge
+            currentVersion={agentVersion}
+            latestVersion={LATEST_AGENT_VERSION}
+            labels={t.agentUpdate}
+          />
+        )}
+      </div>
 
       {/* Primary nav — each link fades in on a 40ms stagger after the
           sidebar slides in. The cascade reads as "the nav is settling

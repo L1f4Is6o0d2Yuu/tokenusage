@@ -107,6 +107,14 @@ export type Dictionary = {
     colTokens: string;
     colRate: string;
   };
+  agentUpdate: {
+    update: string;
+    bodyLine1: string; // "{current} → {latest}"
+    bodyLine2: string;
+    copyButton: string;
+    copied: string;
+    later: string;
+  };
   topModels: {
     title: string;
     description: string;
@@ -441,5 +449,10 @@ export type Dictionary = {
     welcomeBannerTitle: string;
     welcomeBannerBody: string;
     welcomeSave: string;
+    filterByVendor: string;
+    filterAll: string;
+    sectionTeam: string;
+    sectionSolo: string;
+    paygNote: string;
   };
 };

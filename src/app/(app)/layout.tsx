@@ -1,6 +1,6 @@
 import { cookies, headers } from "next/headers";
 import { Sidebar } from "@/components/sidebar";
-import { readCurrentUser, recordUserIp } from "@/lib/auth";
+import { readCurrentUser, recordUserIp, readAgentVersion } from "@/lib/auth";
 import { isMultiUserMode } from "@/lib/server-db";
 import { getDictionary, readLocale } from "@/i18n";
 import { isTheme, THEME_COOKIE, type Theme } from "@/lib/theme";
@@ -49,6 +49,7 @@ export default async function AppLayout({
     <div className="flex min-h-dvh">
       <Sidebar
         user={user ? { username: user.username, isAdmin: user.isAdmin } : null}
+        agentVersion={user ? readAgentVersion(user.id) : null}
         theme={theme}
         locale={locale}
         t={t}

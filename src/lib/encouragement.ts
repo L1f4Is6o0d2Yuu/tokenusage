@@ -19,11 +19,21 @@ function djb2(s: string): number {
   return h >>> 0;
 }
 
-function dayOfYear(): number {
-  const now = new Date();
-  return Math.floor(
-    (now.getTime() - new Date(now.getFullYear(), 0, 1).getTime()) / 86_400_000
-  );
+// A "session seed" that's stable for a single page mount but new on
+// every full refresh. Each tab gets its own; switching periods within
+// a tab keeps the same seed so the line doesn't shuffle on every
+// click. The caller can pass an override (CLI use) — default rolls
+// fresh per mount.
+let sessionSeed = 0;
+function getSessionSeed(): number {
+  if (sessionSeed === 0) {
+    sessionSeed =
+      (typeof window !== "undefined"
+        ? Math.floor(performance.now() * 1000)
+        : Math.floor(Date.now() / 1000)) | 0;
+    if (sessionSeed === 0) sessionSeed = 1; // never zero — that's our sentinel
+  }
+  return sessionSeed;
 }
 
 function interp(s: string, vars: Record<string, string>): string {
@@ -98,7 +108,7 @@ export function pickDailyTaunt(
 
   // Including `period` so 24h and today render different lines for the
   // same band — switching tabs reads as fresh content.
-  const pickIdx = djb2(`${userKey}:${dayOfYear()}:${period}:${bandIdx}`) % pool.length;
+  const pickIdx = djb2(`${userKey}:${getSessionSeed()}:${period}:${bandIdx}`) % pool.length;
   const tmpl = pool[pickIdx];
   const text = interp(tmpl, {
     plan: plan?.name ?? (langKey === "zh" ? "套餐" : "your plan"),
@@ -131,7 +141,7 @@ export function pickRoiLine(
   const pool = bands[bandIdx];
   if (!pool || pool.length === 0) return null;
 
-  const pickIdx = djb2(`${userKey}:${dayOfYear()}:${period}:${bandIdx}`) % pool.length;
+  const pickIdx = djb2(`${userKey}:${getSessionSeed()}:${period}:${bandIdx}`) % pool.length;
   const tmpl = pool[pickIdx];
   const text = interp(tmpl, {
     vendor: primaryVendor(plans),
