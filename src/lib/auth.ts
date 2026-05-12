@@ -186,6 +186,11 @@ const INVITE_TTL_MS = 14 * 24 * 60 * 60 * 1000;
 
 export type InviteRow = {
   id: number;
+  // Plaintext short code for invites created in v0.17+. NULL for old
+  // hash-only invites — the admin UI can't re-display those (the
+  // plaintext was shown once at creation and never stored). The "copy
+  // again" buttons only render when this is set.
+  code: string | null;
   createdAt: number;
   expiresAt: number;
   usedAt: number | null;
@@ -238,7 +243,7 @@ export function listInvites(): InviteRow[] {
   try {
     return db
       .prepare(
-        `SELECT id, created_at AS createdAt, expires_at AS expiresAt,
+        `SELECT id, code, created_at AS createdAt, expires_at AS expiresAt,
                 used_at AS usedAt, note
          FROM invite_tokens ORDER BY created_at DESC`
       )

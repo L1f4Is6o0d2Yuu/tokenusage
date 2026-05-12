@@ -7,6 +7,7 @@ import { createInviteAction, revokeInviteAction, resetUserPasswordAction } from 
 import { SubmitButton } from "@/components/submit-button";
 import { CopyInviteLink } from "@/components/copy-invite-link";
 import { EditableInviteNote } from "@/components/editable-invite-note";
+import { InviteRowActions } from "@/components/invite-row-actions";
 import { lookupGeo, formatGeo } from "@/lib/geoip";
 import { getDictionary, readLocale } from "@/i18n";
 import {
@@ -173,14 +174,25 @@ export default async function UsersPage({
                           )}
                         </TableCell>
                         <TableCell className="text-right">
-                          {!used && (
-                            <form action={revokeInviteAction}>
-                              <input type="hidden" name="id" value={inv.id} />
-                              <SubmitButton variant="danger" pendingText={t.revoking}>
-                                {t.revoke}
-                              </SubmitButton>
-                            </form>
-                          )}
+                          <div className="flex items-center justify-end gap-2">
+                            {!used && !expired && (
+                              <InviteRowActions
+                                code={inv.code}
+                                url={inv.code ? `${origin}/signup?invite=${inv.code}` : null}
+                                copyCodeLabel={t.copyCode}
+                                copyLinkLabel={t.copyLink}
+                                copiedLabel={t.copied}
+                              />
+                            )}
+                            {!used && (
+                              <form action={revokeInviteAction}>
+                                <input type="hidden" name="id" value={inv.id} />
+                                <SubmitButton variant="danger" pendingText={t.revoking}>
+                                  {t.revoke}
+                                </SubmitButton>
+                              </form>
+                            )}
+                          </div>
                         </TableCell>
                       </TableRow>
                     );
