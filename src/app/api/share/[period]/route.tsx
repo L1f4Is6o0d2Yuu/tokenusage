@@ -737,7 +737,7 @@ function DataPanel({
             fontWeight: 500,
           }}
         >
-          「{taunt}」
+          {taunt}
         </div>
       )}
     </div>
