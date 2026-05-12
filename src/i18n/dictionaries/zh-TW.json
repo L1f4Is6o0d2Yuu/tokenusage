@@ -430,5 +430,16 @@
     "colCacheRead": "缓存",
     "colContext": "上下文",
     "coveredBy": "覆盖套餐"
+  },
+  "limits": {
+    "title": "速率窗口",
+    "description": "近 5 小时 / 24 小时 / 7 天 / 30 天 的 token、消息数、花费。各厂商套餐上限不公开，眼测你离上限多远。",
+    "msgsSuffix": "条",
+    "windowLabels": {
+      "fiveHours": "近 5 小时",
+      "day": "近 24 小时",
+      "week": "近 7 天",
+      "month": "近 30 天"
+    }
   }
 }

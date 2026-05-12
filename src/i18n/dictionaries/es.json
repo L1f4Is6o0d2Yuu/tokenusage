@@ -430,5 +430,16 @@
     "colCacheRead": "Cache",
     "colContext": "Context",
     "coveredBy": "Covered by"
+  },
+  "limits": {
+    "title": "Rate-limit windows",
+    "description": "Tokens / messages / cost burned in the last 5h, 24h, 7d, 30d. Plan caps aren't queryable — eyeball your distance.",
+    "msgsSuffix": "msgs",
+    "windowLabels": {
+      "fiveHours": "Last 5 hours",
+      "day": "Last 24 hours",
+      "week": "Last 7 days",
+      "month": "Last 30 days"
+    }
   }
 }

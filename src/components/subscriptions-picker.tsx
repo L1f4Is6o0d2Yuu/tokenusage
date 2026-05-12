@@ -1,7 +1,17 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import type { PlanDef } from "@/lib/subscriptions";
+
+// We deliberately don't import PickerPlan from @/lib/subscriptions — that
+// type carries `models: RegExp[]`, which can't cross a server→client
+// component boundary. The picker only needs id/vendor/name/monthlyUsd,
+// so we define a stripped-down shape and accept that as the prop.
+export type PickerPlan = {
+  id: string;
+  vendor: string;
+  name: string;
+  monthlyUsd: number;
+};
 
 // Card-grid plan picker with a vendor filter on top and a team-vs-
 // solo split. Sort within each section is monthly price ascending so
@@ -19,7 +29,7 @@ export function SubscriptionsPicker({
   allVendors,
   payAsYouGoNote,
 }: {
-  plans: PlanDef[];
+  plans: PickerPlan[];
   active: Set<string>;
   vendorLabel: string;
   teamLabel: string;
@@ -101,7 +111,7 @@ export function SubscriptionsPicker({
 
 // Detect "team / per-seat / business / enterprise" tiers by name —
 // avoids adding a dedicated boolean to the catalog.
-function isTeamPlan(p: PlanDef): boolean {
+function isTeamPlan(p: PickerPlan): boolean {
   const name = p.name.toLowerCase();
   return (
     p.id.includes("team") ||
@@ -115,11 +125,11 @@ function isTeamPlan(p: PlanDef): boolean {
 // PAYG / 按量付费 plans we keep in the catalog for completeness but
 // flag with a tiny "billed by usage" caption — the user can still
 // check them, the monthly figure is then a placeholder estimate.
-function isPayAsYouGo(p: PlanDef): boolean {
+function isPayAsYouGo(p: PickerPlan): boolean {
   return p.id === "deepseek-pro";
 }
 
-function byPrice(a: PlanDef, b: PlanDef): number {
+function byPrice(a: PickerPlan, b: PickerPlan): number {
   return a.monthlyUsd - b.monthlyUsd;
 }
 
@@ -155,7 +165,7 @@ function PlanSection({
   payAsYouGoNote,
 }: {
   title: string;
-  plans: PlanDef[];
+  plans: PickerPlan[];
   active: Set<string>;
   payAsYouGoNote: string;
 }) {
@@ -188,7 +198,7 @@ function PlanCard({
   payg,
   paygNote,
 }: {
-  plan: PlanDef;
+  plan: PickerPlan;
   checked: boolean;
   payg: boolean;
   paygNote: string;
