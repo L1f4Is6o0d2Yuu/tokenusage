@@ -91,7 +91,13 @@ export default async function Page({
   const activePlans = activePlanIds
     .map((id) => PLAN_CATALOG.find((p) => p.id === id))
     .filter((p): p is (typeof PLAN_CATALOG)[number] => p != null)
-    .map((p) => ({ id: p.id, vendor: p.vendor, name: p.name, monthlyUsd: p.monthlyUsd }));
+    .map((p) => ({
+      id: p.id,
+      vendor: p.vendor,
+      name: p.name,
+      monthlyUsd: p.monthlyUsd,
+      caps: p.caps,
+    }));
 
   return (
     <DashboardClient
