@@ -19,6 +19,10 @@ services:
     environment:
       TOKENUSAGE_SERVER_DB: /data/server.db
       TOKENUSAGE_PUBLIC_URL: https://${TOKENUSAGE_DOMAIN:-localhost}
+      # Optional — when set, lets /models hit OpenRouter with auth for
+      # higher rate limits and paves the way for credits/generation
+      # endpoints. The public /api/v1/models path still works without.
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
     volumes:
       - tokenusage_data:/data
     expose:
