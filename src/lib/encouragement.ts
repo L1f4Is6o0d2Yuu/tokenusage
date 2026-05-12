@@ -206,12 +206,12 @@ export function tokenComparison(
   period: string
 ): string {
   if (totalTokens < 100_000) return "≈ 几篇朋友圈";
-  const refs: { perToken: number; label: string }[] = [
-    { perToken: 730_000, label: "《红楼梦》" },
-    { perToken: 880_000, label: "《三体》全集" },
-    { perToken: 600_000, label: "《三国演义》" },
-    { perToken: 3_000_000, label: "《资治通鉴》" },
-    { perToken: 7_000_000, label: "《鲁迅全集》" },
+  const refs: { perToken: number; unit: string; label: string }[] = [
+    { perToken: 730_000, unit: "本", label: "《红楼梦》" },
+    { perToken: 880_000, unit: "部", label: "《三体》" },
+    { perToken: 600_000, unit: "本", label: "《三国演义》" },
+    { perToken: 3_000_000, unit: "套", label: "《资治通鉴》" },
+    { perToken: 7_000_000, unit: "套", label: "《鲁迅全集》" },
   ];
   const pick = refs[djb2(`${userKey}:${period}:tokenref`) % refs.length];
   const n = totalTokens / pick.perToken;
@@ -223,7 +223,7 @@ export function tokenComparison(
         : n < 1_000_000
           ? `${(n / 1_000).toFixed(1)}k`
           : `${(n / 1_000_000).toFixed(1)}M`;
-  return `≈ ${num} 套 ${pick.label}`;
+  return `≈ ${num}${pick.unit}${pick.label}`;
 }
 
 export function pickTokenTaunt(

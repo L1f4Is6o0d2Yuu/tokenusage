@@ -508,6 +508,7 @@ export async function GET(
               : ""
           }
           subRight={hoursOpinion(hoursPerDay, days)}
+          subRightAccent={hoursOpinionAccent(hoursPerDay)}
           taunt={hoursTaunt}
           toneBg="rgba(255, 197, 137, 0.10)"
           toneBorder="rgba(255, 197, 137, 0.4)"
@@ -573,6 +574,28 @@ function hoursOpinion(hpd: number, days: number): string {
   return "AGI 化身";
 }
 
+// Colour tier matches the opinion label — cool/grey at the low end,
+// orange in the middle, red at the卷王 / AGI end.
+function hoursOpinionAccent(hpd: number): { fg: string; bg: string; border: string } {
+  if (hpd < 5)
+    return {
+      fg: "#a39dc0",
+      bg: "rgba(157, 141, 255, 0.10)",
+      border: "rgba(157, 141, 255, 0.35)",
+    };
+  if (hpd < 9)
+    return {
+      fg: "#FFC589",
+      bg: "rgba(255, 197, 137, 0.15)",
+      border: "rgba(255, 197, 137, 0.5)",
+    };
+  return {
+    fg: "#FF8A8A",
+    bg: "rgba(255, 95, 95, 0.18)",
+    border: "rgba(255, 95, 95, 0.6)",
+  };
+}
+
 // Shared panel — accent-coloured card with a big stat, a sub-line on
 // the left + right, and a single taunt line. The two panels (token,
 // hours) reuse this so they read as a series.
@@ -583,6 +606,7 @@ function DataPanel({
   bigUnit,
   sub,
   subRight,
+  subRightAccent,
   taunt,
   toneBg,
   toneBorder,
@@ -593,6 +617,7 @@ function DataPanel({
   bigUnit: string;
   sub: string;
   subRight: string;
+  subRightAccent?: { fg: string; bg: string; border: string };
   taunt: string | null;
   toneBg: string;
   toneBorder: string;
@@ -628,18 +653,35 @@ function DataPanel({
         >
           {label}
         </div>
-        {subRight && (
-          <div
-            style={{
-              display: "flex",
-              fontSize: 22,
-              color: "#a39dc0",
-              letterSpacing: 1,
-            }}
-          >
-            {subRight}
-          </div>
-        )}
+        {subRight &&
+          (subRightAccent ? (
+            <div
+              style={{
+                display: "flex",
+                padding: "6px 16px",
+                borderRadius: 999,
+                background: subRightAccent.bg,
+                border: `1px solid ${subRightAccent.border}`,
+                fontSize: 22,
+                color: subRightAccent.fg,
+                fontWeight: 600,
+                letterSpacing: 1,
+              }}
+            >
+              {subRight}
+            </div>
+          ) : (
+            <div
+              style={{
+                display: "flex",
+                fontSize: 22,
+                color: "#a39dc0",
+                letterSpacing: 1,
+              }}
+            >
+              {subRight}
+            </div>
+          ))}
       </div>
       <div
         style={{
