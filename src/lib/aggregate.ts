@@ -51,9 +51,14 @@ export function filterByPeriod(
   custom?: CustomRange
 ): UsageRecord[] {
   const { start, end } = periodWindow(period, new Date(), custom);
+  // Sessions can span hours or days (a Claude Code session that runs
+  // 11pm → 1am should count toward "today" too). Include any session
+  // whose [startedAt, endedAt] interval *overlaps* the period window.
+  // Token attribution within the overlap is handled in aggregate().
   return records.filter((r) => {
+    const sessionEnd = r.endedAt ?? r.startedAt;
     if (r.startedAt > end) return false;
-    if (start != null && r.startedAt < start) return false;
+    if (start != null && sessionEnd < start) return false;
     return true;
   });
 }
@@ -99,6 +104,72 @@ function bucketKey(ts: number, g: Granularity): string {
   return `${y}-${m}-${day}`;
 }
 
+function bucketStartTime(ts: number, g: Granularity): number {
+  const d = new Date(ts);
+  d.setMinutes(0, 0, 0);
+  if (g === "hour") return d.getTime();
+  d.setHours(0);
+  if (g === "day") return d.getTime();
+  d.setDate(1);
+  return d.getTime();
+}
+
+function nextBucketTime(ts: number, g: Granularity): number {
+  const d = new Date(ts);
+  if (g === "hour") {
+    d.setHours(d.getHours() + 1, 0, 0, 0);
+    return d.getTime();
+  }
+  if (g === "day") {
+    d.setDate(d.getDate() + 1);
+    d.setHours(0, 0, 0, 0);
+    return d.getTime();
+  }
+  d.setMonth(d.getMonth() + 1, 1);
+  d.setHours(0, 0, 0, 0);
+  return d.getTime();
+}
+
+// Slice a session into per-bucket fractions, keeping only buckets that
+// fall inside [windowStart, windowEnd]. Sum of returned fractions =
+// the portion of the session's lifetime that's actually visible in
+// the chart's window — i.e. exactly what we want to weight its tokens
+// by when computing aggregates.
+function distributeAcrossBuckets(
+  startedAt: number,
+  endedAt: number,
+  g: Granularity,
+  window?: { start: number | null; end: number }
+): Array<{ key: string; fraction: number }> {
+  const start = startedAt;
+  // Minimum span of 1ms keeps the division well-defined for sessions
+  // that recorded a single turn (startedAt == endedAt).
+  const end = Math.max(endedAt, startedAt + 1);
+  const span = end - start;
+  const out: Array<{ key: string; fraction: number }> = [];
+  let cursor = bucketStartTime(start, g);
+  // Hard cap on iterations so a malformed record can't lock the page.
+  // 8760 (1 year of hours) is well past anything we'd render.
+  let safety = 8760;
+  while (cursor < end && safety-- > 0) {
+    const next = nextBucketTime(cursor, g);
+    const overlap = Math.max(0, Math.min(end, next) - Math.max(start, cursor));
+    if (overlap > 0) {
+      // Bucket center is approximated by `cursor` for the window test
+      // (cursor = bucket start). A bucket counts as "in window" if
+      // its start is on/after windowStart and on/before windowEnd.
+      const inWindow =
+        (window?.start == null || cursor >= window.start) &&
+        (window == null || cursor <= window.end);
+      if (inWindow) {
+        out.push({ key: bucketKey(cursor, g), fraction: overlap / span });
+      }
+    }
+    cursor = next;
+  }
+  return out;
+}
+
 export function aggregate(
   records: UsageRecord[],
   granularity: Granularity = "day",
@@ -131,14 +202,31 @@ export function aggregate(
       r.cacheWriteTokens +
       r.reasoningTokens;
 
-    totals.inputTokens += r.inputTokens;
-    totals.outputTokens += r.outputTokens;
-    totals.cacheReadTokens += r.cacheReadTokens;
-    totals.cacheWriteTokens += r.cacheWriteTokens;
-    totals.reasoningTokens += r.reasoningTokens;
-    totals.totalTokens += totalTokens;
+    // Slice the session across whatever buckets it touches inside the
+    // window. `inWindowFraction` is the share of session lifetime
+    // visible in the chart — it weights *all* aggregates so a session
+    // that ran 11pm→1am and we're viewing "today" only counts the
+    // 0:00–1:00 slice (roughly 50% of its tokens).
+    const dist = distributeAcrossBuckets(
+      r.startedAt,
+      r.endedAt ?? r.startedAt,
+      granularity,
+      window
+    );
+    const inWindowFraction = dist.reduce((s, x) => s + x.fraction, 0);
+    // If the session has no overlap with the visible window (its
+    // buckets all fell outside), skip it entirely — it shouldn't
+    // contribute to totals or model rows for this view.
+    if (inWindowFraction === 0) continue;
 
-    if (r.costUsd != null) totals.costUsd += r.costUsd;
+    totals.inputTokens += r.inputTokens * inWindowFraction;
+    totals.outputTokens += r.outputTokens * inWindowFraction;
+    totals.cacheReadTokens += r.cacheReadTokens * inWindowFraction;
+    totals.cacheWriteTokens += r.cacheWriteTokens * inWindowFraction;
+    totals.reasoningTokens += r.reasoningTokens * inWindowFraction;
+    totals.totalTokens += totalTokens * inWindowFraction;
+
+    if (r.costUsd != null) totals.costUsd += r.costUsd * inWindowFraction;
     else if (totalTokens > 0) totals.costKnown = false;
 
     const modelKey = `${r.provider}::${r.model ?? "unknown"}`;
@@ -159,24 +247,28 @@ export function aggregate(
       };
       modelMap.set(modelKey, row);
     }
+    // `records` counts each session once even when prorated — counting
+    // 0.5 sessions reads weirdly. Token sums get the proration so the
+    // breakdown numbers tie back to the totals.
     row.records += 1;
-    row.inputTokens += r.inputTokens;
-    row.outputTokens += r.outputTokens;
-    row.cacheReadTokens += r.cacheReadTokens;
-    row.cacheWriteTokens += r.cacheWriteTokens;
-    row.reasoningTokens += r.reasoningTokens;
-    row.totalTokens += totalTokens;
-    if (r.costUsd != null) row.costUsd += r.costUsd;
+    row.inputTokens += r.inputTokens * inWindowFraction;
+    row.outputTokens += r.outputTokens * inWindowFraction;
+    row.cacheReadTokens += r.cacheReadTokens * inWindowFraction;
+    row.cacheWriteTokens += r.cacheWriteTokens * inWindowFraction;
+    row.reasoningTokens += r.reasoningTokens * inWindowFraction;
+    row.totalTokens += totalTokens * inWindowFraction;
+    if (r.costUsd != null) row.costUsd += r.costUsd * inWindowFraction;
     else if (totalTokens > 0) row.costKnown = false;
 
-    const k = bucketKey(r.startedAt, granularity);
-    let p = bucketMap.get(k);
-    if (!p) {
-      p = { date: k, totalTokens: 0, costUsd: 0 };
-      bucketMap.set(k, p);
+    for (const { key, fraction } of dist) {
+      let p = bucketMap.get(key);
+      if (!p) {
+        p = { date: key, totalTokens: 0, costUsd: 0 };
+        bucketMap.set(key, p);
+      }
+      p.totalTokens += totalTokens * fraction;
+      if (r.costUsd != null) p.costUsd += r.costUsd * fraction;
     }
-    p.totalTokens += totalTokens;
-    if (r.costUsd != null) p.costUsd += r.costUsd;
   }
 
   // Pre-seed hour buckets across the requested window so empty hours
