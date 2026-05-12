@@ -46,8 +46,32 @@ export function Landing({
         fontFamily: FONT_STACK,
       }}
     >
+      {/* Inline styles for hover/transition effects — keeps the file
+          self-contained without touching globals.css. */}
+      <style>{`
+        .tu-btn { transition: transform .14s ease, box-shadow .14s ease, background-color .14s ease; }
+        .tu-btn:hover { transform: translateY(-1px); }
+        .tu-btn-primary:hover { box-shadow: 0 8px 24px -10px rgba(159,232,112,0.7); }
+        .tu-btn-dark:hover { box-shadow: 0 8px 24px -10px rgba(14,15,12,0.4); }
+        .tu-card { transition: transform .22s cubic-bezier(.2,.8,.2,1), box-shadow .22s ease; }
+        .tu-card:hover { transform: translateY(-3px); box-shadow: 0 16px 40px -22px rgba(14,15,12,0.18); }
+        .tu-link-arrow { transition: transform .18s ease; display: inline-block; }
+        .tu-cta:hover .tu-link-arrow { transform: translateX(4px); }
+        .tu-step-num { transition: background-color .2s ease, color .2s ease; }
+        .tu-step-card:hover .tu-step-num { background-color: ${W.ink}; color: ${W.primary}; }
+        html { scroll-behavior: smooth; }
+        @keyframes tu-fade-up {
+          from { opacity: 0; transform: translateY(8px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .tu-fade-up { animation: tu-fade-up .6s cubic-bezier(.2,.8,.2,1) both; }
+        .tu-fade-up-d1 { animation-delay: .05s; }
+        .tu-fade-up-d2 { animation-delay: .12s; }
+        .tu-fade-up-d3 { animation-delay: .2s; }
+      `}</style>
       <NavBar />
       <Hero inviteRequired={inviteRequired} />
+      <HowItWorks />
       <Features />
       <Showcase />
       <InstallBand />
@@ -99,6 +123,7 @@ function NavBar() {
           href="https://github.com/L1f4Is6o0d2Yuu/tokenusage"
           target="_blank"
           rel="noreferrer"
+          className="tu-btn"
           style={{
             ...buttonBase,
             background: "transparent",
@@ -109,6 +134,7 @@ function NavBar() {
         </a>
         <Link
           href="/login"
+          className="tu-btn tu-btn-dark"
           style={{
             ...buttonBase,
             background: W.canvas,
@@ -120,6 +146,7 @@ function NavBar() {
         </Link>
         <Link
           href="/signup"
+          className="tu-btn tu-btn-primary"
           style={{
             ...buttonBase,
             background: W.primary,
@@ -191,6 +218,7 @@ function Hero({ inviteRequired }: { inviteRequired: boolean }) {
       <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
         <Link
           href="/signup"
+          className="tu-btn tu-btn-primary tu-cta"
           style={{
             ...buttonBase,
             background: W.primary,
@@ -200,9 +228,13 @@ function Hero({ inviteRequired }: { inviteRequired: boolean }) {
           }}
         >
           {inviteRequired ? "用邀请码注册" : "立即注册"}
+          <span className="tu-link-arrow" aria-hidden>
+            →
+          </span>
         </Link>
         <Link
-          href="/login"
+          href="#how-it-works"
+          className="tu-btn tu-btn-dark"
           style={{
             ...buttonBase,
             background: W.canvas,
@@ -212,13 +244,172 @@ function Hero({ inviteRequired }: { inviteRequired: boolean }) {
             padding: "16px 28px",
           }}
         >
-          已有账号 · 登录
+          先看怎么玩
         </Link>
       </div>
 
       <p style={{ fontSize: 14, color: W.mute, margin: 0 }}>
         数据存本机 sqlite，agent 只上报 token 数。无遥测。
       </p>
+    </section>
+  );
+}
+
+function HowItWorks() {
+  const steps = [
+    {
+      num: "01",
+      title: "注册账号",
+      body: "用邀请码注册，30 秒拿到自己的 API token。账号决定 token 上报到哪里。",
+      cta: { href: "/signup", label: "去注册" },
+    },
+    {
+      num: "02",
+      title: "装上 agent",
+      body: (
+        <>
+          电脑上跑一条命令：
+          <code
+            style={{
+              display: "block",
+              marginTop: 10,
+              padding: "10px 14px",
+              borderRadius: 12,
+              background: W.canvas,
+              border: `1px solid ${W.canvasSoft}`,
+              fontFamily: "ui-monospace, Menlo, monospace",
+              fontSize: 13,
+              color: W.ink,
+              wordBreak: "break-all",
+            }}
+          >
+            brew install L1f4Is6o0d2Yuu/tap/tokenusage
+          </code>
+          <span style={{ fontSize: 13, color: W.mute, display: "block", marginTop: 8 }}>
+            或 curl 一行也行 — 注册后会拿到完整命令。
+          </span>
+        </>
+      ),
+    },
+    {
+      num: "03",
+      title: "看自己被薅得多惨",
+      body: "agent 自动扫 Claude Code / Codex / Cursor / Hermes / Windsurf 的本地记录，每 5 分钟上报。打开 dashboard 就看见所有数字，「分享」按钮把战绩传出去。",
+      cta: { href: "/login", label: "登录看面板" },
+    },
+  ];
+
+  return (
+    <section
+      id="how-it-works"
+      style={{
+        maxWidth: 1200,
+        margin: "0 auto",
+        padding: "0 32px 80px",
+        display: "flex",
+        flexDirection: "column",
+        gap: 28,
+      }}
+    >
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        <Pill bg={W.canvas} border small>
+          <span style={{ color: W.positive }}>●</span> 三步上桌
+        </Pill>
+        <h2
+          style={{
+            fontSize: 56,
+            fontWeight: 900,
+            letterSpacing: -2,
+            margin: 0,
+            lineHeight: 1,
+          }}
+        >
+          怎么玩？
+        </h2>
+      </div>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(290px, 1fr))",
+          gap: 20,
+        }}
+      >
+        {steps.map((s, i) => (
+          <article
+            key={s.num}
+            className={`tu-card tu-step-card tu-fade-up tu-fade-up-d${i + 1}`}
+            style={{
+              background: W.canvas,
+              borderRadius: 24,
+              padding: "32px 28px",
+              display: "flex",
+              flexDirection: "column",
+              gap: 14,
+            }}
+          >
+            <div
+              className="tu-step-num"
+              style={{
+                width: 56,
+                height: 56,
+                borderRadius: 999,
+                background: W.primaryPale,
+                color: W.inkDeep,
+                fontSize: 22,
+                fontWeight: 900,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              {s.num}
+            </div>
+            <h3
+              style={{
+                fontSize: 26,
+                fontWeight: 900,
+                margin: 0,
+                lineHeight: 1.15,
+                color: W.ink,
+              }}
+            >
+              {s.title}
+            </h3>
+            <div
+              style={{
+                fontSize: 15,
+                lineHeight: 1.55,
+                color: W.body,
+                margin: 0,
+              }}
+            >
+              {s.body}
+            </div>
+            {s.cta && (
+              <Link
+                href={s.cta.href}
+                className="tu-cta"
+                style={{
+                  marginTop: "auto",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6,
+                  fontSize: 14,
+                  fontWeight: 700,
+                  color: W.ink,
+                  textDecoration: "none",
+                  padding: "8px 0 0",
+                }}
+              >
+                {s.cta.label}
+                <span className="tu-link-arrow" aria-hidden>
+                  →
+                </span>
+              </Link>
+            )}
+          </article>
+        ))}
+      </div>
     </section>
   );
 }
@@ -252,9 +443,10 @@ function Features() {
         gap: 24,
       }}
     >
-      {items.map((it) => (
+      {items.map((it, i) => (
         <article
           key={it.title}
+          className={`tu-card tu-fade-up tu-fade-up-d${i + 1}`}
           style={{
             background: it.tone,
             borderRadius: 24,
@@ -375,6 +567,7 @@ function PreviewCard({
 }) {
   return (
     <article
+      className="tu-card"
       style={{
         background: color,
         borderRadius: 24,
@@ -558,6 +751,7 @@ function CTABand({ inviteRequired }: { inviteRequired: boolean }) {
         >
           <Link
             href="/signup"
+            className="tu-btn tu-btn-dark tu-cta"
             style={{
               ...buttonBase,
               background: W.ink,
@@ -567,11 +761,15 @@ function CTABand({ inviteRequired }: { inviteRequired: boolean }) {
             }}
           >
             立即注册
+            <span className="tu-link-arrow" aria-hidden>
+              →
+            </span>
           </Link>
           <a
             href="https://github.com/L1f4Is6o0d2Yuu/tokenusage"
             target="_blank"
             rel="noreferrer"
+            className="tu-btn tu-btn-dark"
             style={{
               ...buttonBase,
               background: W.canvas,
