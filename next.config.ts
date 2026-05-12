@@ -11,6 +11,13 @@ const nextConfig: NextConfig = {
   // better-sqlite3 is a native Node module; tell the Next bundler to leave it
   // alone in server bundles so the prebuilt binary keeps working.
   serverExternalPackages: ["better-sqlite3"],
+
+  // The share image endpoint reads Noto Sans SC WOFFs at runtime via
+  // fs.readFileSync(process.cwd() + "/src/fonts/..."). Without this
+  // include, standalone tracing strips src/fonts and the route crashes.
+  outputFileTracingIncludes: {
+    "/api/share/[period]": ["./src/fonts/**/*.woff"],
+  },
 };
 
 export default nextConfig;

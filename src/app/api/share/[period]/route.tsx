@@ -1,4 +1,6 @@
 import { ImageResponse } from "next/og";
+import { readFileSync } from "fs";
+import path from "path";
 import { readCurrentUser } from "@/lib/auth";
 import { loadRecords } from "@/lib/adapters";
 import {
@@ -16,6 +18,28 @@ import type { Period } from "@/lib/types";
 export const runtime = "nodejs";
 
 const VALID: Period[] = ["today", "24h", "7d", "30d", "month", "year", "all"];
+
+// CJK glyph reliability: Satori has no built-in CJK. Without an
+// explicit font we get sporadic tofu boxes on Alpine. Load Noto Sans
+// SC (chinese-simplified subset, ~1.5MB WOFF) once at module init and
+// keep it in memory.
+const FONT_DIR = path.join(process.cwd(), "src", "fonts");
+let cjkFontData: Buffer | null = null;
+let latinFontData: Buffer | null = null;
+function getCjkFont(): Buffer {
+  if (!cjkFontData) {
+    cjkFontData = readFileSync(path.join(FONT_DIR, "NotoSansSC-500.woff"));
+  }
+  return cjkFontData;
+}
+function getLatinFont(): Buffer {
+  if (!latinFontData) {
+    latinFontData = readFileSync(
+      path.join(FONT_DIR, "NotoSansSC-Latin-500.woff")
+    );
+  }
+  return latinFontData;
+}
 
 // Vertical 1080×1920 phone-shaped share card — the "let me show my
 // friend how badly I broke Anthropic" hook. Compose: brand row → user
@@ -187,7 +211,7 @@ export async function GET(
             "radial-gradient(circle at 25% -5%, #2f2270 0%, #15103a 45%, #06040f 100%)",
           color: "white",
           padding: "70px 60px 50px",
-          fontFamily: "ui-monospace, monospace",
+          fontFamily: "Noto Sans SC, ui-monospace, monospace",
           position: "relative",
         }}
       >
@@ -649,7 +673,24 @@ export async function GET(
         </div>
       </div>
     ),
-    { width: 1080, height: 1920 }
+    {
+      width: 1080,
+      height: 1920,
+      fonts: [
+        {
+          name: "Noto Sans SC",
+          data: getLatinFont(),
+          style: "normal",
+          weight: 500,
+        },
+        {
+          name: "Noto Sans SC",
+          data: getCjkFont(),
+          style: "normal",
+          weight: 500,
+        },
+      ],
+    }
   );
 }
 
