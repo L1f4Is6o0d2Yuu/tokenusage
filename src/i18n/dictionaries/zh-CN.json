@@ -343,7 +343,8 @@
     "prices": "定价",
     "users": "用户",
     "about": "关于",
-    "subscriptions": "订阅套餐"
+    "subscriptions": "订阅套餐",
+    "models": "模型"
   },
   "forgotPassword": {
     "title": "忘记密码",
@@ -418,5 +419,16 @@
     "copyButton": "复制命令",
     "copied": "已复制",
     "later": "稍后"
+  },
+  "modelsPage": {
+    "title": "模型百科",
+    "subtitle": "从 OpenRouter 实时拉取 — 上下文、模态、当前定价。",
+    "otherVendors": "其他厂商",
+    "fetchError": "目录拉取失败",
+    "colInput": "输入",
+    "colOutput": "输出",
+    "colCacheRead": "缓存",
+    "colContext": "上下文",
+    "coveredBy": "覆盖套餐"
   }
 }
