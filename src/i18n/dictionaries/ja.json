@@ -303,7 +303,8 @@
     "editNote": "メモを編集",
     "columnIp": "最終 IP",
     "columnLocation": "ロケーション",
-    "ipPingTooltip": "ping0.cc で IP を確認"
+    "ipPingTooltip": "ping0.cc で IP を確認",
+    "copyCode": "コードをコピー"
   },
   "authForms": {
     "signIn": "サインイン",

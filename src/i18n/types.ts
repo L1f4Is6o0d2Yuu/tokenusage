@@ -347,6 +347,7 @@ export type Dictionary = {
     columnLocation: string;
     ipPingTooltip: string;
     badgeAdmin: string;
+    copyCode: string;
     copyLink: string;
     copied: string;
     copyError: string;
