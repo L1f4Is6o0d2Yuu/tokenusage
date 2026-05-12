@@ -1,131 +1,170 @@
 "use client";
 
-import { useState } from "react";
-import { Share2, X, Download, Copy, Check } from "lucide-react";
-import type { Period } from "@/lib/types";
+import { useRef, useState } from "react";
+import { Share2, Check, AlertCircle, Loader2 } from "lucide-react";
+import { computeRoi, periodDays } from "@/lib/roi-client";
+import type { PlanLite } from "@/lib/roi-client";
+import type { Aggregation, Period } from "@/lib/types";
+import {
+  SharePoster,
+  computeSharePosterData,
+  type SharePosterData,
+} from "@/components/share-poster";
 
-// "Share" button + modal. Opens an `<img>` of the share endpoint
-// (1080×1920 vertical card) with copy-URL / download / WeChat-style
-// long-press hints. Image regenerates each modal open so a fresh
-// taunt rolls into the card.
+// Client-side share renderer. Renders SharePoster into a hidden
+// off-screen DOM node, screenshots with html-to-image, and triggers a
+// PNG download. Zero server cost compared to the old modal flow that
+// fired /api/share/[period] every modal open.
+//
+// The server route is still alive (Open Graph, future public share
+// URLs) — it just isn't used by this button.
+
+// Font loader — Noto Sans SC chinese-simplified subset, fetched once
+// per browser tab and cached at the FontFace layer. First click pays
+// the ~1.5MB download; subsequent shares are instant.
+let fontPromise: Promise<void> | null = null;
+function ensureCJKFont(): Promise<void> {
+  if (typeof document === "undefined") return Promise.resolve();
+  if (fontPromise) return fontPromise;
+  fontPromise = (async () => {
+    if (!("fonts" in document)) return;
+    try {
+      const font = new FontFace(
+        "Noto Sans SC",
+        `url(/fonts/NotoSansSC-500.woff) format("woff")`,
+        { style: "normal", weight: "500" }
+      );
+      await font.load();
+      document.fonts.add(font);
+      await document.fonts.ready;
+    } catch (e) {
+      // Font load failure isn't fatal — html-to-image falls back to
+      // system fonts; the poster will look slightly different but
+      // still readable.
+      console.warn("[share] CJK font load failed, falling back", e);
+    }
+  })();
+  return fontPromise;
+}
 
 export function ShareButton({
+  username,
+  userId,
   period,
+  agg,
+  codingHours,
+  activePlans,
   labels,
 }: {
+  username: string;
+  userId: number;
   period: Period;
-  labels: {
-    share: string;
-    title: string;
-    description: string;
-    copyUrl: string;
-    download: string;
-    copied: string;
-    longPress: string;
-    close: string;
-  };
+  agg: Aggregation;
+  codingHours: number;
+  activePlans: PlanLite[];
+  labels: { share: string; copied: string };
 }) {
-  const [open, setOpen] = useState(false);
-  const [bust, setBust] = useState(0);
-  const [copied, setCopied] = useState(false);
+  const [status, setStatus] = useState<"idle" | "loading" | "done" | "error">(
+    "idle"
+  );
+  const [posterData, setPosterData] = useState<SharePosterData | null>(null);
+  const posterRef = useRef<HTMLDivElement | null>(null);
 
-  const url = `/api/share/${period}${bust ? `?v=${bust}` : ""}`;
-  const absoluteUrl =
-    typeof window !== "undefined"
-      ? new URL(url, window.location.origin).toString()
-      : url;
-
-  function openModal() {
-    setBust(Date.now());
-    setOpen(true);
-  }
-  async function copyUrl() {
+  async function handleSave() {
+    if (status === "loading") return;
+    setStatus("loading");
     try {
-      await navigator.clipboard.writeText(absoluteUrl);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1800);
-    } catch {
-      // best-effort
+      const days = periodDays(period);
+      const roi = computeRoi(agg.totals.costUsd, activePlans, days);
+      const data = computeSharePosterData({
+        username,
+        period,
+        agg,
+        roi,
+        activePlans,
+        days,
+        codingHours,
+        userKey: `${userId}:${Date.now()}`,
+      });
+
+      setPosterData(data);
+      await ensureCJKFont();
+      // Two RAFs so React has fully committed the SharePoster subtree
+      // before we hand the node to html-to-image.
+      await new Promise((r) => requestAnimationFrame(r));
+      await new Promise((r) => requestAnimationFrame(r));
+
+      const { toPng } = await import("html-to-image");
+      if (!posterRef.current) throw new Error("poster node missing");
+      const dataUrl = await toPng(posterRef.current, {
+        width: 1080,
+        height: 1920,
+        pixelRatio: 1,
+        cacheBust: false,
+        // Block external image fetches — we have none, this keeps the
+        // capture pipeline synchronous-ish.
+        skipFonts: false,
+      });
+
+      const a = document.createElement("a");
+      a.href = dataUrl;
+      a.download = `tokenusage-${period}-${Date.now()}.png`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+
+      setStatus("done");
+      setTimeout(() => setStatus("idle"), 1800);
+    } catch (e) {
+      console.error("[share] render failed", e);
+      setStatus("error");
+      setTimeout(() => setStatus("idle"), 2400);
+    } finally {
+      // Hold the hidden node for a moment so the data-URL download
+      // doesn't race the unmount, then drop it.
+      setTimeout(() => setPosterData(null), 1500);
     }
   }
-  function download() {
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `tokenusage-${period}.png`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-  }
+
+  const Icon =
+    status === "done"
+      ? Check
+      : status === "error"
+        ? AlertCircle
+        : status === "loading"
+          ? Loader2
+          : Share2;
 
   return (
     <>
       <button
         type="button"
-        onClick={openModal}
+        onClick={handleSave}
+        disabled={status === "loading"}
         title={labels.share}
-        className="inline-flex items-center gap-1.5 rounded-md border border-border-subtle bg-bg-panel px-3 py-1.5 text-xs font-medium text-fg-default transition-colors hover:border-accent hover:text-accent"
+        className="inline-flex items-center gap-1.5 rounded-md border border-border-subtle bg-bg-panel px-3 py-1.5 text-xs font-medium text-fg-default transition-colors hover:border-accent hover:text-accent disabled:cursor-not-allowed disabled:opacity-70"
       >
-        <Share2 className="h-3.5 w-3.5" strokeWidth={2} aria-hidden />
-        {labels.share}
+        <Icon
+          className={`h-3.5 w-3.5 ${status === "loading" ? "animate-spin" : ""}`}
+          strokeWidth={2}
+          aria-hidden
+        />
+        {status === "done" ? labels.copied : labels.share}
       </button>
 
-      {open && (
+      {posterData && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur"
-          onClick={() => setOpen(false)}
+          style={{
+            position: "fixed",
+            left: -99999,
+            top: 0,
+            pointerEvents: "none",
+            zIndex: -1,
+          }}
+          aria-hidden
         >
-          <div
-            className="relative flex max-h-[90vh] w-full max-w-md flex-col gap-4 rounded-lg border border-border-subtle bg-bg-panel p-4"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <button
-              type="button"
-              onClick={() => setOpen(false)}
-              className="absolute right-3 top-3 rounded-full p-1 text-fg-muted hover:bg-bg-panel-2"
-              aria-label={labels.close}
-            >
-              <X className="h-4 w-4" />
-            </button>
-            <div>
-              <h2 className="text-base font-medium text-fg-strong">
-                {labels.title}
-              </h2>
-              <p className="mt-1 text-xs text-fg-muted">{labels.description}</p>
-            </div>
-            {/* Image preview — server returns the PNG, we just <img src> it.
-                aspect-[9/16] keeps the modal a phone shape on desktop. */}
-            <div className="relative overflow-hidden rounded-md bg-bg-input">
-              <img
-                key={bust}
-                src={url}
-                alt="tokenusage share card"
-                className="block w-full"
-                style={{ aspectRatio: "9 / 16" }}
-              />
-            </div>
-            <p className="text-[11px] italic text-fg-muted">{labels.longPress}</p>
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={copyUrl}
-                className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-md border border-border-subtle bg-bg-panel px-3 py-2 text-xs font-medium text-fg-default hover:bg-bg-panel-2"
-              >
-                {copied ? (
-                  <Check className="h-3.5 w-3.5 text-success" strokeWidth={2.4} />
-                ) : (
-                  <Copy className="h-3.5 w-3.5" strokeWidth={1.8} />
-                )}
-                {copied ? labels.copied : labels.copyUrl}
-              </button>
-              <button
-                type="button"
-                onClick={download}
-                className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-md bg-accent px-3 py-2 text-xs font-medium text-accent-fg hover:opacity-90"
-              >
-                <Download className="h-3.5 w-3.5" strokeWidth={2} />
-                {labels.download}
-              </button>
-            </div>
+          <div ref={posterRef}>
+            <SharePoster data={posterData} />
           </div>
         </div>
       )}

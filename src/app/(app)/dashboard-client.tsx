@@ -181,8 +181,13 @@ export function DashboardClient({
             t={t.period}
           />
           <ShareButton
+            username={username ?? ""}
+            userId={userId ?? 0}
             period={period === "custom" ? "today" : period}
-            labels={t.share}
+            agg={agg}
+            codingHours={codingHours}
+            activePlans={activePlans}
+            labels={{ share: t.share.share, copied: t.share.copied }}
           />
         </div>
       </header>
