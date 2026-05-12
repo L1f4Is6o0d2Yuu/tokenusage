@@ -137,11 +137,14 @@ export function ShareButton({
   );
   const [posterData, setPosterData] = useState<SharePosterData | null>(null);
   const [sharedUrl, setSharedUrl] = useState<string | null>(null);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const posterRef = useRef<HTMLDivElement | null>(null);
 
   async function handleSave() {
     if (status === "loading") return;
     setStatus("loading");
+    setErrorMsg(null);
+    setSharedUrl(null);
     try {
       const days = periodDays(period);
       const roi = computeRoi(agg.totals.costUsd, activePlans, days);
@@ -215,8 +218,20 @@ export function ShareButton({
       setTimeout(() => setStatus("idle"), 5000);
     } catch (e) {
       console.error("[share] render failed", e);
+      const msg = e instanceof Error ? e.message : String(e);
+      // Friendly inline message — strip stack noise, cap length.
+      setErrorMsg(
+        msg.includes("upload failed")
+          ? "保存失败，稍后再试一次"
+          : msg.includes("font")
+            ? "字体加载失败，请刷新页面"
+            : msg.slice(0, 80) || "出错了，稍后再试一次"
+      );
       setStatus("error");
-      setTimeout(() => setStatus("idle"), 2400);
+      setTimeout(() => {
+        setStatus("idle");
+        setErrorMsg(null);
+      }, 4000);
     } finally {
       // Hold the hidden node for a moment so the data-URL download
       // doesn't race the unmount, then drop it.
@@ -260,6 +275,9 @@ export function ShareButton({
           >
             {sharedUrl.replace(/^https?:\/\//, "")}
           </a>
+        )}
+        {status === "error" && errorMsg && (
+          <span className="text-[10px] text-warning">{errorMsg}</span>
         )}
       </div>
 

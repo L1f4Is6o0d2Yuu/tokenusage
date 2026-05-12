@@ -956,7 +956,7 @@ export const ROI_ZH: string[][] = [
     "建议低调点 — 你的 user_id 已经被 {vendor} 高管个人 follow。",
     "你已经把套餐用到 {vendor} 的成本曲线弯成 hockey stick。",
     "10×+ — {vendor} 的 CEO 在自传初稿里给你留了一整章（化名）。",
-    "{net} — {vendor} 的财务模型增加了一个「{你的 username} 调整项」。",
+    "{net} — {vendor} 的财务模型为你单独加了一个修正项。",
     "10×+ — 「破防天花板」就是 {vendor} 销售部对你的评价。",
     "10× 回本 — 你的薅率让 SaaS 行业重新定义「合理使用」。",
     "10×+ — {vendor} 的 board 把你单独写进了公司宪章里的「特殊用户应对」条款。",
