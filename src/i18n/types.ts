@@ -137,6 +137,16 @@ export type Dictionary = {
       month: string;
     };
   };
+  share: {
+    share: string;
+    title: string;
+    description: string;
+    copyUrl: string;
+    download: string;
+    copied: string;
+    longPress: string;
+    close: string;
+  };
   topModels: {
     title: string;
     description: string;

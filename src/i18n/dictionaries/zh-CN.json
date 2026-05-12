@@ -441,5 +441,15 @@
       "week": "近 7 天",
       "month": "近 30 天"
     }
+  },
+  "share": {
+    "share": "分享",
+    "title": "分享这一时段",
+    "description": "1080×1920 手机竖版 PNG，包含你的用量、回本率、tokenusage 评语。",
+    "copyUrl": "复制链接",
+    "download": "下载 PNG",
+    "copied": "已复制",
+    "longPress": "手机端：长按图片可保存 / 转发。",
+    "close": "关闭"
   }
 }
