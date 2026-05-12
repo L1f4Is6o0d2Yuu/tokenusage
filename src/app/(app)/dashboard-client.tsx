@@ -10,6 +10,7 @@ import type { CustomRange, Period, UsageRecord } from "@/lib/types";
 import type { Rule } from "@/lib/pricing";
 import type { Dictionary } from "@/i18n/types";
 import { PeriodTabs } from "@/components/period-tabs";
+import { ShareButton } from "@/components/share-button";
 import { UsageTrend } from "@/components/usage-trend";
 import { OnboardingCard } from "@/components/onboarding-card";
 import { AgentStatusBar } from "@/components/agent-status-bar";
@@ -164,13 +165,19 @@ export function DashboardClient({
           </h1>
           <p className="truncate text-[12px] text-fg-muted">{t.header.tagline}</p>
         </div>
-        <PeriodTabs
-          active={period}
-          custom={customRange}
-          onChange={handlePeriod}
-          onCustomChange={handleCustom}
-          t={t.period}
-        />
+        <div className="flex flex-wrap items-center gap-2">
+          <PeriodTabs
+            active={period}
+            custom={customRange}
+            onChange={handlePeriod}
+            onCustomChange={handleCustom}
+            t={t.period}
+          />
+          <ShareButton
+            period={period === "custom" ? "today" : period}
+            labels={t.share}
+          />
+        </div>
       </header>
 
       <div className="flex-1 px-6 py-5">

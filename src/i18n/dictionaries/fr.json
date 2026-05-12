@@ -441,5 +441,15 @@
       "week": "Last 7 days",
       "month": "Last 30 days"
     }
+  },
+  "share": {
+    "share": "Share",
+    "title": "Share this period",
+    "description": "Phone-shaped PNG (1080×1920) with your stats, ROI, and today's tokenusage burn.",
+    "copyUrl": "Copy URL",
+    "download": "Download PNG",
+    "copied": "Copied!",
+    "longPress": "Mobile: long-press the image to save / share.",
+    "close": "Close"
   }
 }
