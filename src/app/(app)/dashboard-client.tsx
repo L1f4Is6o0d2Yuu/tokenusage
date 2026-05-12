@@ -68,6 +68,7 @@ export function DashboardClient({
   initialCustomRange,
   username,
   userId,
+  mountSeed,
   activePlans,
   locale,
   t,
@@ -83,6 +84,7 @@ export function DashboardClient({
   initialCustomRange?: CustomRange;
   username: string | null;
   userId: number | null;
+  mountSeed: number;
   activePlans: PlanLite[];
   locale: string;
   t: Dictionary;
@@ -370,6 +372,7 @@ export function DashboardClient({
             customRange={customRange}
             locale={locale}
             userKey={userId ?? 0}
+            mountSeed={mountSeed}
             t={t}
           />
         </section>
@@ -934,6 +937,7 @@ function SubscriptionRoiPanel({
   customRange,
   locale,
   userKey,
+  mountSeed,
   t,
 }: {
   plans: PlanLite[];
@@ -942,6 +946,7 @@ function SubscriptionRoiPanel({
   customRange?: CustomRange;
   locale: string;
   userKey: number;
+  mountSeed: number;
   t: Dictionary;
 }) {
   if (plans.length === 0) {
@@ -970,9 +975,12 @@ function SubscriptionRoiPanel({
   // `period` key in the picker means each tab gets a different pick
   // even when the math lands in the same band.
   const isDaily = period === "today" || period === "24h";
+  // Compose the seed: stable user id + per-refresh mount seed = a fresh
+  // pick on every reload, deterministic within a render pass.
+  const seededKey = `${userKey}:${mountSeed}`;
   const message = isDaily
-    ? pickDailyTaunt(apiSpendUsd, plans, locale, userKey, period)
-    : pickRoiLine(roi.ratioPct, roi.netUsd, plans, locale, userKey, period);
+    ? pickDailyTaunt(apiSpendUsd, plans, locale, seededKey, period)
+    : pickRoiLine(roi.ratioPct, roi.netUsd, plans, locale, seededKey, period);
   const inProfit = roi.netUsd >= 0;
   const periodLabel = t.period[period].toLowerCase();
 
