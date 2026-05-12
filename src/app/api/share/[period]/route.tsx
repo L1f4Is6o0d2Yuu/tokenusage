@@ -103,22 +103,35 @@ export async function GET(
 
   const codingHours = totalActiveHours(scoped);
 
+  // Cache hit rate over input+cache-read mass — same formula as
+  // the dashboard's CacheStat card.
+  const cacheHitDenom =
+    agg.totals.cacheReadTokens + agg.totals.inputTokens;
+  const cacheHitRate =
+    cacheHitDenom > 0
+      ? (agg.totals.cacheReadTokens / cacheHitDenom) * 100
+      : 0;
+
   const apiValue = agg.totals.costUsd;
   const subFee = roi.proratedUsd;
   const savings = roi.netUsd;
   const ratioX = roi.ratioPct / 100;
 
   // Real-world reference: cheeky stuff people in CN actually buy.
+  // Tiers re-priced 2026 — MacBook Air starts at $999, iPad Pro $799,
+  // PS5 $499, Switch 2 $449, iPhone 17 Pro $1199, Tesla Model 3 ~$36k.
   const compare = (() => {
     const u = Math.abs(savings);
-    if (u >= 50000) return "≈ 一辆特斯拉 Model S";
-    if (u >= 20000) return "≈ 一辆 Tesla Model 3";
-    if (u >= 12000) return "≈ 一辆五菱宏光 MINI";
-    if (u >= 6000) return "≈ 一台 MacBook Pro M5 满配";
-    if (u >= 3500) return "≈ 一台 MacBook Pro";
-    if (u >= 1800) return "≈ 一台 MacBook Air";
-    if (u >= 1000) return "≈ 一台 iPad Pro";
-    if (u >= 500) return "≈ 一台 PS5";
+    if (u >= 80000) return "≈ 一辆 Tesla Model S Plaid";
+    if (u >= 36000) return "≈ 一辆 Tesla Model 3";
+    if (u >= 18000) return "≈ 一辆五菱宏光 MINI";
+    if (u >= 7500) return "≈ 一台 Mac Studio M5";
+    if (u >= 3500) return "≈ 一台 MacBook Pro M5 满配";
+    if (u >= 2000) return "≈ 一台 MacBook Pro M5";
+    if (u >= 1200) return "≈ 一台 iPhone 17 Pro";
+    if (u >= 900) return "≈ 一台 MacBook Air";
+    if (u >= 600) return "≈ 一台 iPad Pro";
+    if (u >= 400) return "≈ 一台 PS5";
     if (u >= 200) return "≈ 一双 Air Jordan";
     if (u >= 80) return "≈ 一双 Crocs + 配饰";
     if (u >= 30) return "≈ 一顿海底捞";
@@ -328,8 +341,9 @@ export async function GET(
                   <div
                     style={{
                       display: "flex",
-                      fontSize: 28,
-                      color: "#a39dc0",
+                      fontSize: 30,
+                      color: "#dcd3ff",
+                      fontWeight: 500,
                       letterSpacing: 0.5,
                     }}
                   >
@@ -508,12 +522,17 @@ export async function GET(
               display: "flex",
               alignItems: "flex-end",
               justifyContent: "space-between",
-              gap: 30,
+              gap: 24,
             }}
           >
             <Stat label="TOKENS" value={formatTokensShort(agg.totals.totalTokens)} />
             <Stat label="会话" value={String(agg.totals.records)} />
             <Stat label="编程时长" value={`${codingHours.toFixed(0)}h`} />
+            <Stat
+              label="缓存命中"
+              value={cacheHitDenom === 0 ? "—" : `${cacheHitRate.toFixed(0)}%`}
+              accent={cacheHitRate >= 80 ? "#88FFAB" : undefined}
+            />
           </div>
           {trendBars.length >= 2 && (
             <div
@@ -603,13 +622,21 @@ export async function GET(
   );
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
+function Stat({
+  label,
+  value,
+  accent,
+}: {
+  label: string;
+  value: string;
+  accent?: string;
+}) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
       <div
         style={{
           display: "flex",
-          fontSize: 22,
+          fontSize: 20,
           color: "#9D8DFF",
           textTransform: "uppercase",
           letterSpacing: 3,
@@ -620,10 +647,10 @@ function Stat({ label, value }: { label: string; value: string }) {
       <div
         style={{
           display: "flex",
-          fontSize: 60,
+          fontSize: 52,
           fontWeight: 700,
           lineHeight: 1,
-          color: "white",
+          color: accent ?? "white",
         }}
       >
         {value}
