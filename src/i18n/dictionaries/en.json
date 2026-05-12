@@ -391,7 +391,12 @@
     "welcomeSubtitle": "Set up the subscriptions you pay for — we'll show whether your usage paid them back.",
     "welcomeBannerTitle": "Welcome — set up your subscriptions",
     "welcomeBannerBody": "Check the plans you actually pay for. If none, just hit save — you can come back later. The recovery panel on the dashboard needs this to compute ROI.",
-    "welcomeSave": "Save and continue"
+    "welcomeSave": "Save and continue",
+    "filterByVendor": "Vendor",
+    "filterAll": "All",
+    "sectionTeam": "Team / Business / Enterprise",
+    "sectionSolo": "Solo",
+    "paygNote": "PAYG · est. monthly"
   },
   "activity": {
     "label": "Coding time",
@@ -405,5 +410,13 @@
     "colDuration": "Duration",
     "colTokens": "Tokens",
     "colRate": "Burn rate"
+  },
+  "agentUpdate": {
+    "update": "Agent update available",
+    "bodyLine1": "{current} → {latest}",
+    "bodyLine2": "Paste this in your terminal to upgrade. Your config is preserved.",
+    "copyButton": "Copy command",
+    "copied": "Copied!",
+    "later": "Later"
   }
 }

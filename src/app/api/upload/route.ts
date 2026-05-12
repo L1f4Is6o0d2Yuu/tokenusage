@@ -5,7 +5,7 @@ import fs from "node:fs/promises";
 import crypto from "node:crypto";
 import { spawn } from "node:child_process";
 import { Readable } from "node:stream";
-import { authenticateApiToken } from "@/lib/auth";
+import { authenticateApiToken, recordAgentVersion } from "@/lib/auth";
 import { openServerDb } from "@/lib/server-db";
 import { markUploaded } from "@/lib/sync-state";
 import { parseHermesFromPath } from "@/lib/adapters/hermes";
@@ -133,6 +133,9 @@ export async function POST(req: NextRequest): Promise<Response> {
   if (!auth.toLowerCase().startsWith("bearer ")) return err(401, "missing bearer token");
   const user = authenticateApiToken(auth.slice(7).trim());
   if (!user) return err(401, "invalid token");
+
+  const reportedVersion = req.headers.get("x-agent-version");
+  if (reportedVersion) recordAgentVersion(user.id, reportedVersion);
 
   const lengthHeader = req.headers.get("content-length");
   if (lengthHeader && Number(lengthHeader) > MAX_BYTES) {

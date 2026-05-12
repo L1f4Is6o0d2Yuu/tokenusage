@@ -18,7 +18,7 @@
 
 set -uo pipefail
 
-VERSION="0.18.0"
+VERSION="0.18.1"
 CONFIG_DIR="$HOME/.tokenusage"
 CONFIG_FILE="$CONFIG_DIR/config.env"
 STATE_FILE="$CONFIG_DIR/state"
@@ -218,7 +218,7 @@ cmd_sync() {
   # shellcheck disable=SC1090
   . "$CONFIG_FILE"
   curl -fsS -X POST "$SERVER/api/sync-now" \
-    -H "Authorization: Bearer $TOKEN" \
+    -H "Authorization: Bearer $TOKEN" -H "X-Agent-Version: $VERSION" \
     -o /dev/null && printf '✓ sync requested\n'
 }
 
@@ -237,7 +237,7 @@ cmd_report() {
   local PERIOD="${1:-today}"
   local PAYLOAD
   PAYLOAD=$(curl -fsS "$SERVER/api/export?period=$PERIOD&format=json" \
-    -H "Authorization: Bearer $TOKEN" 2>/dev/null) || {
+    -H "Authorization: Bearer $TOKEN" -H "X-Agent-Version: $VERSION" 2>/dev/null) || {
     err "report request failed (check server / token)"; exit 1;
   }
   if command -v jq >/dev/null 2>&1; then
@@ -343,7 +343,7 @@ upload() {
 
   if curl -fsS --max-time 600 \
     -X POST "$SERVER/api/upload" \
-    -H "Authorization: Bearer $TOKEN" \
+    -H "Authorization: Bearer $TOKEN" -H "X-Agent-Version: $VERSION" \
     -H "Content-Type: application/gzip" \
     --data-binary "@$TMP/payload.tar.gz" \
     -o /dev/null; then
@@ -380,7 +380,8 @@ cmd_loop() {
   while true; do
     RESP=$(curl -fsS --max-time 360 \
       "$SERVER/api/sync-wait" \
-      -H "Authorization: Bearer $TOKEN" 2>/dev/null || echo '')
+      -H "Authorization: Bearer $TOKEN" \
+      -H "X-Agent-Version: $VERSION" 2>/dev/null || echo '')
 
     NEW_INTERVAL=$(printf '%s' "$RESP" | sed -nE 's/.*"intervalSeconds":([0-9]+).*/\1/p')
     [ -n "$NEW_INTERVAL" ] && INTERVAL_SECONDS=$NEW_INTERVAL
