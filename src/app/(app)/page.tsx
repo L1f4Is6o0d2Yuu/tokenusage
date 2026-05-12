@@ -1,9 +1,10 @@
 import { redirect } from "next/navigation";
 import { loadRecords, countServerRecords } from "@/lib/adapters";
 import { type CustomRange, type Period } from "@/lib/types";
-import { requireUser } from "@/lib/auth-guard";
+import { readCurrentUser } from "@/lib/auth";
 import { getUserSyncState, getLatestAgentSeenAt } from "@/lib/sync-state";
-import { isMultiUserMode } from "@/lib/server-db";
+import { isFirstRun, isMultiUserMode } from "@/lib/server-db";
+import { Landing } from "@/components/landing";
 import { readActivePrices } from "@/lib/pricing";
 import {
   listUserSubscriptions,
@@ -47,7 +48,22 @@ export default async function Page({
   const initialCustomRange =
     initialPeriod === "custom" ? parseCustomRange(from, to) : undefined;
 
-  const currentUser = await requireUser();
+  // In multi-user mode, non-signed-in visitors get the marketing
+  // landing page (not /login). This is the conversion funnel from
+  // shared posters — strangers should see what tokenusage is.
+  // Single-user mode skips the landing entirely (no signup story).
+  const currentUser = await readCurrentUser();
+  if (isMultiUserMode() && currentUser == null) {
+    // Bootstrap step: server has zero users yet → send to /signup so
+    // the first admin can set up. Otherwise show the landing.
+    if (isFirstRun()) redirect("/signup");
+    return <Landing inviteRequired={true} />;
+  }
+  if (!isMultiUserMode() && currentUser == null) {
+    // Single-user mode with no auth — fall through to the dashboard
+    // as before. (requireUser used to return null in this case.)
+  }
+
   // Empty-state guard: in multi-user mode, a user with zero sessions
   // hasn't gotten the agent talking to the server yet. Sending them
   // to an empty dashboard reads as "the product is broken" — divert to
