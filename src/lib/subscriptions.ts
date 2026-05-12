@@ -49,6 +49,19 @@ export type PlanDef = {
   // ambiguity gets resolved by listing the most specific plan first
   // in the catalog and short-circuiting on first match.
   models: RegExp[];
+  // Best-effort message caps per rolling window, in *messages*
+  // (matching how Anthropic / OpenAI talk about their limits in
+  // public communications). Cap values are not authoritative —
+  // providers tune them quarterly — but they're stable enough to
+  // give the user a "you're at 60% of the 5h ceiling" hint.
+  // Plans whose limits are credit-based (MiMo) or PAYG (DeepSeek
+  // official) leave this undefined.
+  caps?: {
+    per5h?: number;
+    per24h?: number;
+    per7d?: number;
+    per30d?: number;
+  };
 };
 
 export const PLAN_CATALOG: PlanDef[] = [
@@ -58,6 +71,7 @@ export const PLAN_CATALOG: PlanDef[] = [
     name: "Claude Team (per seat)",
     monthlyUsd: 30,
     models: [/^claude-/i, /opus/i, /sonnet/i, /haiku/i],
+    caps: { per5h: 45 },
   },
   {
     id: "claude-max-20x",
@@ -65,6 +79,7 @@ export const PLAN_CATALOG: PlanDef[] = [
     name: "Claude Max (20×)",
     monthlyUsd: 200,
     models: [/^claude-/i, /opus/i, /sonnet/i, /haiku/i],
+    caps: { per5h: 900, per7d: 5000 },
   },
   {
     id: "claude-max-5x",
@@ -72,6 +87,7 @@ export const PLAN_CATALOG: PlanDef[] = [
     name: "Claude Max (5×)",
     monthlyUsd: 100,
     models: [/^claude-/i, /opus/i, /sonnet/i, /haiku/i],
+    caps: { per5h: 225, per7d: 1250 },
   },
   {
     id: "claude-pro",
@@ -79,6 +95,7 @@ export const PLAN_CATALOG: PlanDef[] = [
     name: "Claude Pro",
     monthlyUsd: 20,
     models: [/^claude-/i, /opus/i, /sonnet/i, /haiku/i],
+    caps: { per5h: 45, per7d: 250 },
   },
   {
     id: "chatgpt-team",
@@ -86,6 +103,7 @@ export const PLAN_CATALOG: PlanDef[] = [
     name: "ChatGPT Team (per seat)",
     monthlyUsd: 30,
     models: [/^gpt-/i, /^o\d/i, /chat-latest/i],
+    caps: { per5h: 200 },
   },
   {
     id: "chatgpt-pro",
@@ -93,6 +111,7 @@ export const PLAN_CATALOG: PlanDef[] = [
     name: "ChatGPT Pro",
     monthlyUsd: 200,
     models: [/^gpt-/i, /^o\d/i, /chat-latest/i],
+    caps: { per5h: 5000 },
   },
   {
     id: "chatgpt-go",
@@ -100,6 +119,7 @@ export const PLAN_CATALOG: PlanDef[] = [
     name: "ChatGPT Go",
     monthlyUsd: 8,
     models: [/^gpt-/i, /^o\d/i, /chat-latest/i],
+    caps: { per5h: 20 },
   },
   {
     id: "chatgpt-plus",
@@ -107,6 +127,7 @@ export const PLAN_CATALOG: PlanDef[] = [
     name: "ChatGPT Plus",
     monthlyUsd: 20,
     models: [/^gpt-/i, /^o\d/i, /chat-latest/i],
+    caps: { per5h: 130 },
   },
   {
     id: "codex-pro",
@@ -114,6 +135,7 @@ export const PLAN_CATALOG: PlanDef[] = [
     name: "Codex Pro",
     monthlyUsd: 100,
     models: [/^gpt-/i, /^o\d/i, /codex/i],
+    caps: { per5h: 750 },
   },
   {
     id: "codex-plus",
@@ -121,6 +143,7 @@ export const PLAN_CATALOG: PlanDef[] = [
     name: "Codex Plus",
     monthlyUsd: 20,
     models: [/^gpt-/i, /^o\d/i, /codex/i],
+    caps: { per5h: 150 },
   },
   {
     id: "codex-go",
@@ -128,6 +151,7 @@ export const PLAN_CATALOG: PlanDef[] = [
     name: "Codex Go",
     monthlyUsd: 8,
     models: [/^gpt-/i, /^o\d/i, /codex/i],
+    caps: { per5h: 30 },
   },
   {
     id: "cursor-ultra",
@@ -135,6 +159,7 @@ export const PLAN_CATALOG: PlanDef[] = [
     name: "Cursor Ultra",
     monthlyUsd: 200,
     models: [/^claude-/i, /^gpt-/i, /sonnet/i, /opus/i],
+    caps: { per30d: 5000 },
   },
   {
     id: "cursor-team",
@@ -142,6 +167,7 @@ export const PLAN_CATALOG: PlanDef[] = [
     name: "Cursor Team (per seat)",
     monthlyUsd: 40,
     models: [/^claude-/i, /^gpt-/i, /sonnet/i, /opus/i],
+    caps: { per30d: 500 },
   },
   {
     id: "cursor-pro",
@@ -149,6 +175,7 @@ export const PLAN_CATALOG: PlanDef[] = [
     name: "Cursor Pro",
     monthlyUsd: 20,
     models: [/^claude-/i, /^gpt-/i, /sonnet/i, /opus/i],
+    caps: { per30d: 500 },
   },
   {
     id: "github-copilot-enterprise",
@@ -156,6 +183,7 @@ export const PLAN_CATALOG: PlanDef[] = [
     name: "Copilot Enterprise (per seat)",
     monthlyUsd: 39,
     models: [/^gpt-/i, /^claude-/i, /sonnet/i],
+    caps: { per30d: 1000 },
   },
   {
     id: "github-copilot-business",
@@ -163,6 +191,7 @@ export const PLAN_CATALOG: PlanDef[] = [
     name: "Copilot Business (per seat)",
     monthlyUsd: 19,
     models: [/^gpt-/i, /^claude-/i, /sonnet/i],
+    caps: { per30d: 300 },
   },
   {
     id: "github-copilot-pro",
@@ -170,6 +199,7 @@ export const PLAN_CATALOG: PlanDef[] = [
     name: "Copilot Pro",
     monthlyUsd: 10,
     models: [/^gpt-/i, /^claude-/i, /sonnet/i],
+    caps: { per30d: 300 },
   },
   {
     id: "deepseek-pro",

@@ -9,6 +9,15 @@ export type PlanLite = {
   vendor: string;
   name: string;
   monthlyUsd: number;
+  // Forwarded from PlanDef.caps. Lives on PlanLite so the client
+  // doesn't have to re-import the catalog. All four windows are
+  // optional — most plans only publish a 5h or 30d figure.
+  caps?: {
+    per5h?: number;
+    per24h?: number;
+    per7d?: number;
+    per30d?: number;
+  };
 };
 
 export type RoiResult = {

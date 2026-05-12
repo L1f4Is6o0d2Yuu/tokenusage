@@ -387,7 +387,11 @@ export function DashboardClient({
           className="tu-rise mt-6"
           style={{ animationDelay: "190ms" }}
         >
-          <LimitWindowsPanel windows={limitWindows} t={t.limits} />
+          <LimitWindowsPanel
+            windows={limitWindows}
+            plans={activePlans}
+            t={t.limits}
+          />
         </section>
 
         <section className="tu-rise mt-6" style={{ animationDelay: "200ms" }}>
@@ -815,11 +819,33 @@ function LiveSessionsPanel({
 // pretending to know the exact cap (we don't — and it changes).
 function LimitWindowsPanel({
   windows,
+  plans,
   t,
 }: {
   windows: Record<string, LimitWindow>;
+  plans: PlanLite[];
   t: Dictionary["limits"];
 }) {
+  // Sum published caps across the user's active plans. Crude but
+  // useful — a Claude Pro + Codex Plus user gets 45 + 150 = 195 / 5h
+  // even though the buckets are actually provider-scoped, because
+  // they'd never burn one bucket without first burning the other.
+  const capPerWindow = (
+    key: "per5h" | "per24h" | "per7d" | "per30d"
+  ): number | null => {
+    const sum = plans.reduce(
+      (acc, p) => acc + (p.caps?.[key] ?? 0),
+      0
+    );
+    return sum > 0 ? sum : null;
+  };
+  const capKey: Record<string, "per5h" | "per24h" | "per7d" | "per30d"> = {
+    "5h": "per5h",
+    "24h": "per24h",
+    "7d": "per7d",
+    "30d": "per30d",
+  };
+
   return (
     <Card className="panel-hover">
       <CardHeader>
@@ -831,6 +857,22 @@ function LimitWindowsPanel({
           const w = windows[spec.id];
           if (!w) return null;
           const label = (t.windowLabels as Record<string, string>)[spec.labelKey];
+          const cap = capPerWindow(capKey[spec.id]);
+          const usedMsgs = Math.round(w.messages);
+          const pct = cap ? Math.min(999, Math.round((usedMsgs / cap) * 100)) : null;
+          // Color the bar by zone: green < 60, accent 60-85, warning
+          // 85-100, danger above 100. Past 100 the bar caps visually
+          // but the percentage label tells the truth.
+          const barColor =
+            pct == null
+              ? "bg-fg-faint/40"
+              : pct >= 100
+                ? "bg-danger"
+                : pct >= 85
+                  ? "bg-warning"
+                  : pct >= 60
+                    ? "bg-accent"
+                    : "bg-success";
           return (
             <div
               key={spec.id}
@@ -844,10 +886,26 @@ function LimitWindowsPanel({
               </div>
               <div className="mt-1 flex items-center justify-between text-xs text-fg-muted tabular-nums">
                 <span>
-                  {Math.round(w.messages)} {t.msgsSuffix}
+                  {usedMsgs} {t.msgsSuffix}
+                  {cap != null && (
+                    <span className="text-fg-faint"> / {cap}</span>
+                  )}
                 </span>
                 <span>{formatUsd(w.costUsd, { precise: true })}</span>
               </div>
+              {cap != null && (
+                <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-bg-panel-2">
+                  <div
+                    className={`h-full rounded-full transition-[width] duration-500 ease-out ${barColor}`}
+                    style={{ width: `${Math.min(pct ?? 0, 100)}%` }}
+                  />
+                </div>
+              )}
+              {cap != null && pct != null && (
+                <div className="mt-1 text-right text-[10px] tabular-nums text-fg-muted">
+                  {pct}%
+                </div>
+              )}
             </div>
           );
         })}
