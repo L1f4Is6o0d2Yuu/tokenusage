@@ -136,6 +136,7 @@ export function ShareButton({
     "idle"
   );
   const [posterData, setPosterData] = useState<SharePosterData | null>(null);
+  const [sharedUrl, setSharedUrl] = useState<string | null>(null);
   const posterRef = useRef<HTMLDivElement | null>(null);
 
   async function handleSave() {
@@ -169,27 +170,49 @@ export function ShareButton({
       await new Promise((r) => requestAnimationFrame(r));
       await new Promise((r) => requestAnimationFrame(r));
 
-      const { toPng } = await import("html-to-image");
+      const { toBlob } = await import("html-to-image");
       if (!posterRef.current) throw new Error("poster node missing");
-      const dataUrl = await toPng(posterRef.current, {
+      const blob = await toBlob(posterRef.current, {
         width: 1080,
         height: 1920,
         pixelRatio: 1,
         cacheBust: false,
-        // Block external image fetches — we have none, this keeps the
-        // capture pipeline synchronous-ish.
         skipFonts: false,
       });
+      if (!blob) throw new Error("blob conversion failed");
 
-      const a = document.createElement("a");
-      a.href = dataUrl;
-      a.download = `tokenusage-${period}-${Date.now()}.png`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
+      // Upload to the server so the share is reachable via a public
+      // URL. The PNG sits at /data/shares/<slug>.png; the page at
+      // /s/<slug> carries OG meta so WeChat / X / 微博 inline-preview.
+      const form = new FormData();
+      form.append("png", blob, `tokenusage-${period}.png`);
+      form.append("period", period);
+      form.append("apiValueUsd", String(data.apiValue.toFixed(2)));
+      if (data.multiplier) form.append("multiplier", data.multiplier);
+      if (data.tokenTaunt || data.hoursTaunt) {
+        form.append("taunt", data.tokenTaunt ?? data.hoursTaunt ?? "");
+      }
+
+      const resp = await fetch("/api/share/save", {
+        method: "POST",
+        body: form,
+      });
+      if (!resp.ok) throw new Error(`upload failed (${resp.status})`);
+      const json: { slug: string; url: string } = await resp.json();
+      const shareUrl = `${window.location.origin}${json.url}`;
+
+      // Copy the public URL — that's the shareable artifact.
+      try {
+        await navigator.clipboard.writeText(shareUrl);
+      } catch {
+        // clipboard might fail (permissions); shareUrl is still
+        // returned via setSharedUrl below so the user can copy
+        // manually from the inline display.
+      }
+      setSharedUrl(shareUrl);
 
       setStatus("done");
-      setTimeout(() => setStatus("idle"), 1800);
+      setTimeout(() => setStatus("idle"), 5000);
     } catch (e) {
       console.error("[share] render failed", e);
       setStatus("error");
@@ -212,20 +235,33 @@ export function ShareButton({
 
   return (
     <>
-      <button
-        type="button"
-        onClick={handleSave}
-        disabled={status === "loading"}
-        title={labels.share}
-        className="inline-flex items-center gap-1.5 rounded-md border border-border-subtle bg-bg-panel px-3 py-1.5 text-xs font-medium text-fg-default transition-colors hover:border-accent hover:text-accent disabled:cursor-not-allowed disabled:opacity-70"
-      >
-        <Icon
-          className={`h-3.5 w-3.5 ${status === "loading" ? "animate-spin" : ""}`}
-          strokeWidth={2}
-          aria-hidden
-        />
-        {status === "done" ? labels.copied : labels.share}
-      </button>
+      <div className="inline-flex flex-col items-end gap-1">
+        <button
+          type="button"
+          onClick={handleSave}
+          disabled={status === "loading"}
+          title={labels.share}
+          className="inline-flex items-center gap-1.5 rounded-md border border-border-subtle bg-bg-panel px-3 py-1.5 text-xs font-medium text-fg-default transition-colors hover:border-accent hover:text-accent disabled:cursor-not-allowed disabled:opacity-70"
+        >
+          <Icon
+            className={`h-3.5 w-3.5 ${status === "loading" ? "animate-spin" : ""}`}
+            strokeWidth={2}
+            aria-hidden
+          />
+          {status === "done" ? labels.copied : labels.share}
+        </button>
+        {status === "done" && sharedUrl && (
+          <a
+            href={sharedUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="font-mono text-[10px] text-fg-muted underline-offset-2 hover:underline"
+            title={sharedUrl}
+          >
+            {sharedUrl.replace(/^https?:\/\//, "")}
+          </a>
+        )}
+      </div>
 
       {posterData && (
         <div

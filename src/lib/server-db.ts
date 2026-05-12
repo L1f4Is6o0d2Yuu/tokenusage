@@ -205,6 +205,26 @@ function migrate(db: Database.Database): void {
   if (!hasColumn(db, "users", "agent_version")) {
     db.exec(`ALTER TABLE users ADD COLUMN agent_version TEXT`);
   }
+
+  // v0.20: saved shares — when a user clicks "Save as share link",
+  // we render the poster client-side, POST the PNG, store it on
+  // disk at /data/shares/<slug>.png, and serve it forever (until
+  // the owner revokes). Each row is one published poster.
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS shares (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      slug TEXT NOT NULL UNIQUE,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      period TEXT NOT NULL,
+      api_value_usd REAL,
+      multiplier TEXT,
+      taunt TEXT,
+      created_at INTEGER NOT NULL,
+      revoked_at INTEGER
+    );
+    CREATE INDEX IF NOT EXISTS idx_shares_user
+      ON shares(user_id, created_at DESC);
+  `);
 }
 
 export function openServerDb(): Database.Database {
