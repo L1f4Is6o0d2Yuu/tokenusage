@@ -386,6 +386,11 @@
     "columnPlan": "Plan",
     "columnVendor": "Vendor",
     "columnPrice": "Monthly",
-    "columnActive": "Active"
+    "columnActive": "Active",
+    "welcomeTitle": "Pick your arsenal",
+    "welcomeSubtitle": "Set up the subscriptions you pay for — we'll show whether your usage paid them back.",
+    "welcomeBannerTitle": "Welcome — set up your subscriptions",
+    "welcomeBannerBody": "Check the plans you actually pay for. If none, just hit save — you can come back later. The recovery panel on the dashboard needs this to compute ROI.",
+    "welcomeSave": "Save and continue"
   }
 }

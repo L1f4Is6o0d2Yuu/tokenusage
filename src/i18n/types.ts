@@ -423,5 +423,10 @@ export type Dictionary = {
     columnVendor: string;
     columnPrice: string;
     columnActive: string;
+    welcomeTitle: string;
+    welcomeSubtitle: string;
+    welcomeBannerTitle: string;
+    welcomeBannerBody: string;
+    welcomeSave: string;
   };
 };

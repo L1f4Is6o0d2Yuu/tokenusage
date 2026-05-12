@@ -5,7 +5,11 @@ import { requireUser } from "@/lib/auth-guard";
 import { getUserSyncState, getLatestAgentSeenAt } from "@/lib/sync-state";
 import { isMultiUserMode } from "@/lib/server-db";
 import { readActivePrices } from "@/lib/pricing";
-import { listUserSubscriptions, PLAN_CATALOG } from "@/lib/subscriptions";
+import {
+  listUserSubscriptions,
+  hasFinishedSubscriptionsSetup,
+  PLAN_CATALOG,
+} from "@/lib/subscriptions";
 import { getDictionary, readLocale } from "@/i18n";
 import { DashboardClient } from "./dashboard-client";
 
@@ -55,6 +59,17 @@ export default async function Page({
     countServerRecords(currentUser.id) === 0
   ) {
     redirect("/install");
+  }
+  // Data has arrived, but the user has never been through the arsenal
+  // picker yet. Force them through it once so the ROI panel actually
+  // means something on their first proper visit. The picker stamps a
+  // setup-at timestamp on submit (even empty), so we don't loop.
+  if (
+    isMultiUserMode() &&
+    currentUser != null &&
+    !hasFinishedSubscriptionsSetup(currentUser.id)
+  ) {
+    redirect("/subscriptions?welcome=1");
   }
   const locale = await readLocale();
   const t = await getDictionary(locale);

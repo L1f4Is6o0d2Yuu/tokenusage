@@ -386,6 +386,11 @@
     "columnPlan": "Plan",
     "columnVendor": "Vendor",
     "columnPrice": "Monthly",
-    "columnActive": "Active"
+    "columnActive": "Active",
+    "welcomeTitle": "あなたの武器庫を選択",
+    "welcomeSubtitle": "実際に支払っているサブスクを選択 — ROI を計算します。",
+    "welcomeBannerTitle": "ようこそ — まずサブスクの設定を",
+    "welcomeBannerBody": "実際に支払っているプランをチェックしてください。何もなければそのまま保存を。",
+    "welcomeSave": "保存して続ける"
   }
 }

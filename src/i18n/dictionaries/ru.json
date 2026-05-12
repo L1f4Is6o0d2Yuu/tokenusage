@@ -386,6 +386,11 @@
     "columnPlan": "Plan",
     "columnVendor": "Vendor",
     "columnPrice": "Monthly",
-    "columnActive": "Active"
+    "columnActive": "Active",
+    "welcomeTitle": "Выберите ваш арсенал",
+    "welcomeSubtitle": "Настройте оплачиваемые подписки — посчитаем ROI.",
+    "welcomeBannerTitle": "Добро пожаловать — сначала настройте подписки",
+    "welcomeBannerBody": "Отметьте оплачиваемые планы. Если нет — просто сохраните.",
+    "welcomeSave": "Сохранить и продолжить"
   }
 }

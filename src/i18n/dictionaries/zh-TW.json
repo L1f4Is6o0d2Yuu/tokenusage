@@ -386,6 +386,11 @@
     "columnPlan": "套餐",
     "columnVendor": "厂商",
     "columnPrice": "月费",
-    "columnActive": "在用"
+    "columnActive": "在用",
+    "welcomeTitle": "選擇你的武器庫",
+    "welcomeSubtitle": "勾選你實際付費的套餐，我們幫你算用量回本沒。",
+    "welcomeBannerTitle": "歡迎 —— 先把訂閱設一下",
+    "welcomeBannerBody": "勾選你實際付費的套餐。沒有就直接儲存，之後可以隨時回來改。",
+    "welcomeSave": "儲存並繼續"
   }
 }

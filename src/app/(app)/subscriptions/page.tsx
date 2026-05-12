@@ -18,7 +18,7 @@ import {
 export default async function SubscriptionsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ saved?: string }>;
+  searchParams: Promise<{ saved?: string; welcome?: string }>;
 }) {
   const user = await requireUser();
   if (!user) redirect("/login");
@@ -26,7 +26,8 @@ export default async function SubscriptionsPage({
   const locale = await readLocale();
   const dict = await getDictionary(locale);
   const t = dict.subs;
-  const { saved } = await searchParams;
+  const { saved, welcome } = await searchParams;
+  const isWelcome = welcome === "1";
 
   const active = new Set(listUserSubscriptions(user.id));
 
@@ -35,13 +36,21 @@ export default async function SubscriptionsPage({
       <header className="sticky top-0 z-10 flex items-center border-b border-border-subtle bg-bg-app/85 px-6 py-3 backdrop-blur">
         <div>
           <h1 className="text-base font-medium tracking-tight text-fg-strong">
-            {t.pageTitle}
+            {isWelcome ? t.welcomeTitle : t.pageTitle}
           </h1>
-          <p className="truncate text-[12px] text-fg-muted">{t.pageDescription}</p>
+          <p className="truncate text-[12px] text-fg-muted">
+            {isWelcome ? t.welcomeSubtitle : t.pageDescription}
+          </p>
         </div>
       </header>
 
       <div className="flex-1 px-6 py-5">
+        {isWelcome && (
+          <div className="mb-4 rounded-md border border-accent/30 bg-accent/5 px-4 py-3 text-sm">
+            <p className="font-medium text-fg-strong">{t.welcomeBannerTitle}</p>
+            <p className="mt-1 text-fg-muted">{t.welcomeBannerBody}</p>
+          </div>
+        )}
         <Card>
           <CardHeader>
             <CardTitle>{t.title}</CardTitle>
@@ -49,6 +58,7 @@ export default async function SubscriptionsPage({
           </CardHeader>
           <CardContent>
             <form action={saveSubscriptionsAction} className="space-y-4">
+              {isWelcome && <input type="hidden" name="welcome" value="1" />}
               <div className="overflow-hidden rounded-md border border-border-subtle">
                 <table className="w-full text-sm">
                   <thead className="bg-bg-panel-2 text-[11px] uppercase tracking-wider text-fg-muted">
@@ -102,7 +112,9 @@ export default async function SubscriptionsPage({
                 ) : (
                   <span />
                 )}
-                <SubmitButton pendingText={t.saving}>{t.save}</SubmitButton>
+                <SubmitButton pendingText={t.saving}>
+                  {isWelcome ? t.welcomeSave : t.save}
+                </SubmitButton>
               </div>
             </form>
           </CardContent>
