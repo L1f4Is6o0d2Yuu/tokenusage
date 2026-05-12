@@ -392,5 +392,18 @@
     "welcomeBannerTitle": "欢迎 —— 先把订阅设一下",
     "welcomeBannerBody": "勾选你实际付费的套餐。一个都没有就直接保存，以后随时回来改。仪表盘的回本面板需要这个信息。",
     "welcomeSave": "保存并继续"
+  },
+  "activity": {
+    "label": "实际编程时长",
+    "hoursSuffix": " 小时"
+  },
+  "live": {
+    "title": "正在跑的 Session",
+    "description": "活跃中 / 最近 5 分钟有动作，按 burn-rate 排。",
+    "colSource": "来源",
+    "colModel": "模型",
+    "colDuration": "时长",
+    "colTokens": "Tokens",
+    "colRate": "烧率"
   }
 }

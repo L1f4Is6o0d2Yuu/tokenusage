@@ -94,6 +94,19 @@ export type Dictionary = {
     yTokens: string;
     yCost: string;
   };
+  activity: {
+    label: string;
+    hoursSuffix: string;
+  };
+  live: {
+    title: string;
+    description: string;
+    colSource: string;
+    colModel: string;
+    colDuration: string;
+    colTokens: string;
+    colRate: string;
+  };
   topModels: {
     title: string;
     description: string;
