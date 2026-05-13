@@ -275,6 +275,15 @@
   background-color: rgba(255, 255, 255, 0.78);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
+  padding: 8px;
+}
+/* Card-content padding bumped to Wise's breathy spacing.xl. The card
+   wrapper has 8px and card-header/content have their own inner padding;
+   total ends up at ~24-28px feel — closer to Wise's magazine breathing. */
+[data-skin="wise"] [data-slot="card-header"],
+[data-skin="wise"] [data-slot="card-content"] {
+  padding-inline: 18px;
+  padding-block: 14px;
 }
 /* Strip the Linear-style left accent strip that the Card component
    prepends via ::before. Wise reads cleaner without it. */
@@ -304,6 +313,19 @@
 [data-skin="wise"] [role="tab"],
 [data-skin="wise"] nav button {
   border-radius: 999px;
+}
+/* Active period tab — Wise pattern is ink-dark bg + lime text, not the
+   muted-gray default. The button's existing `bg-foreground` Tailwind
+   class resolves to --fg-default which we've kept dark; here we paint
+   it ink + lime specifically to match Wise's CTA pill. */
+[data-skin="wise"] button[class*="bg-foreground"] {
+  background-color: #0e0f0c !important;
+  color: #9fe870 !important;
+}
+/* Action buttons that use --accent (lime green) stay lime on ink text. */
+[data-skin="wise"] button[class*="bg-accent"] {
+  background-color: #9fe870 !important;
+  color: #0e0f0c !important;
 }
 /* Sidebar nav active row gets a softer pill background. */
 [data-skin="wise"] [data-active="true"] {
