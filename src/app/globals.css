@@ -221,9 +221,13 @@
 [data-skin="wise"] [data-slot="card-title"].text-3xl,
 [data-skin="wise"] [data-slot="card-title"] .text-3xl,
 [data-skin="wise"] .text-3xl[class*="font-semibold"] {
-  font-size: 44px;
-  line-height: 1;
-  letter-spacing: -0.035em;
+  /* 44px was too aggressive — "7.89M / 5.44M"-style KPI titles
+     wrapped to two lines on the input/output card and the cache-hit
+     card's sub-row got crushed. 32px keeps the magazine-bold feel
+     while staying inside the cards' natural width. */
+  font-size: 32px;
+  line-height: 1.05;
+  letter-spacing: -0.025em;
 }
 /* Section headlines (每日走势 / 热门模型 / 速率窗口 / etc.) read as
    Wise's display-xs scale (24px / 600). The default CardTitle base
@@ -248,14 +252,14 @@
 [data-skin="wise"] th {
   font-variant-numeric: tabular-nums;
 }
-/* Caption / eyebrow rows ("近 7 天花费" / "TOKENS" / "命中") get the Wise
-   small-caps treatment — uppercase, letterspacing wide, mute color. */
+/* CardDescription is sometimes a short eyebrow ("近 7 天花费") but
+   often a full sentence ("tokens（左轴）/ USD 成本（右轴）— 近 7 天").
+   The earlier uppercase + wide-letterspacing rule mangled the
+   sentence cases — drop it. Keep the muted color and slight bump
+   in weight so descriptions still read as label, not body. */
 [data-skin="wise"] [data-slot="card-description"] {
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
   color: var(--fg-muted);
+  font-weight: 500;
 }
 /* Cards, panels, and shadcn primitives all float a few pixels above the
    sage canvas. The shadow is tinted with ink so it reads as "lifted
