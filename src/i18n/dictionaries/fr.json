@@ -15,6 +15,11 @@
     "dark": "Sombre",
     "system": "Système"
   },
+  "skin": {
+    "label": "Habillage",
+    "linear": "Linear",
+    "wise": "Wise"
+  },
   "period": {
     "today": "Aujourd'hui",
     "24h": "Dernières 24 h",

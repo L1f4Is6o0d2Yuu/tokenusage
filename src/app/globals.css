@@ -113,6 +113,57 @@
   --chart-6: oklch(0.68 0.2 320);
 }
 
+/* ─── Wise skin ─────────────────────────────────────────────────────────────
+ * Drop-in alternative palette. Wins over both light and dark Linear because
+ * it sits later in the cascade — declarations under [data-skin="wise"] are
+ * applied last, so any inherited .dark vars get overwritten back to the Wise
+ * (light-only) values. Token sourcing: VoltAgent/awesome-design-md/wise.
+ * ───────────────────────────────────────────────────────────────────────── */
+[data-skin="wise"],
+.dark[data-skin="wise"] {
+  /* Wise is a single-mode (light) skin; force the canvas back to sage
+     regardless of whether the dark class is present. */
+  --bg-app: #e8ebe6;          /* canvas-soft */
+  --bg-sidebar: #ffffff;       /* canvas */
+  --bg-panel: #ffffff;
+  --bg-panel-2: #f4f6f2;       /* canvas-soft, slightly cooler */
+  --bg-input: #ffffff;
+
+  --fg-default: #454745;       /* body */
+  --fg-strong: #0e0f0c;        /* ink */
+  --fg-muted: #868685;         /* mute */
+  --fg-faint: #b6b8b4;
+
+  --border-subtle: rgba(14, 15, 12, 0.08);
+  --border-strong: rgba(14, 15, 12, 0.18);
+
+  /* Brand pairing: lime-green CTA pill with near-black text — Wise's
+     signature pattern. The dashboard's primary buttons + sidebar active
+     state will pick this up automatically through the alias chain. */
+  --accent: #9fe870;            /* primary */
+  --accent-fg: #0e0f0c;         /* on-primary */
+  --accent-soft: rgba(159, 232, 112, 0.20);
+  --accent-ring: rgba(159, 232, 112, 0.6);
+
+  --success: #2ead4b;           /* positive */
+  --warning: #b86700;           /* warning-deep */
+  --danger: #d03238;            /* negative */
+
+  /* Chart palette — Wise's accent family (lime / orange / cyan / yellow /
+     red) with the positive deep-green as primary. Reads less "Grafana
+     saturated", more magazine. */
+  --chart-1: #2ead4b;           /* positive */
+  --chart-2: #9fe870;           /* primary lime */
+  --chart-3: #ffc091;           /* accent-orange */
+  --chart-4: #38c8ff;           /* accent-cyan */
+  --chart-5: #ffd11a;           /* warning */
+  --chart-6: #d03238;           /* negative */
+
+  /* Wise prefers larger radii — 12px on cards, 24px on buttons / pills.
+     The base radius drives shadcn's Card / Button etc. */
+  --radius: 0.75rem;            /* 12px */
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);

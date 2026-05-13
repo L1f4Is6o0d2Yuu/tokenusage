@@ -4,6 +4,7 @@ import { readCurrentUser, recordUserIp, readAgentVersion } from "@/lib/auth";
 import { isMultiUserMode } from "@/lib/server-db";
 import { getDictionary, readLocale } from "@/i18n";
 import { isTheme, THEME_COOKIE, type Theme } from "@/lib/theme";
+import { isSkin, SKIN_COOKIE, type Skin } from "@/lib/skin";
 
 // Backfill window: if a user's last_ip stamp is older than this (or
 // missing), the next dashboard render captures their request IP again.
@@ -28,6 +29,8 @@ export default async function AppLayout({
   const c = await cookies();
   const themeRaw = c.get(THEME_COOKIE)?.value;
   const theme: Theme = isTheme(themeRaw) ? themeRaw : "system";
+  const skinRaw = c.get(SKIN_COOKIE)?.value;
+  const skin: Skin = isSkin(skinRaw) ? skinRaw : "linear";
 
   const user = isMultiUserMode() ? await readCurrentUser() : null;
 
@@ -61,6 +64,7 @@ export default async function AppLayout({
         user={user ? { username: user.username, isAdmin: user.isAdmin } : null}
         agentVersion={user ? readAgentVersion(user.id) : null}
         theme={theme}
+        skin={skin}
         locale={locale}
         t={t}
       />

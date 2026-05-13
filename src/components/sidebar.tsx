@@ -11,6 +11,8 @@ import {
 } from "lucide-react";
 import { logoutAction } from "@/app/auth-actions";
 import { ThemeSwitcher } from "@/components/theme-switcher";
+import { SkinSwitcher } from "@/components/skin-switcher";
+import type { Skin } from "@/lib/skin";
 import { LocaleSwitcher } from "@/components/locale-switcher";
 import { SidebarNavLink } from "@/components/sidebar-nav-link";
 import { Logomark, Wordmark } from "@/components/logomark";
@@ -32,12 +34,14 @@ export function Sidebar({
   user,
   agentVersion,
   theme,
+  skin,
   locale,
   t,
 }: {
   user: SidebarUser;
   agentVersion: string | null;
   theme: Theme;
+  skin: Skin;
   locale: Locale;
   t: Dictionary;
 }) {
@@ -141,6 +145,7 @@ export function Sidebar({
           </div>
         )}
         <div className="flex flex-col gap-1.5 px-2">
+          <SkinSwitcher active={skin} labels={t.skin} />
           <ThemeSwitcher active={theme} labels={t.theme} />
           <LocaleSwitcher active={locale} label={t.language.label} />
         </div>

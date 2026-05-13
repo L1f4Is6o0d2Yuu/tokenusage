@@ -15,6 +15,11 @@
     "dark": "ダーク",
     "system": "システム"
   },
+  "skin": {
+    "label": "スキン",
+    "linear": "Linear",
+    "wise": "Wise"
+  },
   "period": {
     "today": "今日",
     "24h": "過去 24 時間",

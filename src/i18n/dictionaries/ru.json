@@ -15,6 +15,11 @@
     "dark": "Тёмная",
     "system": "Системная"
   },
+  "skin": {
+    "label": "Скин",
+    "linear": "Linear",
+    "wise": "Wise"
+  },
   "period": {
     "today": "Сегодня",
     "24h": "Последние 24 ч",

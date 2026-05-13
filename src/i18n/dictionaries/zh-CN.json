@@ -15,6 +15,11 @@
     "dark": "深色",
     "system": "跟随系统"
   },
+  "skin": {
+    "label": "皮肤",
+    "linear": "Linear",
+    "wise": "Wise"
+  },
   "period": {
     "today": "今天",
     "24h": "近 24 小时",

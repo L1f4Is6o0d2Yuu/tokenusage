@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import "./globals.css";
 import { getDictionary, readLocale } from "@/i18n";
 import { isTheme, THEME_COOKIE, type Theme } from "@/lib/theme";
+import { isSkin, SKIN_COOKIE, type Skin } from "@/lib/skin";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -28,6 +29,9 @@ const NO_FLASH_SCRIPT = `(function(){try{
   var t = m ? decodeURIComponent(m[1]) : 'system';
   var dark = t === 'dark' || (t === 'system' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
   if (dark) document.documentElement.classList.add('dark');
+  var ms = document.cookie.match(/tokenusage-skin=([^;]+)/);
+  var s = ms ? decodeURIComponent(ms[1]) : 'linear';
+  if (s === 'wise') document.documentElement.setAttribute('data-skin', 'wise');
 }catch(e){}})();`;
 
 export default async function RootLayout({
@@ -39,6 +43,8 @@ export default async function RootLayout({
   const c = await cookies();
   const themeRaw = c.get(THEME_COOKIE)?.value;
   const theme: Theme = isTheme(themeRaw) ? themeRaw : "system";
+  const skinRaw = c.get(SKIN_COOKIE)?.value;
+  const skin: Skin = isSkin(skinRaw) ? skinRaw : "linear";
   // Server-side: only "dark" gets the class on initial HTML. "system" is
   // resolved by the inline script using prefers-color-scheme; "light" is
   // the default unstyled state.
@@ -47,6 +53,7 @@ export default async function RootLayout({
   return (
     <html
       lang={locale}
+      data-skin={skin}
       className={`${initialClass} ${geistSans.variable} ${geistMono.variable} h-full antialiased`.trim()}
     >
       <head>

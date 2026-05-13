@@ -49,6 +49,11 @@ export type Dictionary = {
     dark: string;
     system: string;
   };
+  skin: {
+    label: string;
+    linear: string;
+    wise: string;
+  };
   period: {
     today: string;
     "24h": string;
