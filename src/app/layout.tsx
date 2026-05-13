@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono, Inter } from "next/font/google";
 import { cookies } from "next/headers";
 import "./globals.css";
 import { getDictionary, readLocale } from "@/i18n";
@@ -14,6 +14,15 @@ const geistSans = Geist({
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+});
+
+// Inter is Wise's canonical open-source substitute for Wise Sans
+// (per docs/WISE-DESIGN.md). Loaded for the Wise skin's display
+// typography — weight 900 on hero / KPI numbers, 600 on sub-display.
+const inter = Inter({
+  variable: "--font-inter",
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800", "900"],
 });
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -54,7 +63,7 @@ export default async function RootLayout({
     <html
       lang={locale}
       data-skin={skin}
-      className={`${initialClass} ${geistSans.variable} ${geistMono.variable} h-full antialiased`.trim()}
+      className={`${initialClass} ${geistSans.variable} ${geistMono.variable} ${inter.variable} h-full antialiased`.trim()}
     >
       <head>
         <script dangerouslySetInnerHTML={{ __html: NO_FLASH_SCRIPT }} />

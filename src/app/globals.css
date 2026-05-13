@@ -177,17 +177,61 @@
 }
 
 /* Wise component overrides — chrome details that don't live in a single
-   CSS variable. Scoped to [data-skin="wise"] so Linear is unaffected. */
+   CSS variable. Scoped to [data-skin="wise"] so Linear is unaffected.
+   Typography ladder distilled from docs/WISE-DESIGN.md:
+     display-md  : 40px / 900 / lh 34px / ls 0
+     display-sm  : 32px / 600 / lh 38.4 / ls -0.96px
+     display-xs  : 24px / 600 / lh 31.2 / ls -0.48px
+     body-lg     : 20px / 400 / lh 30
+     body-md     : 16px / 400 / lh 24
+     body-sm     : 14px / 400 / lh 20
+     button-md   : 16px / 600 / lh 24
+   Substituted with Inter (Wise's open-source pairing for Wise Sans). */
 [data-skin="wise"] {
-  /* Display headings get weight 900 — Wise's magazine-bold voice. */
+  font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, "Segoe UI",
+    system-ui, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  /* Inter ships contextual alternates that Wise turns on. */
+  font-feature-settings: "calt" 1, "ss01" 1, "cv11" 1;
 }
-[data-skin="wise"] h1,
+[data-skin="wise"] h1 {
+  font-weight: 900;
+  letter-spacing: -0.04em;
+  line-height: 0.92;
+}
 [data-skin="wise"] h2 {
   font-weight: 900;
-  letter-spacing: -0.025em;
+  letter-spacing: -0.03em;
+  line-height: 0.95;
 }
 [data-skin="wise"] h3 {
   font-weight: 700;
+  letter-spacing: -0.015em;
+}
+/* The dashboard's KPI cards render their numbers via shadcn's CardTitle.
+   Inflate to Wise's display-md (40px / 900) with tabular-nums + tight
+   tracking so $1482.8777 reads as a hero, not as a section label. */
+[data-skin="wise"] [data-slot="card-title"] {
+  font-family: var(--font-inter), Inter, sans-serif;
+  font-weight: 900;
+  letter-spacing: -0.025em;
+  font-feature-settings: "tnum" 1, "calt" 1;
+}
+/* Anywhere we render large numbers (KPI cards, the trend Y-axis values,
+   the breakdown table totals), force tabular numerals so columns align. */
+[data-skin="wise"] .tabular-nums,
+[data-skin="wise"] [data-slot="card-title"],
+[data-skin="wise"] td,
+[data-skin="wise"] th {
+  font-variant-numeric: tabular-nums;
+}
+/* Caption / eyebrow rows ("近 7 天花费" / "TOKENS" / "命中") get the Wise
+   small-caps treatment — uppercase, letterspacing wide, mute color. */
+[data-skin="wise"] [data-slot="card-description"] {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--fg-muted);
 }
 /* Cards, panels, and shadcn primitives all float a few pixels above the
    sage canvas. The shadow is tinted with ink so it reads as "lifted
