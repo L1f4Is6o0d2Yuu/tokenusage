@@ -229,13 +229,17 @@
   line-height: 1.05;
   letter-spacing: -0.025em;
 }
-/* Section headlines (每日走势 / 热门模型 / 速率窗口 / etc.) read as
-   Wise's display-xs scale (24px / 600). The default CardTitle base
-   was around 18px which felt under-weighted. */
-[data-skin="wise"] [data-slot="card-title"]:not(.text-3xl):not([class*="text-3xl"]) {
-  font-size: 22px;
-  line-height: 1.15;
+/* The earlier "bump every non-KPI CardTitle to 22px" rule broke
+   /models (every model card has a CardTitle for the model name)
+   and /subscriptions (each plan card has a CardTitle for the plan
+   name). Section headers on the dashboard live inside an explicit
+   CardHeader with a text-lg / text-xl utility, so target those
+   precisely instead of the catch-all selector. */
+[data-skin="wise"] [data-slot="card-title"].text-lg,
+[data-skin="wise"] [data-slot="card-title"].text-xl,
+[data-skin="wise"] [data-slot="card-title"].text-2xl {
   font-weight: 800;
+  letter-spacing: -0.015em;
 }
 /* Top-of-page H1 ("tokenusage" page heading) — display-xl scale. */
 [data-skin="wise"] h1.text-xl,
