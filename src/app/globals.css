@@ -294,11 +294,16 @@
   font-weight: 900;
   letter-spacing: -0.015em;
 }
-/* Buttons / sub-links: pill shape. The radius var change above covers
-   most of this; this block is for elements that hard-code rounded-md. */
+/* Buttons / sub-links: pill shape. Wise's signature CTA pill is
+   ~24px rounded — much rounder than Linear's 6-8px. */
 [data-skin="wise"] button,
 [data-skin="wise"] [class*="rounded-md"] {
-  border-radius: 12px;
+  border-radius: 14px;
+}
+/* Period tabs / nav-style buttons that are smaller still get pill. */
+[data-skin="wise"] [role="tab"],
+[data-skin="wise"] nav button {
+  border-radius: 999px;
 }
 /* Sidebar nav active row gets a softer pill background. */
 [data-skin="wise"] [data-active="true"] {
@@ -308,7 +313,23 @@
 [data-skin="wise"] input,
 [data-skin="wise"] select,
 [data-skin="wise"] textarea {
-  border-radius: 10px;
+  border-radius: 12px;
+}
+/* Dashboard header H1 ("tokenusage") was text-base (16px) — fine for
+   the Linear-compact look, way too small for Wise. Bump to display-sm
+   scale (28px / 900) so the page heading carries weight. */
+[data-skin="wise"] header h1.text-base {
+  font-size: 28px;
+  font-weight: 900;
+  letter-spacing: -0.025em;
+  line-height: 1;
+}
+/* Header tagline ("汇总你接入的 AI 工具...") gets matching breathing
+   room (15px / 400). */
+[data-skin="wise"] header h1.text-base + p {
+  font-size: 15px;
+  line-height: 1.5;
+  margin-top: 4px;
 }
 
 @theme inline {
