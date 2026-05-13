@@ -455,7 +455,16 @@
     "tokensLabel": "Token",
     "hoursLabel": "编程时长",
     "perDay": "/ 天",
-    "exceeds": "超过 {pct}%"
+    "exceeds": "超过 {pct}%",
+    "tiers": {
+      "buddhist": "佛系",
+      "normal": "正常",
+      "heavy": "重度",
+      "grindPrep": "卷王预备",
+      "grind": "卷王",
+      "topGrind": "顶流卷王",
+      "blackHole": "黑洞级"
+    }
   },
   "share": {
     "share": "分享",

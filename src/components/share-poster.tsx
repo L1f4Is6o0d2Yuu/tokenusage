@@ -15,7 +15,7 @@ import {
   pickTokenTaunt,
   tokenComparison,
 } from "@/lib/encouragement";
-import { spendPercentile, tierLabel } from "@/lib/percentile";
+import { spendPercentile, tierLabel, TIER_LABEL_ZH } from "@/lib/percentile";
 
 export type SharePosterData = {
   username: string;
@@ -268,7 +268,7 @@ export function computeSharePosterData(args: {
       // Below p25 the chip is more shame than flex — skip it so the
       // poster doesn't sell light users short.
       if (pct < 25) return undefined;
-      return `已超 ${pct.toFixed(0)}% 开发者 · ${tier.label}`;
+      return `已超 ${pct.toFixed(0)}% 开发者 · ${TIER_LABEL_ZH[tier.key]}`;
     })(),
     percentileTier: (() => {
       const spendPerDay = agg.totals.costUsd / Math.max(1, days);

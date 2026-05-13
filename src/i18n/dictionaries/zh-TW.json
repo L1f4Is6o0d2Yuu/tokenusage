@@ -455,7 +455,16 @@
     "tokensLabel": "Token",
     "hoursLabel": "編程時長",
     "perDay": "/ 天",
-    "exceeds": "超過 {pct}%"
+    "exceeds": "超過 {pct}%",
+    "tiers": {
+      "buddhist": "佛系",
+      "normal": "正常",
+      "heavy": "重度",
+      "grindPrep": "捲王預備",
+      "grind": "捲王",
+      "topGrind": "頂流捲王",
+      "blackHole": "黑洞級"
+    }
   },
   "share": {
     "share": "分享",

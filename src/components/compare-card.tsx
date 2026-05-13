@@ -39,6 +39,7 @@ export function CompareCard({
   const hoursPct = hoursPercentile(hoursPerDay);
   const tier = tierLabel(spendPct);
   const ref = spendReference();
+  const tierName = t.tiers[tier.key];
 
   return (
     <Card className="panel-hover">
@@ -46,7 +47,7 @@ export function CompareCard({
         <div className="space-y-1">
           <CardTitle className="flex items-center gap-2">
             {t.title}
-            <span className={tierChipClass(tier.color)}>{tier.label}</span>
+            <span className={tierChipClass(tier.color)}>{tierName}</span>
           </CardTitle>
           <CardDescription>{t.description}</CardDescription>
         </div>

@@ -79,21 +79,46 @@ export function hoursPercentile(hoursPerDay: number): number {
   return interpolate(hoursPerDay, HOURS_PER_DAY);
 }
 
-// Pick a one-word tier label based on the *primary* percentile signal
-// (spend). The dashboard's CompareCard uses this to color-code its
-// chip; the share poster uses it too.
+// Tier key that maps to the i18n compare.tiers.<key> slot. Use
+// tierLabel() to get a (key + color) pair; the UI layer reads the
+// localized string from the dictionary. SharePoster keeps a CN
+// fallback baked in since the poster corpus is CN-only anyway.
+export type TierKey =
+  | "buddhist"
+  | "normal"
+  | "heavy"
+  | "grindPrep"
+  | "grind"
+  | "topGrind"
+  | "blackHole";
+
+export type TierColor = "mute" | "ok" | "warn" | "danger";
+
 export function tierLabel(pct: number): {
-  label: string;
-  color: "mute" | "ok" | "warn" | "danger";
+  key: TierKey;
+  color: TierColor;
 } {
-  if (pct < 25) return { label: "佛系", color: "mute" };
-  if (pct < 50) return { label: "正常", color: "mute" };
-  if (pct < 75) return { label: "重度", color: "ok" };
-  if (pct < 90) return { label: "卷王预备", color: "warn" };
-  if (pct < 95) return { label: "卷王", color: "warn" };
-  if (pct < 99) return { label: "顶流卷王", color: "danger" };
-  return { label: "黑洞级", color: "danger" };
+  if (pct < 25) return { key: "buddhist", color: "mute" };
+  if (pct < 50) return { key: "normal", color: "mute" };
+  if (pct < 75) return { key: "heavy", color: "ok" };
+  if (pct < 90) return { key: "grindPrep", color: "warn" };
+  if (pct < 95) return { key: "grind", color: "warn" };
+  if (pct < 99) return { key: "topGrind", color: "danger" };
+  return { key: "blackHole", color: "danger" };
 }
+
+// CN fallback for callers that don't have an i18n dictionary handy
+// (e.g., the share poster, which is CN-targeted regardless of the
+// user's UI locale). Mirrors the dictionary's compare.tiers block.
+export const TIER_LABEL_ZH: Record<TierKey, string> = {
+  buddhist: "佛系",
+  normal: "正常",
+  heavy: "重度",
+  grindPrep: "卷王预备",
+  grind: "卷王",
+  topGrind: "顶流卷王",
+  blackHole: "黑洞级",
+};
 
 // Reference points exposed for the UI to show under the bar
 // ("p50 $8/天 · p90 $100/天 · p99 $800/天").

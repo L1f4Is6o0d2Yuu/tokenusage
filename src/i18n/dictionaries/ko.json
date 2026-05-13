@@ -455,7 +455,16 @@
     "tokensLabel": "토큰",
     "hoursLabel": "시간",
     "perDay": "/ 일",
-    "exceeds": "상위 {pct}%"
+    "exceeds": "상위 {pct}%",
+    "tiers": {
+      "buddhist": "라이트",
+      "normal": "보통",
+      "heavy": "헤비",
+      "grindPrep": "갈아넣기 예비",
+      "grind": "갈아넣기",
+      "topGrind": "탑티어",
+      "blackHole": "블랙홀급"
+    }
   },
   "share": {
     "share": "Share",

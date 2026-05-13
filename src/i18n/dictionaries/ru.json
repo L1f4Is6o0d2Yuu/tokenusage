@@ -455,7 +455,16 @@
     "tokensLabel": "Токены",
     "hoursLabel": "Часы",
     "perDay": "/ день",
-    "exceeds": "Топ {pct}%"
+    "exceeds": "Топ {pct}%",
+    "tiers": {
+      "buddhist": "лёгкий",
+      "normal": "обычный",
+      "heavy": "тяжёлый",
+      "grindPrep": "пред-задрот",
+      "grind": "задрот",
+      "topGrind": "топ-задрот",
+      "blackHole": "чёрная дыра"
+    }
   },
   "share": {
     "share": "Share",

@@ -455,7 +455,16 @@
     "tokensLabel": "Tokens",
     "hoursLabel": "Hours",
     "perDay": "/ day",
-    "exceeds": "Top {pct}%"
+    "exceeds": "Top {pct}%",
+    "tiers": {
+      "buddhist": "casual",
+      "normal": "normal",
+      "heavy": "heavy",
+      "grindPrep": "grinder",
+      "grind": "hardcore",
+      "topGrind": "top tier",
+      "blackHole": "black hole"
+    }
   },
   "share": {
     "share": "Share",

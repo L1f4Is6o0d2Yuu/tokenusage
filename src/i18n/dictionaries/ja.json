@@ -455,7 +455,16 @@
     "tokensLabel": "トークン",
     "hoursLabel": "時間",
     "perDay": "/ 日",
-    "exceeds": "上位 {pct}%"
+    "exceeds": "上位 {pct}%",
+    "tiers": {
+      "buddhist": "ライト",
+      "normal": "標準",
+      "heavy": "ヘビー",
+      "grindPrep": "ガチ予備",
+      "grind": "ガチ勢",
+      "topGrind": "頂点ガチ勢",
+      "blackHole": "ブラックホール級"
+    }
   },
   "share": {
     "share": "Share",

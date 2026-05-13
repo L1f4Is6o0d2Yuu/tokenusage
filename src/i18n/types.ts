@@ -151,6 +151,15 @@ export type Dictionary = {
     hoursLabel: string;
     perDay: string; // "/ 天" / "/ day"
     exceeds: string; // "超过 {pct}%" / "Top {invPct}%"
+    tiers: {
+      buddhist: string;   // 佛系 / casual
+      normal: string;     // 正常 / normal
+      heavy: string;      // 重度 / heavy
+      grindPrep: string;  // 卷王预备 / grinder
+      grind: string;      // 卷王 / hardcore
+      topGrind: string;   // 顶流卷王 / top tier
+      blackHole: string;  // 黑洞级 / black hole
+    };
   };
   share: {
     share: string;

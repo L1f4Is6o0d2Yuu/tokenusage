@@ -118,6 +118,12 @@
  * it sits later in the cascade — declarations under [data-skin="wise"] are
  * applied last, so any inherited .dark vars get overwritten back to the Wise
  * (light-only) values. Token sourcing: VoltAgent/awesome-design-md/wise.
+ *
+ * Wise's visual signatures (beyond color):
+ *   - 24px rounded everywhere (cards, panels, buttons, pills)
+ *   - Display headings at weight 900 — magazine-bold
+ *   - Generous whitespace, subtle "floating" shadow on cards
+ *   - No sharp corners anywhere in the chrome
  * ───────────────────────────────────────────────────────────────────────── */
 [data-skin="wise"],
 .dark[data-skin="wise"] {
@@ -134,8 +140,8 @@
   --fg-muted: #868685;         /* mute */
   --fg-faint: #b6b8b4;
 
-  --border-subtle: rgba(14, 15, 12, 0.08);
-  --border-strong: rgba(14, 15, 12, 0.18);
+  --border-subtle: rgba(14, 15, 12, 0.06);
+  --border-strong: rgba(14, 15, 12, 0.16);
 
   /* Brand pairing: lime-green CTA pill with near-black text — Wise's
      signature pattern. The dashboard's primary buttons + sidebar active
@@ -159,9 +165,59 @@
   --chart-5: #ffd11a;           /* warning */
   --chart-6: #d03238;           /* negative */
 
-  /* Wise prefers larger radii — 12px on cards, 24px on buttons / pills.
-     The base radius drives shadcn's Card / Button etc. */
-  --radius: 0.75rem;            /* 12px */
+  /* Wise's signature pill-rounded chrome. Override every radius
+     bucket Tailwind generates utilities for so `rounded-md` /
+     `rounded-lg` / `rounded-xl` etc. all get bumped at once. */
+  --radius: 1rem;               /* 16px base */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 18px;
+  --radius-xl: 24px;
+  --radius-2xl: 32px;
+}
+
+/* Wise component overrides — chrome details that don't live in a single
+   CSS variable. Scoped to [data-skin="wise"] so Linear is unaffected. */
+[data-skin="wise"] {
+  /* Display headings get weight 900 — Wise's magazine-bold voice. */
+}
+[data-skin="wise"] h1,
+[data-skin="wise"] h2 {
+  font-weight: 900;
+  letter-spacing: -0.025em;
+}
+[data-skin="wise"] h3 {
+  font-weight: 700;
+}
+/* Cards, panels, and shadcn primitives all float a few pixels above the
+   sage canvas. The shadow is soft and tinted with ink so it reads as
+   "lifted paper", not "drop-shadow". */
+[data-skin="wise"] [data-slot="card"],
+[data-skin="wise"] .panel {
+  box-shadow: 0 1px 0 rgba(14, 15, 12, 0.02), 0 12px 32px -24px rgba(14, 15, 12, 0.18);
+  border-radius: 24px;
+  border-color: transparent;
+}
+/* The hero KPI numbers and big stat values pull weight 900 too. */
+[data-skin="wise"] [data-slot="card-title"] {
+  font-weight: 900;
+  letter-spacing: -0.015em;
+}
+/* Buttons / sub-links: pill shape. The radius var change above covers
+   most of this; this block is for elements that hard-code rounded-md. */
+[data-skin="wise"] button,
+[data-skin="wise"] [class*="rounded-md"] {
+  border-radius: 12px;
+}
+/* Sidebar nav active row gets a softer pill background. */
+[data-skin="wise"] [data-active="true"] {
+  border-radius: 14px;
+}
+/* Inputs / selects pick up a slightly larger radius to match the chrome. */
+[data-skin="wise"] input,
+[data-skin="wise"] select,
+[data-skin="wise"] textarea {
+  border-radius: 10px;
 }
 
 @theme inline {
