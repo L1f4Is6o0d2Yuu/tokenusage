@@ -24,6 +24,7 @@ export function ThemeSwitcher({
         {labels.label}
       </label>
       <select
+        key={active}
         id="theme-select"
         name="theme"
         defaultValue={active}

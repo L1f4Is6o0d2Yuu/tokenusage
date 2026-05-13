@@ -26,6 +26,7 @@ export function SkinSwitcher({
         {labels.label}
       </label>
       <select
+        key={active}
         id="skin-select"
         name="skin"
         defaultValue={active}
