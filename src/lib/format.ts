@@ -5,14 +5,18 @@ export function formatTokens(n: number): string {
   return String(n);
 }
 
-export function formatUsd(n: number, opts: { precise?: boolean } = {}): string {
+export function formatUsd(
+  n: number,
+  _opts: { precise?: boolean } = {}
+): string {
   // Sub-dollar amounts need more decimals or they round to nothing
-  // (a $0.0091 model price → "$0.01" hides the actual cost). Keep 4
-  // decimals there; tooltips with truly micro pricing can ask for
-  // 6 via `precise: true`.
-  if (n < 1) return `$${n.toFixed(opts.precise ? 6 : 4)}`;
-  // Everywhere else: always 2 decimals with thousands separator.
-  // "$1,587.51" reads cleaner than "$1587.5073" / "$1587.51".
+  // (a $0.0091 model price → "$0.01" hides the actual cost). 4 is
+  // the floor — enough for per-token pricing without going micro.
+  // The `precise` opt used to bump to 6; we no longer honor it
+  // because "$0.379280" reads worse than "$0.3793".
+  if (n < 1) return `$${n.toFixed(4)}`;
+  // Everywhere else: 2 decimals with thousands separator.
+  // "$1,587.51" reads cleaner than "$1587.5073".
   const fixed = n.toFixed(2);
   const [whole, frac] = fixed.split(".");
   return `$${Number(whole).toLocaleString("en-US")}.${frac}`;
