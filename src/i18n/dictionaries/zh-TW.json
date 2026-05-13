@@ -453,7 +453,9 @@
     "disclaimer": "行業估值參考",
     "spendLabel": "花費",
     "tokensLabel": "Token",
-    "hoursLabel": "編程時長"
+    "hoursLabel": "編程時長",
+    "perDay": "/ 天",
+    "exceeds": "超過 {pct}%"
   },
   "share": {
     "share": "分享",

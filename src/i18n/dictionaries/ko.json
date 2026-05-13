@@ -453,7 +453,9 @@
     "disclaimer": "업계 추정",
     "spendLabel": "비용",
     "tokensLabel": "토큰",
-    "hoursLabel": "시간"
+    "hoursLabel": "시간",
+    "perDay": "/ 일",
+    "exceeds": "상위 {pct}%"
   },
   "share": {
     "share": "Share",

@@ -58,20 +58,23 @@ export function CompareCard({
         <PercentileBar
           label={t.spendLabel}
           pct={spendPct}
-          valueLabel={`$${spendUsdPerDay.toFixed(2)} / 天`}
+          valueLabel={`$${spendUsdPerDay.toFixed(2)} ${t.perDay}`}
           referenceLabel={`p50 $${ref.p50} · p90 $${ref.p90} · p99 $${ref.p99}`}
+          exceedsTpl={t.exceeds}
         />
         <PercentileBar
           label={t.tokensLabel}
           pct={tokenPct}
-          valueLabel={`${formatTokens(tokensPerDay)} / 天`}
+          valueLabel={`${formatTokens(tokensPerDay)} ${t.perDay}`}
           referenceLabel="p50 5M · p90 300M · p99 3B"
+          exceedsTpl={t.exceeds}
         />
         <PercentileBar
           label={t.hoursLabel}
           pct={hoursPct}
-          valueLabel={`${hoursPerDay >= 10 ? hoursPerDay.toFixed(0) : hoursPerDay.toFixed(1)} h / 天`}
+          valueLabel={`${hoursPerDay >= 10 ? hoursPerDay.toFixed(0) : hoursPerDay.toFixed(1)} h ${t.perDay}`}
           referenceLabel="p50 2h · p90 7h · p99 15h"
+          exceedsTpl={t.exceeds}
         />
       </CardContent>
     </Card>
@@ -83,11 +86,13 @@ function PercentileBar({
   pct,
   valueLabel,
   referenceLabel,
+  exceedsTpl,
 }: {
   label: string;
   pct: number;
   valueLabel: string;
   referenceLabel: string;
+  exceedsTpl: string;
 }) {
   // Pct is 0-100. Clamp display + bar.
   const clamped = Math.max(0, Math.min(99.99, pct));
@@ -109,7 +114,7 @@ function PercentileBar({
         <span className="tabular-nums text-fg-default">{valueLabel}</span>
       </div>
       <div className="text-2xl font-semibold tabular-nums text-fg-strong">
-        超过 {clamped.toFixed(0)}%
+        {exceedsTpl.replace("{pct}", clamped.toFixed(0))}
       </div>
       <div className="relative h-2 w-full overflow-hidden rounded-full bg-bg-panel-2">
         {/* Reference tick marks at 25/50/75/90 */}

@@ -453,7 +453,9 @@
     "disclaimer": "stima",
     "spendLabel": "Spesa",
     "tokensLabel": "Token",
-    "hoursLabel": "Ore"
+    "hoursLabel": "Ore",
+    "perDay": "/ giorno",
+    "exceeds": "Top {pct}%"
   },
   "share": {
     "share": "Share",

@@ -453,7 +453,9 @@
     "disclaimer": "行业估值参考",
     "spendLabel": "花费",
     "tokensLabel": "Token",
-    "hoursLabel": "编程时长"
+    "hoursLabel": "编程时长",
+    "perDay": "/ 天",
+    "exceeds": "超过 {pct}%"
   },
   "share": {
     "share": "分享",

@@ -149,6 +149,8 @@ export type Dictionary = {
     spendLabel: string;
     tokensLabel: string;
     hoursLabel: string;
+    perDay: string; // "/ 天" / "/ day"
+    exceeds: string; // "超过 {pct}%" / "Top {invPct}%"
   };
   share: {
     share: string;

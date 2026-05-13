@@ -453,7 +453,9 @@
     "disclaimer": "оценка",
     "spendLabel": "Расход",
     "tokensLabel": "Токены",
-    "hoursLabel": "Часы"
+    "hoursLabel": "Часы",
+    "perDay": "/ день",
+    "exceeds": "Топ {pct}%"
   },
   "share": {
     "share": "Share",

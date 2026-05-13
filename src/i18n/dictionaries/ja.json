@@ -453,7 +453,9 @@
     "disclaimer": "業界推定値",
     "spendLabel": "支出",
     "tokensLabel": "トークン",
-    "hoursLabel": "時間"
+    "hoursLabel": "時間",
+    "perDay": "/ 日",
+    "exceeds": "上位 {pct}%"
   },
   "share": {
     "share": "Share",

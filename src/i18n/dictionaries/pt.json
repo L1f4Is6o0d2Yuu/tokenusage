@@ -453,7 +453,9 @@
     "disclaimer": "estimativa",
     "spendLabel": "Gasto",
     "tokensLabel": "Tokens",
-    "hoursLabel": "Horas"
+    "hoursLabel": "Horas",
+    "perDay": "/ dia",
+    "exceeds": "Top {pct}%"
   },
   "share": {
     "share": "Share",

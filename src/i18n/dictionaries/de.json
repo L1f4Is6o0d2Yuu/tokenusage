@@ -453,7 +453,9 @@
     "disclaimer": "Branchenschätzung",
     "spendLabel": "Ausgabe",
     "tokensLabel": "Tokens",
-    "hoursLabel": "Stunden"
+    "hoursLabel": "Stunden",
+    "perDay": "/ Tag",
+    "exceeds": "Top {pct}%"
   },
   "share": {
     "share": "Share",

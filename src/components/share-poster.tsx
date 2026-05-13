@@ -451,6 +451,24 @@ export function SharePoster({ data }: { data: SharePosterData }) {
           ${apiValue.toFixed(2)}
         </div>
 
+        {data.percentileLabel && (
+          <div
+            style={{
+              display: "flex",
+              alignSelf: "flex-start",
+              marginTop: 24,
+              padding: "8px 18px",
+              borderRadius: 999,
+              fontSize: 24,
+              fontWeight: 600,
+              letterSpacing: 0.5,
+              ...percentileChipStyle(data.percentileTier),
+            }}
+          >
+            {data.percentileLabel}
+          </div>
+        )}
+
         {hasSubs && (
           <div
             style={{
@@ -493,24 +511,6 @@ export function SharePoster({ data }: { data: SharePosterData }) {
                 </div>
               )}
             </div>
-
-            {data.percentileLabel && (
-              <div
-                style={{
-                  display: "flex",
-                  alignSelf: "flex-start",
-                  marginTop: 18,
-                  padding: "8px 18px",
-                  borderRadius: 999,
-                  fontSize: 24,
-                  fontWeight: 600,
-                  letterSpacing: 0.5,
-                  ...percentileChipStyle(data.percentileTier),
-                }}
-              >
-                {data.percentileLabel}
-              </div>
-            )}
 
             <div
               style={{
