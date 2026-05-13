@@ -29,7 +29,7 @@ const FONT_STACK =
 // line from the live corpus so anyone scrolling in 3 seconds sees
 // exactly what the product output looks like.
 const SAMPLE: SharePosterData = {
-  username: "你",
+  username: "yyz73",
   period: "7d",
   periodLabel: "近 7 天",
   verb: "本周 AI 替我打了",
@@ -100,15 +100,20 @@ export function Landing({
           to { opacity: 1; transform: translateY(0); }
         }
         .tu-fade-up { animation: tu-fade-up .6s cubic-bezier(.2,.8,.2,1) both; }
-        @keyframes tu-tilt {
-          0%, 100% { transform: rotate(2deg); }
-          50% { transform: rotate(-1deg); }
-        }
         .tu-poster-frame {
           transition: transform .4s cubic-bezier(.2,.8,.2,1);
           transform: rotate(2deg);
         }
         .tu-poster-frame:hover { transform: rotate(0deg) scale(1.02); }
+        /* Mobile: collapse the asymmetric grids to single column so
+           the poster lands under the headline instead of being
+           crushed. */
+        @media (max-width: 880px) {
+          .tu-hero, .tu-steps { grid-template-columns: 1fr !important; }
+          .tu-h1 { font-size: 64px !important; }
+          .tu-h2 { font-size: 44px !important; }
+          .tu-poster-frame { transform: rotate(0deg) !important; }
+        }
       `}</style>
       <NavBar />
       <Hero inviteRequired={inviteRequired} />
@@ -190,6 +195,7 @@ function NavBar() {
 function Hero({ inviteRequired }: { inviteRequired: boolean }) {
   return (
     <section
+      className="tu-hero"
       style={{
         maxWidth: 1200,
         margin: "0 auto",
@@ -205,16 +211,17 @@ function Hero({ inviteRequired }: { inviteRequired: boolean }) {
         style={{ display: "flex", flexDirection: "column", gap: 24 }}
       >
         <h1
+          className="tu-h1"
           style={{
-            fontSize: 88,
-            lineHeight: 0.95,
+            fontSize: 96,
+            lineHeight: 0.92,
             fontWeight: 900,
-            letterSpacing: -3,
+            letterSpacing: -4,
             margin: 0,
           }}
         >
-          你这周烧了<br />
-          <span style={{ color: W.positive }}>多少钱</span>，知道吗？
+          这周烧了<br />
+          <span style={{ color: W.positive }}>多少</span>钱？
         </h1>
 
         <p
@@ -226,9 +233,8 @@ function Hero({ inviteRequired }: { inviteRequired: boolean }) {
             maxWidth: 520,
           }}
         >
-          Claude Code、Codex、Cursor、Hermes、Windsurf
-          的 token 用量一锅端。告诉你套餐回本几倍，
-          顺手把你骂一遍。
+          Claude Code、Codex、Cursor、Hermes、Windsurf 的 token
+          用量一锅端，告诉你回本几倍，再骂你两句。
         </p>
 
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
@@ -243,24 +249,22 @@ function Hero({ inviteRequired }: { inviteRequired: boolean }) {
               padding: "16px 26px",
             }}
           >
-            {inviteRequired ? "用邀请码进来" : "开撸"}
+            {inviteRequired ? "我有邀请码" : "开撸"}
             <span className="tu-link-arrow" aria-hidden>→</span>
           </Link>
           <a
             href="#how"
-            className="tu-btn"
+            className="tu-btn tu-cta"
             style={{
               ...buttonBase,
               background: "transparent",
               color: W.ink,
               fontSize: 17,
               padding: "16px 12px",
-              textDecoration: "underline",
-              textDecorationThickness: 1,
-              textUnderlineOffset: 6,
             }}
           >
             先看长啥样
+            <span className="tu-link-arrow" aria-hidden>↓</span>
           </a>
         </div>
       </div>
@@ -323,6 +327,7 @@ function Steps() {
       }}
     >
       <div
+        className="tu-steps"
         style={{
           maxWidth: 1200,
           margin: "0 auto",
@@ -334,6 +339,7 @@ function Steps() {
       >
         <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
           <h2
+            className="tu-h2"
             style={{
               fontSize: 56,
               fontWeight: 900,
@@ -347,7 +353,7 @@ function Steps() {
             就开始。
           </h2>
           <p style={{ fontSize: 17, color: W.body, lineHeight: 1.6, margin: 0 }}>
-            没有 onboarding 引导，没有 30 天免费试用倒计时。注册、装、看。
+            没有引导教程，没有 30 天试用倒计时。注册、装、看。
           </p>
         </div>
 
@@ -391,7 +397,7 @@ function Steps() {
             </span>
           </Step>
           <Step n="3" title="开 dashboard">
-            agent 每 5 分钟扫一次本地记录上报。打开面板，按时段切。看够了点「分享」把战绩甩出去。
+            数据 5 分钟内到。看够了点「分享」，把战绩甩朋友圈。
           </Step>
         </ol>
       </div>
@@ -480,6 +486,7 @@ function CTABand({ inviteRequired }: { inviteRequired: boolean }) {
         }}
       >
         <h2
+          className="tu-h2"
           style={{
             fontSize: 64,
             fontWeight: 900,
@@ -502,8 +509,8 @@ function CTABand({ inviteRequired }: { inviteRequired: boolean }) {
           }}
         >
           {inviteRequired
-            ? "邀请制 — 朋友圈截图就能找到码。也可以去 GitHub 提个 issue。"
-            : "免费，不收 token，不要邮箱白嫖。"}
+            ? "邀请制。找熟人要个码，或者去 GitHub 提个 issue 蹭。"
+            : "免费。不收 token，不要邮箱。"}
         </p>
         <div
           style={{
