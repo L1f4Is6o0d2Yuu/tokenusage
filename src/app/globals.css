@@ -209,12 +209,36 @@
 }
 /* The dashboard's KPI cards render their numbers via shadcn's CardTitle.
    Inflate to Wise's display-md (40px / 900) with tabular-nums + tight
-   tracking so $1482.8777 reads as a hero, not as a section label. */
+   tracking so $1482.8777 reads as a hero, not as a section label.
+   Anywhere CardTitle is sized with text-3xl (the KPI pattern), bump
+   to 44px to match Wise's display-md. */
 [data-skin="wise"] [data-slot="card-title"] {
   font-family: var(--font-inter), Inter, sans-serif;
   font-weight: 900;
   letter-spacing: -0.025em;
   font-feature-settings: "tnum" 1, "calt" 1;
+}
+[data-skin="wise"] [data-slot="card-title"].text-3xl,
+[data-skin="wise"] [data-slot="card-title"] .text-3xl,
+[data-skin="wise"] .text-3xl[class*="font-semibold"] {
+  font-size: 44px;
+  line-height: 1;
+  letter-spacing: -0.035em;
+}
+/* Section headlines (每日走势 / 热门模型 / 速率窗口 / etc.) read as
+   Wise's display-xs scale (24px / 600). The default CardTitle base
+   was around 18px which felt under-weighted. */
+[data-skin="wise"] [data-slot="card-title"]:not(.text-3xl):not([class*="text-3xl"]) {
+  font-size: 22px;
+  line-height: 1.15;
+  font-weight: 800;
+}
+/* Top-of-page H1 ("tokenusage" page heading) — display-xl scale. */
+[data-skin="wise"] h1.text-xl,
+[data-skin="wise"] h1[class*="text-xl"] {
+  font-size: 36px;
+  letter-spacing: -0.03em;
+  font-weight: 900;
 }
 /* Anywhere we render large numbers (KPI cards, the trend Y-axis values,
    the breakdown table totals), force tabular numerals so columns align. */
