@@ -161,6 +161,15 @@ function percentileChipStyle(
   }
 }
 
+// Inline USD formatter (mirrors lib/format.ts but pinned to the
+// poster's audience — always shows the cent). Returns "$1,247.36".
+function fmtUsd(n: number): string {
+  const abs = Math.abs(n);
+  if (abs < 1) return `$${n.toFixed(4)}`;
+  const [whole, frac] = n.toFixed(2).split(".");
+  return `$${Number(whole).toLocaleString("en-US")}.${frac}`;
+}
+
 export function formatTokensShort(n: number): string {
   if (n >= 1_000_000_000) return `${(n / 1_000_000_000).toFixed(1)}B`;
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
@@ -448,7 +457,7 @@ export function SharePoster({ data }: { data: SharePosterData }) {
             color: heroColor,
           }}
         >
-          ${apiValue.toFixed(2)}
+          {fmtUsd(apiValue)}
         </div>
 
         {data.percentileLabel && (
@@ -529,10 +538,10 @@ export function SharePoster({ data }: { data: SharePosterData }) {
                 }}
               >
                 <div style={{ display: "flex", color: "#9D8DFF" }}>
-                  套餐 ${subFee.toFixed(2)}
+                  套餐 {fmtUsd(subFee)}
                 </div>
                 <div style={{ display: "flex", color: heroColor, fontWeight: 600 }}>
-                  {inProfit ? "省下" : "还差"} ${Math.abs(savings).toFixed(2)}
+                  {inProfit ? "省下" : "还差"} {fmtUsd(Math.abs(savings))}
                 </div>
               </div>
               <div

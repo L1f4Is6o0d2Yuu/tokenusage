@@ -14,8 +14,11 @@ import {
   tierLabel,
   spendReference,
 } from "@/lib/percentile";
+import { formatUsd } from "@/lib/format";
 import type { Dictionary } from "@/i18n/types";
 import type { Period } from "@/lib/types";
+
+const fmtUsd = formatUsd;
 
 // Three-axis "how do I rank" card. Compares the user's per-day spend,
 // token throughput, and coding hours against a vibes-based industry
@@ -59,7 +62,7 @@ export function CompareCard({
         <PercentileBar
           label={t.spendLabel}
           pct={spendPct}
-          valueLabel={`$${spendUsdPerDay.toFixed(2)} ${t.perDay}`}
+          valueLabel={`${fmtUsd(spendUsdPerDay)} ${t.perDay}`}
           referenceLabel={`p50 $${ref.p50} · p90 $${ref.p90} · p99 $${ref.p99}`}
           exceedsTpl={t.exceeds}
         />
