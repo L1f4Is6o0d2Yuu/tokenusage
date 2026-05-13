@@ -1,22 +1,17 @@
 // Public landing page for tokenusage.online — shown to non-signed-in
 // visitors at /. Authed users go straight to the dashboard.
 //
-// Design language pulled from Wise (docs/WISE-DESIGN.md):
-//   - lime-green primary #9fe870 with near-black #0e0f0c ink
-//   - sage canvas #e8ebe6 for hero/CTA bands, white for cards
-//   - heavy display sans (Inter weight 900) at 64-96px for hero
-//   - 24px rounded everywhere — buttons, cards, pills
-//   - 1200px max-width container, generous 48px section padding
+// Voice target: match the share-poster corpus (cynical, internet-CN,
+// 薅羊毛/卷王/班味-flavored), not generic SaaS feature-grid copy.
+// Visual: Wise palette but asymmetric — one real scaled SharePoster
+// instead of three abstract preview cards.
 
 import Link from "next/link";
+import { SharePoster, type SharePosterData } from "./share-poster";
 
-// Wise palette inlined so the landing is fully self-contained — it
-// doesn't share the dashboard's theme variables (the dashboard is
-// dark, the landing is light/sage by design choice).
 const W = {
   primary: "#9fe870",
   primaryPale: "#e2f6d5",
-  primaryActive: "#cdffad",
   ink: "#0e0f0c",
   inkDeep: "#163300",
   body: "#454745",
@@ -24,13 +19,52 @@ const W = {
   canvas: "#ffffff",
   canvasSoft: "#e8ebe6",
   positive: "#2ead4b",
-  negative: "#d03238",
-  accentOrange: "#ffc091",
-  accentCyan: "#38c8ff",
 };
 
 const FONT_STACK =
   '-apple-system, BlinkMacSystemFont, "Segoe UI", Inter, system-ui, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif';
+
+// One canned poster used as the centerpiece of the landing. Numbers
+// are believable (a real heavy week) and the taunt picks an actual
+// line from the live corpus so anyone scrolling in 3 seconds sees
+// exactly what the product output looks like.
+const SAMPLE: SharePosterData = {
+  username: "你",
+  period: "7d",
+  periodLabel: "近 7 天",
+  verb: "本周 AI 替我打了",
+  apiValue: 1247.36,
+  subFee: 28,
+  savings: 1219.36,
+  ratioPct: 4454,
+  hasSubs: true,
+  inProfit: true,
+  totalTokens: 1_843_500_000,
+  totalSessions: 187,
+  codingHours: 142,
+  hoursPerDay: 20.3,
+  days: 7,
+  topModels: [
+    { name: "claude-opus-4-7", pct: 94 },
+    { name: "gpt-5.5", pct: 5 },
+    { name: "deepseek-v4-pro", pct: 0.3 },
+  ],
+  tokenRef: "≈ 2,525 本《红楼梦》",
+  tokenTaunt: "1B+ — 「这 token 量值得一份 IPO 招股书」",
+  hoursTaunt: "20+h/天 — 「你不是程序员，你是 AGI」",
+  multiplier: "44× 套餐价",
+  compare: "≈ 一台 MacBook Pro M5 满配",
+  hoursOpinionLabel: "AGI 化身",
+  hoursOpinionAccent: {
+    fg: "#FF8A8A",
+    bg: "rgba(255, 95, 95, 0.18)",
+    border: "rgba(255, 95, 95, 0.6)",
+  },
+  heroColor: "#88FFAB",
+  deviceLabel: "macOS · Apple Silicon",
+  geoLabel: "上海",
+  savedAt: "2026-05-13",
+};
 
 export function Landing({
   inviteRequired,
@@ -46,35 +80,39 @@ export function Landing({
         fontFamily: FONT_STACK,
       }}
     >
-      {/* Inline styles for hover/transition effects — keeps the file
-          self-contained without touching globals.css. */}
       <style>{`
-        .tu-btn { transition: transform .14s ease, box-shadow .14s ease, background-color .14s ease; }
+        @font-face {
+          font-family: 'Noto Sans SC';
+          src: url('/fonts/NotoSansSC-500.woff') format('woff');
+          font-weight: 500;
+          font-style: normal;
+          font-display: swap;
+        }
+        .tu-btn { transition: transform .14s ease, box-shadow .14s ease; }
         .tu-btn:hover { transform: translateY(-1px); }
         .tu-btn-primary:hover { box-shadow: 0 8px 24px -10px rgba(159,232,112,0.7); }
         .tu-btn-dark:hover { box-shadow: 0 8px 24px -10px rgba(14,15,12,0.4); }
-        .tu-card { transition: transform .22s cubic-bezier(.2,.8,.2,1), box-shadow .22s ease; }
-        .tu-card:hover { transform: translateY(-3px); box-shadow: 0 16px 40px -22px rgba(14,15,12,0.18); }
-        .tu-link-arrow { transition: transform .18s ease; display: inline-block; }
         .tu-cta:hover .tu-link-arrow { transform: translateX(4px); }
-        .tu-step-num { transition: background-color .2s ease, color .2s ease; }
-        .tu-step-card:hover .tu-step-num { background-color: ${W.ink}; color: ${W.primary}; }
+        .tu-link-arrow { transition: transform .18s ease; display: inline-block; }
         html { scroll-behavior: smooth; }
         @keyframes tu-fade-up {
           from { opacity: 0; transform: translateY(8px); }
           to { opacity: 1; transform: translateY(0); }
         }
         .tu-fade-up { animation: tu-fade-up .6s cubic-bezier(.2,.8,.2,1) both; }
-        .tu-fade-up-d1 { animation-delay: .05s; }
-        .tu-fade-up-d2 { animation-delay: .12s; }
-        .tu-fade-up-d3 { animation-delay: .2s; }
+        @keyframes tu-tilt {
+          0%, 100% { transform: rotate(2deg); }
+          50% { transform: rotate(-1deg); }
+        }
+        .tu-poster-frame {
+          transition: transform .4s cubic-bezier(.2,.8,.2,1);
+          transform: rotate(2deg);
+        }
+        .tu-poster-frame:hover { transform: rotate(0deg) scale(1.02); }
       `}</style>
       <NavBar />
       <Hero inviteRequired={inviteRequired} />
-      <HowItWorks />
-      <Features />
-      <Showcase />
-      <InstallBand />
+      <Steps />
       <CTABand inviteRequired={inviteRequired} />
       <Footer />
     </div>
@@ -144,17 +182,6 @@ function NavBar() {
         >
           登录
         </Link>
-        <Link
-          href="/signup"
-          className="tu-btn tu-btn-primary"
-          style={{
-            ...buttonBase,
-            background: W.primary,
-            color: W.ink,
-          }}
-        >
-          注册
-        </Link>
       </nav>
     </header>
   );
@@ -166,534 +193,271 @@ function Hero({ inviteRequired }: { inviteRequired: boolean }) {
       style={{
         maxWidth: 1200,
         margin: "0 auto",
-        padding: "48px 32px 64px",
-        display: "flex",
-        flexDirection: "column",
-        gap: 32,
+        padding: "40px 32px 80px",
+        display: "grid",
+        gridTemplateColumns: "minmax(0, 1.2fr) minmax(0, 1fr)",
+        gap: 48,
+        alignItems: "center",
       }}
     >
+      <div
+        className="tu-fade-up"
+        style={{ display: "flex", flexDirection: "column", gap: 24 }}
+      >
+        <h1
+          style={{
+            fontSize: 88,
+            lineHeight: 0.95,
+            fontWeight: 900,
+            letterSpacing: -3,
+            margin: 0,
+          }}
+        >
+          你这周烧了<br />
+          <span style={{ color: W.positive }}>多少钱</span>，知道吗？
+        </h1>
+
+        <p
+          style={{
+            fontSize: 20,
+            lineHeight: 1.55,
+            color: W.body,
+            margin: 0,
+            maxWidth: 520,
+          }}
+        >
+          Claude Code、Codex、Cursor、Hermes、Windsurf
+          的 token 用量一锅端。告诉你套餐回本几倍，
+          顺手把你骂一遍。
+        </p>
+
+        <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+          <Link
+            href="/signup"
+            className="tu-btn tu-btn-primary tu-cta"
+            style={{
+              ...buttonBase,
+              background: W.primary,
+              color: W.ink,
+              fontSize: 17,
+              padding: "16px 26px",
+            }}
+          >
+            {inviteRequired ? "用邀请码进来" : "开撸"}
+            <span className="tu-link-arrow" aria-hidden>→</span>
+          </Link>
+          <a
+            href="#how"
+            className="tu-btn"
+            style={{
+              ...buttonBase,
+              background: "transparent",
+              color: W.ink,
+              fontSize: 17,
+              padding: "16px 12px",
+              textDecoration: "underline",
+              textDecorationThickness: 1,
+              textUnderlineOffset: 6,
+            }}
+          >
+            先看长啥样
+          </a>
+        </div>
+      </div>
+
+      {/* Real scaled SharePoster as the centerpiece — what you see is
+          literally what gets generated when you click "分享". */}
       <div
         style={{
           display: "flex",
-          gap: 14,
-          flexWrap: "wrap",
+          justifyContent: "center",
+          paddingTop: 24,
         }}
       >
-        <Pill bg={W.canvas} border>
-          <span style={{ color: W.positive }}>●</span> 实时聚合
-        </Pill>
-        <Pill bg={W.canvas} border>
-          Claude Code · Codex · Cursor · Hermes · Windsurf
-        </Pill>
+        <ScaledPoster />
       </div>
-
-      <h1
-        style={{
-          fontSize: 88,
-          lineHeight: 0.95,
-          fontWeight: 900,
-          letterSpacing: -3,
-          margin: 0,
-          maxWidth: 900,
-        }}
-      >
-        你的 AI <span style={{ color: W.positive }}>烧</span>了多少钱？
-      </h1>
-
-      <p
-        style={{
-          fontSize: 22,
-          lineHeight: 1.5,
-          color: W.body,
-          maxWidth: 720,
-          margin: 0,
-        }}
-      >
-        把 Claude Code、Codex CLI、Cursor、Hermes Gateway
-        所有工具的 token 花费聚到一张图上。 告诉你
-        <strong> 套餐回本了没</strong>、还能薅多少、
-        以及一句让你想截图发朋友圈的 AI 锐评。
-      </p>
-
-      <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-        <Link
-          href="/signup"
-          className="tu-btn tu-btn-primary tu-cta"
-          style={{
-            ...buttonBase,
-            background: W.primary,
-            color: W.ink,
-            fontSize: 18,
-            padding: "16px 28px",
-          }}
-        >
-          {inviteRequired ? "用邀请码注册" : "立即注册"}
-          <span className="tu-link-arrow" aria-hidden>
-            →
-          </span>
-        </Link>
-        <Link
-          href="#how-it-works"
-          className="tu-btn tu-btn-dark"
-          style={{
-            ...buttonBase,
-            background: W.canvas,
-            color: W.ink,
-            border: `1px solid ${W.ink}`,
-            fontSize: 18,
-            padding: "16px 28px",
-          }}
-        >
-          先看怎么玩
-        </Link>
-      </div>
-
-      <p style={{ fontSize: 14, color: W.mute, margin: 0 }}>
-        数据存本机 sqlite，agent 只上报 token 数。无遥测。
-      </p>
     </section>
   );
 }
 
-function HowItWorks() {
-  const steps = [
-    {
-      num: "01",
-      title: "注册账号",
-      body: "用邀请码注册，30 秒拿到自己的 API token。账号决定 token 上报到哪里。",
-      cta: { href: "/signup", label: "去注册" },
-    },
-    {
-      num: "02",
-      title: "装上 agent",
-      body: (
-        <>
-          电脑上跑一条命令：
-          <code
-            style={{
-              display: "block",
-              marginTop: 10,
-              padding: "10px 14px",
-              borderRadius: 12,
-              background: W.canvas,
-              border: `1px solid ${W.canvasSoft}`,
-              fontFamily: "ui-monospace, Menlo, monospace",
-              fontSize: 13,
-              color: W.ink,
-              wordBreak: "break-all",
-            }}
-          >
-            brew install L1f4Is6o0d2Yuu/tap/tokenusage
-          </code>
-          <span style={{ fontSize: 13, color: W.mute, display: "block", marginTop: 8 }}>
-            或 curl 一行也行 — 注册后会拿到完整命令。
-          </span>
-        </>
-      ),
-    },
-    {
-      num: "03",
-      title: "看自己被薅得多惨",
-      body: "agent 自动扫 Claude Code / Codex / Cursor / Hermes / Windsurf 的本地记录，每 5 分钟上报。打开 dashboard 就看见所有数字，「分享」按钮把战绩传出去。",
-      cta: { href: "/login", label: "登录看面板" },
-    },
-  ];
-
+function ScaledPoster({ size = 340 }: { size?: number }) {
+  // 1080×1920 source → scale down. Keep transform-origin top-left so
+  // the wrapper's natural box stays at the scaled size.
+  const scale = size / 1080;
+  const height = size * (1920 / 1080);
   return (
-    <section
-      id="how-it-works"
+    <div
+      className="tu-poster-frame"
       style={{
-        maxWidth: 1200,
-        margin: "0 auto",
-        padding: "0 32px 80px",
-        display: "flex",
-        flexDirection: "column",
-        gap: 28,
+        width: size,
+        height,
+        overflow: "hidden",
+        borderRadius: 28,
+        boxShadow: "0 30px 60px -30px rgba(14,15,12,0.4)",
+        background: W.ink,
+        position: "relative",
+        flexShrink: 0,
       }}
     >
-      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-        <Pill bg={W.canvas} border small>
-          <span style={{ color: W.positive }}>●</span> 三步上桌
-        </Pill>
-        <h2
-          style={{
-            fontSize: 56,
-            fontWeight: 900,
-            letterSpacing: -2,
-            margin: 0,
-            lineHeight: 1,
-          }}
-        >
-          怎么玩？
-        </h2>
-      </div>
       <div
         style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(290px, 1fr))",
-          gap: 20,
+          transform: `scale(${scale})`,
+          transformOrigin: "top left",
+          width: 1080,
+          height: 1920,
         }}
       >
-        {steps.map((s, i) => (
-          <article
-            key={s.num}
-            className={`tu-card tu-step-card tu-fade-up tu-fade-up-d${i + 1}`}
-            style={{
-              background: W.canvas,
-              borderRadius: 24,
-              padding: "32px 28px",
-              display: "flex",
-              flexDirection: "column",
-              gap: 14,
-            }}
-          >
-            <div
-              className="tu-step-num"
-              style={{
-                width: 56,
-                height: 56,
-                borderRadius: 999,
-                background: W.primaryPale,
-                color: W.inkDeep,
-                fontSize: 22,
-                fontWeight: 900,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              {s.num}
-            </div>
-            <h3
-              style={{
-                fontSize: 26,
-                fontWeight: 900,
-                margin: 0,
-                lineHeight: 1.15,
-                color: W.ink,
-              }}
-            >
-              {s.title}
-            </h3>
-            <div
-              style={{
-                fontSize: 15,
-                lineHeight: 1.55,
-                color: W.body,
-                margin: 0,
-              }}
-            >
-              {s.body}
-            </div>
-            {s.cta && (
-              <Link
-                href={s.cta.href}
-                className="tu-cta"
-                style={{
-                  marginTop: "auto",
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 6,
-                  fontSize: 14,
-                  fontWeight: 700,
-                  color: W.ink,
-                  textDecoration: "none",
-                  padding: "8px 0 0",
-                }}
-              >
-                {s.cta.label}
-                <span className="tu-link-arrow" aria-hidden>
-                  →
-                </span>
-              </Link>
-            )}
-          </article>
-        ))}
+        <SharePoster data={SAMPLE} />
       </div>
-    </section>
+    </div>
   );
 }
 
-function Features() {
-  const items = [
-    {
-      title: "多工具一张图",
-      body: "Claude Code、Codex CLI、Cursor、Windsurf、Hermes Gateway 的 token 用量聚合到同一张面板，按时段切片。",
-      tone: W.canvas,
-    },
-    {
-      title: "套餐 ROI 看得见",
-      body: "按 OpenRouter 实时价计算 API 等价花费，告诉你 $20 / 月套餐已经回本几倍。",
-      tone: W.primaryPale,
-    },
-    {
-      title: "一张图传出去",
-      body: "1080×1920 竖版海报，本地浏览器渲染，零服务器开销。带一句 AI 写的锐评，朋友圈刚需。",
-      tone: W.canvas,
-    },
-  ];
+function Steps() {
   return (
     <section
-      style={{
-        maxWidth: 1200,
-        margin: "0 auto",
-        padding: "0 32px 64px",
-        display: "grid",
-        gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
-        gap: 24,
-      }}
-    >
-      {items.map((it, i) => (
-        <article
-          key={it.title}
-          className={`tu-card tu-fade-up tu-fade-up-d${i + 1}`}
-          style={{
-            background: it.tone,
-            borderRadius: 24,
-            padding: 32,
-            display: "flex",
-            flexDirection: "column",
-            gap: 12,
-          }}
-        >
-          <h3
-            style={{
-              fontSize: 28,
-              fontWeight: 900,
-              margin: 0,
-              lineHeight: 1.1,
-              color: W.ink,
-            }}
-          >
-            {it.title}
-          </h3>
-          <p
-            style={{
-              fontSize: 16,
-              lineHeight: 1.55,
-              color: W.body,
-              margin: 0,
-            }}
-          >
-            {it.body}
-          </p>
-        </article>
-      ))}
-    </section>
-  );
-}
-
-function Showcase() {
-  return (
-    <section
+      id="how"
       style={{
         background: W.canvas,
-        padding: "64px 32px",
+        padding: "72px 32px",
       }}
     >
       <div
         style={{
           maxWidth: 1200,
           margin: "0 auto",
-          display: "flex",
-          flexDirection: "column",
-          gap: 24,
+          display: "grid",
+          gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1.1fr)",
+          gap: 56,
+          alignItems: "start",
         }}
       >
-        <h2
-          style={{
-            fontSize: 56,
-            fontWeight: 900,
-            letterSpacing: -2,
-            margin: 0,
-            lineHeight: 1,
-          }}
-        >
-          长什么样？
-        </h2>
-        <p
-          style={{
-            fontSize: 18,
-            color: W.body,
-            margin: 0,
-            maxWidth: 720,
-          }}
-        >
-          dashboard 给你看数字，share 海报让你能把数字甩朋友脸上。
-        </p>
-
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
-            gap: 24,
-            marginTop: 16,
-          }}
-        >
-          <PreviewCard
-            title="Dashboard"
-            tag="本地"
-            body="KPI 卡片 / 每日走势 / 模型拆分 / 速率窗口 / 订阅 ROI。所有数据存本机 sqlite。"
-            color={W.canvasSoft}
-          />
-          <PreviewCard
-            title="Share 海报"
-            tag="1080×1920"
-            body="一张竖图把本周花费 + 套餐回本 + 编程时长 + AI 锐评打包，浏览器本地渲染。"
-            color={W.primaryPale}
-          />
-          <PreviewCard
-            title="Agent CLI"
-            tag="brew · curl"
-            body="自动扫 Claude Code / Codex / Cursor / Hermes / Windsurf 的本地记录，每 5 分钟心跳上报。"
-            color={W.canvasSoft}
-          />
+        <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+          <h2
+            style={{
+              fontSize: 56,
+              fontWeight: 900,
+              letterSpacing: -2,
+              margin: 0,
+              lineHeight: 1,
+            }}
+          >
+            三件事
+            <br />
+            就开始。
+          </h2>
+          <p style={{ fontSize: 17, color: W.body, lineHeight: 1.6, margin: 0 }}>
+            没有 onboarding 引导，没有 30 天免费试用倒计时。注册、装、看。
+          </p>
         </div>
+
+        <ol
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 24,
+            margin: 0,
+            padding: 0,
+            listStyle: "none",
+          }}
+        >
+          <Step n="1" title="注册">
+            邀请制，找朋友要个码。
+            <Link
+              href="/signup"
+              className="tu-cta"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+                color: W.ink,
+                fontWeight: 700,
+                textDecoration: "none",
+                marginLeft: 8,
+              }}
+            >
+              去注册<span className="tu-link-arrow" aria-hidden>→</span>
+            </Link>
+          </Step>
+          <Step n="2" title="装 agent">
+            <code style={codeInline}>
+              brew install L1f4Is6o0d2Yuu/tap/tokenusage
+            </code>
+            <br />
+            <span style={{ color: W.mute, fontSize: 14 }}>
+              或 <code style={{ ...codeInline, fontSize: 13 }}>
+                curl -fsSL https://tokenusage.online/install.sh | sh
+              </code>
+            </span>
+          </Step>
+          <Step n="3" title="开 dashboard">
+            agent 每 5 分钟扫一次本地记录上报。打开面板，按时段切。看够了点「分享」把战绩甩出去。
+          </Step>
+        </ol>
       </div>
     </section>
   );
 }
 
-function PreviewCard({
+function Step({
+  n,
   title,
-  tag,
-  body,
-  color,
+  children,
 }: {
+  n: string;
   title: string;
-  tag: string;
-  body: string;
-  color: string;
+  children: React.ReactNode;
 }) {
   return (
-    <article
-      className="tu-card"
+    <li
       style={{
-        background: color,
-        borderRadius: 24,
-        padding: 28,
-        display: "flex",
-        flexDirection: "column",
-        gap: 14,
-        minHeight: 200,
+        display: "grid",
+        gridTemplateColumns: "auto 1fr",
+        gap: 18,
+        alignItems: "start",
       }}
     >
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+      <div
+        style={{
+          fontSize: 32,
+          fontWeight: 900,
+          color: W.primary,
+          background: W.ink,
+          width: 48,
+          height: 48,
+          borderRadius: 999,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontFamily: 'ui-monospace, "SF Mono", Menlo, monospace',
+          marginTop: 4,
+        }}
+      >
+        {n}
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
         <h3
           style={{
-            fontSize: 28,
+            fontSize: 24,
             fontWeight: 900,
             margin: 0,
             color: W.ink,
+            lineHeight: 1.2,
           }}
         >
           {title}
         </h3>
-        <Pill bg={W.canvas} small>
-          {tag}
-        </Pill>
-      </div>
-      <p
-        style={{
-          fontSize: 15,
-          lineHeight: 1.5,
-          color: W.body,
-          margin: 0,
-        }}
-      >
-        {body}
-      </p>
-    </article>
-  );
-}
-
-function InstallBand() {
-  return (
-    <section
-      style={{
-        background: W.ink,
-        color: W.canvas,
-        padding: "64px 32px",
-      }}
-    >
-      <div
-        style={{
-          maxWidth: 1200,
-          margin: "0 auto",
-          display: "flex",
-          flexDirection: "column",
-          gap: 24,
-        }}
-      >
-        <h2
-          style={{
-            fontSize: 56,
-            fontWeight: 900,
-            letterSpacing: -2,
-            margin: 0,
-            lineHeight: 1,
-            color: W.primary,
-          }}
-        >
-          一行命令开始。
-        </h2>
-        <p style={{ fontSize: 18, color: W.canvasSoft, margin: 0, maxWidth: 720 }}>
-          注册账号后会在 tokens 页面拿到自己的安装命令。下面是预览：
-        </p>
         <div
           style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(360px, 1fr))",
-            gap: 16,
-            marginTop: 8,
+            fontSize: 16,
+            color: W.body,
+            lineHeight: 1.6,
           }}
         >
-          <CodeBlock label="Homebrew" code="brew install L1f4Is6o0d2Yuu/tap/tokenusage" />
-          <CodeBlock
-            label="curl"
-            code="curl -fsSL https://tokenusage.online/install.sh | sh"
-          />
+          {children}
         </div>
       </div>
-    </section>
-  );
-}
-
-function CodeBlock({ label, code }: { label: string; code: string }) {
-  return (
-    <div
-      style={{
-        background: "rgba(255,255,255,0.04)",
-        border: `1px solid rgba(255,255,255,0.10)`,
-        borderRadius: 16,
-        padding: 20,
-        display: "flex",
-        flexDirection: "column",
-        gap: 10,
-      }}
-    >
-      <div
-        style={{
-          fontSize: 12,
-          fontWeight: 700,
-          textTransform: "uppercase",
-          letterSpacing: 2,
-          color: W.primary,
-        }}
-      >
-        {label}
-      </div>
-      <code
-        style={{
-          fontFamily: 'ui-monospace, "SF Mono", Menlo, monospace',
-          fontSize: 14,
-          color: W.canvas,
-          wordBreak: "break-all",
-        }}
-      >
-        {code}
-      </code>
-    </div>
+    </li>
   );
 }
 
@@ -702,12 +466,12 @@ function CTABand({ inviteRequired }: { inviteRequired: boolean }) {
     <section
       style={{
         background: W.primaryPale,
-        padding: "64px 32px",
+        padding: "72px 32px",
       }}
     >
       <div
         style={{
-          maxWidth: 1200,
+          maxWidth: 920,
           margin: "0 auto",
           display: "flex",
           flexDirection: "column",
@@ -724,21 +488,22 @@ function CTABand({ inviteRequired }: { inviteRequired: boolean }) {
             lineHeight: 1,
           }}
         >
-          准备好<span style={{ color: W.positive }}>开撸</span>了？
+          来玩一把？
         </h2>
         <p
           style={{
-            fontSize: 18,
+            fontSize: 17,
             color: W.body,
             margin: 0,
-            maxWidth: 600,
+            maxWidth: 520,
             marginLeft: "auto",
             marginRight: "auto",
+            lineHeight: 1.55,
           }}
         >
           {inviteRequired
-            ? "目前邀请制注册。问朋友要个邀请码，或者去 GitHub 提个 issue。"
-            : "免费注册，本地优先，不收 token。"}
+            ? "邀请制 — 朋友圈截图就能找到码。也可以去 GitHub 提个 issue。"
+            : "免费，不收 token，不要邮箱白嫖。"}
         </p>
         <div
           style={{
@@ -756,14 +521,11 @@ function CTABand({ inviteRequired }: { inviteRequired: boolean }) {
               ...buttonBase,
               background: W.ink,
               color: W.primary,
-              fontSize: 18,
+              fontSize: 17,
               padding: "16px 28px",
             }}
           >
-            立即注册
-            <span className="tu-link-arrow" aria-hidden>
-              →
-            </span>
+            开撸<span className="tu-link-arrow" aria-hidden>→</span>
           </Link>
           <a
             href="https://github.com/L1f4Is6o0d2Yuu/tokenusage"
@@ -775,7 +537,7 @@ function CTABand({ inviteRequired }: { inviteRequired: boolean }) {
               background: W.canvas,
               color: W.ink,
               border: `1px solid ${W.ink}`,
-              fontSize: 18,
+              fontSize: 17,
               padding: "16px 28px",
             }}
           >
@@ -793,7 +555,7 @@ function Footer() {
       style={{
         background: W.ink,
         color: W.canvasSoft,
-        padding: "40px 32px",
+        padding: "32px",
       }}
     >
       <div
@@ -804,13 +566,11 @@ function Footer() {
           flexWrap: "wrap",
           gap: 16,
           justifyContent: "space-between",
-          fontSize: 14,
+          alignItems: "center",
+          fontSize: 13,
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <span>©</span>
-          <span>2026 tokenusage</span>
-        </div>
+        <span>tokenusage · 数据躺你电脑里 · 2026</span>
         <div style={{ display: "flex", gap: 18 }}>
           <a
             href="https://github.com/L1f4Is6o0d2Yuu/tokenusage"
@@ -832,37 +592,6 @@ function Footer() {
   );
 }
 
-function Pill({
-  children,
-  bg,
-  border,
-  small,
-}: {
-  children: React.ReactNode;
-  bg: string;
-  border?: boolean;
-  small?: boolean;
-}) {
-  return (
-    <div
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 8,
-        padding: small ? "4px 10px" : "8px 14px",
-        borderRadius: 9999,
-        background: bg,
-        border: border ? `1px solid ${W.mute}` : "none",
-        fontSize: small ? 12 : 14,
-        fontWeight: 600,
-        color: W.ink,
-      }}
-    >
-      {children}
-    </div>
-  );
-}
-
 const buttonBase = {
   display: "inline-flex",
   alignItems: "center",
@@ -874,5 +603,14 @@ const buttonBase = {
   textDecoration: "none",
   border: "none",
   cursor: "pointer",
-  transition: "transform 0.1s ease",
+};
+
+const codeInline = {
+  fontFamily: 'ui-monospace, "SF Mono", Menlo, monospace',
+  fontSize: 14,
+  background: W.canvasSoft,
+  color: W.ink,
+  padding: "3px 8px",
+  borderRadius: 6,
+  wordBreak: "break-all" as const,
 };
