@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { headers } from "next/headers";
 import { getShareBySlug } from "@/lib/shares";
+import { formatUsd } from "@/lib/format";
 
 // Public-by-link share view. WeChat / X / 微博 crawlers will pick up
 // the og:image tag and inline-preview the poster — the actual point
@@ -42,7 +43,7 @@ export async function generateMetadata({
   const origin = await siteOrigin();
   const imageUrl = `${origin}/api/shares/${slug}`;
   const title = share.apiValueUsd
-    ? `${share.multiplier ?? ""} · $${share.apiValueUsd.toFixed(2)} · tokenusage`
+    ? `${share.multiplier ?? ""} · ${formatUsd(share.apiValueUsd)} · tokenusage`
     : `tokenusage 分享`;
   const description = share.taunt ?? "AI 工具花费汇总 + 一句锐评";
   return {
