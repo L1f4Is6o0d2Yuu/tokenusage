@@ -447,6 +447,14 @@
       "month": "Last 30 days"
     }
   },
+  "compare": {
+    "title": "Wie heftig bist du?",
+    "description": "Tagesnutzung vs. Branchenschätzung.",
+    "disclaimer": "Branchenschätzung",
+    "spendLabel": "Ausgabe",
+    "tokensLabel": "Tokens",
+    "hoursLabel": "Stunden"
+  },
   "share": {
     "share": "Share",
     "title": "Share this period",

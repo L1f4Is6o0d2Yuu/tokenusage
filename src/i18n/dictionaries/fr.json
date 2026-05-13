@@ -447,6 +447,14 @@
       "month": "Last 30 days"
     }
   },
+  "compare": {
+    "title": "À quel point êtes-vous lourd ?",
+    "description": "Usage quotidien vs distribution estimée.",
+    "disclaimer": "estimation",
+    "spendLabel": "Dépense",
+    "tokensLabel": "Tokens",
+    "hoursLabel": "Heures"
+  },
   "share": {
     "share": "Share",
     "title": "Share this period",

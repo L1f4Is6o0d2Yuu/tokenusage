@@ -447,6 +447,14 @@
       "month": "Last 30 days"
     }
   },
+  "compare": {
+    "title": "얼마나 갈아넣고 있나?",
+    "description": "일평균 사용량을 업계 추정 분포와 비교.",
+    "disclaimer": "업계 추정",
+    "spendLabel": "비용",
+    "tokensLabel": "토큰",
+    "hoursLabel": "시간"
+  },
   "share": {
     "share": "Share",
     "title": "Share this period",

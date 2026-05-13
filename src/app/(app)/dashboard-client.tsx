@@ -15,6 +15,7 @@ import { UsageTrend } from "@/components/usage-trend";
 import { OnboardingCard } from "@/components/onboarding-card";
 import { AgentStatusBar } from "@/components/agent-status-bar";
 import { ModelPriceTooltip } from "@/components/model-price-tooltip";
+import { CompareCard } from "@/components/compare-card";
 import { computeRoi, periodDays, type PlanLite } from "@/lib/roi-client";
 import { pickDailyTaunt, pickRoiLine } from "@/lib/encouragement";
 import { selectLiveSessions, totalActiveHours, type LiveSession } from "@/lib/activity";
@@ -138,6 +139,12 @@ export function DashboardClient({
     const win = periodWindow(period, new Date(), customRange);
     return totalActiveHours(scoped, win);
   }, [scoped, period, customRange]);
+  // Period length in days — used to normalize percentile comparisons
+  // ("$/day" / "tokens/day") against the industry reference distribution.
+  const days = useMemo(
+    () => periodDays(period, customRange),
+    [period, customRange]
+  );
   // Live sessions only make sense for "today"/"24h" — looking at "live"
   // sessions inside a 30-day window is just "yesterday's stale rows".
   const isDailyPeriod = period === "today" || period === "24h";
@@ -413,6 +420,19 @@ export function DashboardClient({
             windows={limitWindows}
             plans={activePlans}
             t={t.limits}
+          />
+        </section>
+
+        <section
+          className="tu-rise mt-6"
+          style={{ animationDelay: "195ms" }}
+        >
+          <CompareCard
+            spendUsdPerDay={agg.totals.costUsd / Math.max(1, days)}
+            tokensPerDay={agg.totals.totalTokens / Math.max(1, days)}
+            hoursPerDay={codingHours / Math.max(1, days)}
+            period={period}
+            t={t.compare}
           />
         </section>
 

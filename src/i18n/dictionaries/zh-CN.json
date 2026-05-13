@@ -447,6 +447,14 @@
       "month": "近 30 天"
     }
   },
+  "compare": {
+    "title": "你卷不卷？",
+    "description": "日均用量对比行业估值参考分布。",
+    "disclaimer": "行业估值参考",
+    "spendLabel": "花费",
+    "tokensLabel": "Token",
+    "hoursLabel": "编程时长"
+  },
   "share": {
     "share": "分享",
     "title": "分享这一时段",

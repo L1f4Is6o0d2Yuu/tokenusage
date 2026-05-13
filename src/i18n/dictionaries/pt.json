@@ -447,6 +447,14 @@
       "month": "Last 30 days"
     }
   },
+  "compare": {
+    "title": "Quanto você espreme?",
+    "description": "Uso diário vs distribuição estimada.",
+    "disclaimer": "estimativa",
+    "spendLabel": "Gasto",
+    "tokensLabel": "Tokens",
+    "hoursLabel": "Horas"
+  },
   "share": {
     "share": "Share",
     "title": "Share this period",

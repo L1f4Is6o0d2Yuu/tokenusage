@@ -15,6 +15,7 @@ import {
   pickTokenTaunt,
   tokenComparison,
 } from "@/lib/encouragement";
+import { spendPercentile, tierLabel } from "@/lib/percentile";
 
 export type SharePosterData = {
   username: string;
@@ -45,6 +46,11 @@ export type SharePosterData = {
   deviceLabel?: string; // "macOS · Apple Silicon"
   geoLabel?: string; // "上海" / "Shanghai" / "China"
   savedAt?: string; // "2026-05-13"
+  // Industry percentile chip (e.g., "已超 95% 开发者 · 卷王") — derived
+  // from spendUsdPerDay against the vibes-based reference distribution
+  // in lib/percentile.ts.
+  percentileLabel?: string;
+  percentileTier?: "mute" | "ok" | "warn" | "danger";
 };
 
 const PERIOD_LABEL: Record<Period, string> = {
@@ -122,6 +128,37 @@ function hoursOpinionAccent(hpd: number): { fg: string; bg: string; border: stri
     bg: "rgba(255, 95, 95, 0.18)",
     border: "rgba(255, 95, 95, 0.6)",
   };
+}
+
+function percentileChipStyle(
+  tier: SharePosterData["percentileTier"]
+): { background: string; color: string; border: string } {
+  switch (tier) {
+    case "ok":
+      return {
+        background: "rgba(136, 255, 171, 0.18)",
+        color: "#88FFAB",
+        border: "1px solid rgba(136, 255, 171, 0.5)",
+      };
+    case "warn":
+      return {
+        background: "rgba(255, 197, 137, 0.18)",
+        color: "#FFC589",
+        border: "1px solid rgba(255, 197, 137, 0.55)",
+      };
+    case "danger":
+      return {
+        background: "rgba(255, 95, 95, 0.18)",
+        color: "#FF8A8A",
+        border: "1px solid rgba(255, 95, 95, 0.6)",
+      };
+    default:
+      return {
+        background: "rgba(201, 190, 255, 0.14)",
+        color: "#C9BEFF",
+        border: "1px solid rgba(201, 190, 255, 0.4)",
+      };
+  }
 }
 
 export function formatTokensShort(n: number): string {
@@ -224,6 +261,21 @@ export function computeSharePosterData(args: {
     deviceLabel,
     geoLabel,
     savedAt,
+    percentileLabel: (() => {
+      const spendPerDay = agg.totals.costUsd / Math.max(1, days);
+      const pct = spendPercentile(spendPerDay);
+      const tier = tierLabel(pct);
+      // Below p25 the chip is more shame than flex — skip it so the
+      // poster doesn't sell light users short.
+      if (pct < 25) return undefined;
+      return `已超 ${pct.toFixed(0)}% 开发者 · ${tier.label}`;
+    })(),
+    percentileTier: (() => {
+      const spendPerDay = agg.totals.costUsd / Math.max(1, days);
+      const pct = spendPercentile(spendPerDay);
+      if (pct < 25) return undefined;
+      return tierLabel(pct).color;
+    })(),
   };
 }
 
@@ -441,6 +493,24 @@ export function SharePoster({ data }: { data: SharePosterData }) {
                 </div>
               )}
             </div>
+
+            {data.percentileLabel && (
+              <div
+                style={{
+                  display: "flex",
+                  alignSelf: "flex-start",
+                  marginTop: 18,
+                  padding: "8px 18px",
+                  borderRadius: 999,
+                  fontSize: 24,
+                  fontWeight: 600,
+                  letterSpacing: 0.5,
+                  ...percentileChipStyle(data.percentileTier),
+                }}
+              >
+                {data.percentileLabel}
+              </div>
+            )}
 
             <div
               style={{

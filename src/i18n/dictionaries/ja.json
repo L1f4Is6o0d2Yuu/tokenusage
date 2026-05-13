@@ -447,6 +447,14 @@
       "month": "Last 30 days"
     }
   },
+  "compare": {
+    "title": "どのくらい使ってる？",
+    "description": "1日あたりの使用量を業界推定値と比較。",
+    "disclaimer": "業界推定値",
+    "spendLabel": "支出",
+    "tokensLabel": "トークン",
+    "hoursLabel": "時間"
+  },
   "share": {
     "share": "Share",
     "title": "Share this period",

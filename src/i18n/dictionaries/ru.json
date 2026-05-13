@@ -447,6 +447,14 @@
       "month": "Last 30 days"
     }
   },
+  "compare": {
+    "title": "Насколько ты упоротый?",
+    "description": "Дневное использование vs отраслевая оценка.",
+    "disclaimer": "оценка",
+    "spendLabel": "Расход",
+    "tokensLabel": "Токены",
+    "hoursLabel": "Часы"
+  },
   "share": {
     "share": "Share",
     "title": "Share this period",

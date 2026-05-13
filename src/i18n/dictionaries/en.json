@@ -447,6 +447,14 @@
       "month": "Last 30 days"
     }
   },
+  "compare": {
+    "title": "How heavy are you?",
+    "description": "Per-day usage vs a vibes-based industry distribution.",
+    "disclaimer": "industry estimate",
+    "spendLabel": "Spend",
+    "tokensLabel": "Tokens",
+    "hoursLabel": "Hours"
+  },
   "share": {
     "share": "Share",
     "title": "Share this period",

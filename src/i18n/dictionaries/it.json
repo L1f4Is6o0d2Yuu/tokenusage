@@ -447,6 +447,14 @@
       "month": "Last 30 days"
     }
   },
+  "compare": {
+    "title": "Quanto sfrutti?",
+    "description": "Uso giornaliero vs distribuzione stimata.",
+    "disclaimer": "stima",
+    "spendLabel": "Spesa",
+    "tokensLabel": "Token",
+    "hoursLabel": "Ore"
+  },
   "share": {
     "share": "Share",
     "title": "Share this period",

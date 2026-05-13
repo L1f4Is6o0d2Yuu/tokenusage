@@ -142,6 +142,14 @@ export type Dictionary = {
       month: string;
     };
   };
+  compare: {
+    title: string;
+    description: string;
+    disclaimer: string;
+    spendLabel: string;
+    tokensLabel: string;
+    hoursLabel: string;
+  };
   share: {
     share: string;
     title: string;

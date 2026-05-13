@@ -447,6 +447,14 @@
       "month": "近 30 天"
     }
   },
+  "compare": {
+    "title": "你捲不捲？",
+    "description": "日均用量對比行業估值參考分布。",
+    "disclaimer": "行業估值參考",
+    "spendLabel": "花費",
+    "tokensLabel": "Token",
+    "hoursLabel": "編程時長"
+  },
   "share": {
     "share": "分享",
     "title": "分享这一时段",

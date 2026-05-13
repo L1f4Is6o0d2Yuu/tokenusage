@@ -64,6 +64,8 @@ const SAMPLE: SharePosterData = {
   deviceLabel: "macOS · Apple Silicon",
   geoLabel: "上海",
   savedAt: "2026-05-13",
+  percentileLabel: "已超 97% 开发者 · 顶流卷王",
+  percentileTier: "danger",
 };
 
 export function Landing({
