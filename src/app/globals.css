@@ -353,6 +353,27 @@
   line-height: 1.5;
   margin-top: 4px;
 }
+/* Bump the gap between major sections from Linear's mt-6 (24px) to
+   Wise's spacing.3xl (48px). The dashboard renders each section with
+   `mt-6` so this override doubles the breathing room when on Wise. */
+[data-skin="wise"] section.mt-6 {
+  margin-top: 32px;
+}
+/* Hero strip / KPI row gets even more breathing below before the
+   chart kicks in. */
+[data-skin="wise"] header + div > section:first-of-type,
+[data-skin="wise"] main section:first-of-type {
+  margin-bottom: 8px;
+}
+/* Chart wrapper — fade out the Linear grid dots, let the curve breathe. */
+[data-skin="wise"] .recharts-cartesian-grid line {
+  opacity: 0.5;
+}
+[data-skin="wise"] .recharts-cartesian-axis-tick text {
+  font-family: var(--font-inter), Inter, sans-serif !important;
+  font-size: 11px;
+  fill: var(--fg-muted);
+}
 
 @theme inline {
   --color-background: var(--background);
