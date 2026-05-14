@@ -11,7 +11,6 @@ import type { Rule } from "@/lib/pricing";
 import type { Dictionary } from "@/i18n/types";
 import { PeriodTabs } from "@/components/period-tabs";
 import { ShareButton } from "@/components/share-button";
-import { SyncControl } from "@/components/sync-control";
 import { UsageTrend } from "@/components/usage-trend";
 import { OnboardingCard } from "@/components/onboarding-card";
 import { AgentStatusBar } from "@/components/agent-status-bar";
@@ -188,16 +187,6 @@ export function DashboardClient({
             onCustomChange={handleCustom}
             t={t.period}
           />
-          {syncState && (
-            <SyncControl
-              lastSyncedAt={syncState.lastUploadedAt}
-              paused={syncState.paused}
-              installed={syncState.lastUploadedAt != null || agentSeenAt != null}
-              label={t.agent.syncNow}
-              syncingLabel={t.agent.syncing}
-              doneLabel={t.agent.syncing}
-            />
-          )}
           <ShareButton
             username={username ?? ""}
             userId={userId ?? 0}

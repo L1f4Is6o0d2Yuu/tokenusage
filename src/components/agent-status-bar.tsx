@@ -4,6 +4,7 @@ import { useEffect, useState, useTransition } from "react";
 import { cn } from "@/lib/utils";
 import { interp } from "@/i18n/interp";
 import type { Dictionary } from "@/i18n/types";
+import { SyncControl } from "@/components/sync-control";
 
 const AGENT_LIVE_THRESHOLD_MS = 90 * 1000;
 
@@ -144,6 +145,14 @@ export function AgentStatusBar({
                 : t.pauseTracking}
           </button>
         )}
+        <SyncControl
+          lastSyncedAt={lastSyncedAt}
+          paused={paused}
+          installed={installed}
+          label={t.syncNow}
+          syncingLabel={t.syncing}
+          doneLabel={t.syncing}
+        />
       </div>
     </div>
   );
