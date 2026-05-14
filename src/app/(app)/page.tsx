@@ -19,7 +19,7 @@ import { DashboardClient } from "./dashboard-client";
 // there the client owns the period state and re-aggregates locally on
 // every change — the server CPU stops being on the hot path for clicks.
 
-const VALID_PERIODS: Period[] = ["today", "24h", "7d", "30d", "month", "year", "all", "custom"];
+const VALID_PERIODS: Period[] = ["1h", "today", "24h", "7d", "30d", "month", "year", "all", "custom"];
 
 function parsePeriod(raw: string | string[] | undefined): Period {
   if (typeof raw === "string" && (VALID_PERIODS as string[]).includes(raw)) {
