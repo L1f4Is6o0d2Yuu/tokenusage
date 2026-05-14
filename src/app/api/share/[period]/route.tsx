@@ -17,7 +17,7 @@ import type { Period } from "@/lib/types";
 
 export const runtime = "nodejs";
 
-const VALID: Period[] = ["today", "24h", "7d", "30d", "month", "year", "all"];
+const VALID: Period[] = ["1h", "today", "24h", "7d", "30d", "month", "year", "all"];
 
 // Bundled Noto Sans SC font for CJK glyph reliability (Satori has no
 // built-in CJK; Alpine container has no system CJK fonts). Same WOFFs

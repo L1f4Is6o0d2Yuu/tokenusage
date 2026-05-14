@@ -21,6 +21,7 @@
     "wise": "Wise"
   },
   "period": {
+    "1h": "直近 1 時間",
     "today": "今日",
     "24h": "過去 24 時間",
     "7d": "過去 7 日",
@@ -56,6 +57,7 @@
     "tokensInPeriod": "{period}のトークン"
   },
   "trend": {
+    "titleMinute": "分単位の推移",
     "titleDay": "日別推移",
     "titleMonth": "月別推移",
     "description": "トークン（左軸）/ USD コスト（右軸）— {period}",

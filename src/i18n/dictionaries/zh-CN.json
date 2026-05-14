@@ -21,6 +21,7 @@
     "wise": "Wise"
   },
   "period": {
+    "1h": "近 1 小时",
     "today": "今天",
     "24h": "近 24 小时",
     "7d": "近 7 天",
@@ -56,6 +57,7 @@
     "tokensInPeriod": "{period}用量"
   },
   "trend": {
+    "titleMinute": "每分钟走势",
     "titleDay": "每日走势",
     "titleMonth": "每月走势",
     "description": "tokens（左轴）/ USD 成本（右轴）— {period}",

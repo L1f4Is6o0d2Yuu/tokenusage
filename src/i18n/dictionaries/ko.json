@@ -21,6 +21,7 @@
     "wise": "Wise"
   },
   "period": {
+    "1h": "최근 1시간",
     "today": "오늘",
     "24h": "최근 24시간",
     "7d": "최근 7일",
@@ -56,6 +57,7 @@
     "tokensInPeriod": "{period} 토큰"
   },
   "trend": {
+    "titleMinute": "분 단위 추이",
     "titleDay": "일별 추세",
     "titleMonth": "월별 추세",
     "description": "토큰(좌축) / USD 비용(우축) — {period}",

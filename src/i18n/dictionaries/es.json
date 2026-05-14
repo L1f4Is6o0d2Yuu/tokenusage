@@ -21,6 +21,7 @@
     "wise": "Wise"
   },
   "period": {
+    "1h": "Última hora",
     "today": "Hoy",
     "24h": "Últimas 24 h",
     "7d": "Últimos 7 días",
@@ -56,6 +57,7 @@
     "tokensInPeriod": "Tokens · {period}"
   },
   "trend": {
+    "titleMinute": "Por minuto",
     "titleDay": "Tendencia diaria",
     "titleMonth": "Tendencia mensual",
     "description": "Tokens (izq.) / coste USD (der.) — {period}",

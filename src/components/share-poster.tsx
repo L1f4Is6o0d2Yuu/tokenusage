@@ -54,6 +54,7 @@ export type SharePosterData = {
 };
 
 const PERIOD_LABEL: Record<Period, string> = {
+  "1h": "近 1 小时",
   today: "今天",
   "24h": "近 24 小时",
   "7d": "近 7 天",
@@ -65,6 +66,7 @@ const PERIOD_LABEL: Record<Period, string> = {
 };
 
 const VERB: Record<Period, string> = {
+  "1h": "近 1 小时 AI 替我打了",
   today: "今天 AI 替我打了",
   "24h": "近 24 小时 AI 替我打了",
   "7d": "本周 AI 替我打了",

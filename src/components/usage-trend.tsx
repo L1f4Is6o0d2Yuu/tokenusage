@@ -22,16 +22,17 @@ import { formatTokens, formatUsd } from "@/lib/format";
 // Gating render on a post-hydration `useEffect` flag means the chart only
 // ever mounts on the client, after layout. Animation is then safe to keep on.
 // `granularity` controls the x-axis tick formatting:
-//   - "hour": `MM-DD HH:00` → display as `HH:00` (only show the hour)
-//   - "day":  `YYYY-MM-DD`  → display as `MM-DD`
-//   - "month":`YYYY-MM-01`  → display as `YYYY-MM`
+//   - "minute": `YYYY-MM-DD HH:MM` → display as `HH:MM`
+//   - "hour":  `YYYY-MM-DD HH:00` → display as `HH:00`
+//   - "day":   `YYYY-MM-DD`       → display as `MM-DD`
+//   - "month": `YYYY-MM-01`       → display as `YYYY-MM`
 export function UsageTrend({
   data,
   granularity = "day",
   labels,
 }: {
   data: DailyPoint[];
-  granularity?: "hour" | "day" | "month";
+  granularity?: "minute" | "hour" | "day" | "month";
   labels: { tokens: string; cost: string; empty: string };
 }) {
   const [mounted, setMounted] = useState(false);
@@ -61,8 +62,8 @@ export function UsageTrend({
             stroke="var(--muted-foreground)"
             fontSize={12}
             tickFormatter={(v: string) => {
-              if (granularity === "hour") {
-                // bucket key is "YYYY-MM-DD HH:00" — show just "HH:00"
+              if (granularity === "minute" || granularity === "hour") {
+                // bucket key is "YYYY-MM-DD HH:MM" — show just "HH:MM"
                 return v.slice(11, 16) || v;
               }
               if (granularity === "month") {

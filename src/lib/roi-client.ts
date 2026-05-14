@@ -42,6 +42,9 @@ export type RoiResult = {
 // to prorate the monthly subscription cost.
 export function periodDays(period: Period, customRange?: CustomRange, now: Date = new Date()): number {
   switch (period) {
+    case "1h":
+      // 1 hour = 1/24 day. Used by the percentile + per-day math.
+      return 1 / 24;
     case "today": {
       // Hours elapsed today, scaled to fraction of a day.
       const start = new Date(now);

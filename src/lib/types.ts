@@ -1,8 +1,18 @@
-export type Period = "today" | "24h" | "7d" | "30d" | "month" | "year" | "all" | "custom";
+export type Period =
+  | "1h"
+  | "today"
+  | "24h"
+  | "7d"
+  | "30d"
+  | "month"
+  | "year"
+  | "all"
+  | "custom";
 
-export type Granularity = "hour" | "day" | "month";
+export type Granularity = "minute" | "hour" | "day" | "month";
 
 export const PERIOD_LABELS: Record<Period, string> = {
+  "1h": "Last hour",
   today: "Today",
   "24h": "Last 24h",
   "7d": "Last 7 days",

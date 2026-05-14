@@ -55,6 +55,7 @@ export type Dictionary = {
     wise: string;
   };
   period: {
+    "1h": string;
     today: string;
     "24h": string;
     "7d": string;
@@ -90,6 +91,7 @@ export type Dictionary = {
     written: string; // "{f} written"
   };
   trend: {
+    titleMinute: string;
     titleHour: string;
     titleDay: string;
     titleMonth: string;

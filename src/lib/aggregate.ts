@@ -23,6 +23,9 @@ export function periodWindow(
 ): { start: number | null; end: number } {
   const nowMs = now.getTime();
   if (period === "all") return { start: null, end: nowMs };
+  if (period === "1h") {
+    return { start: nowMs - 60 * 60 * 1000, end: nowMs };
+  }
   if (period === "today") {
     const start = new Date(now);
     start.setHours(0, 0, 0, 0);
@@ -71,6 +74,7 @@ export function pickGranularity(
   records: UsageRecord[],
   period: Period
 ): Granularity {
+  if (period === "1h") return "minute";
   if (period === "today" || period === "24h") return "hour";
   if (period === "year") return "month";
   if (period === "all") {
@@ -97,6 +101,11 @@ function bucketKey(ts: number, g: Granularity): string {
   const m = String(d.getMonth() + 1).padStart(2, "0");
   if (g === "month") return `${y}-${m}-01`;
   const day = String(d.getDate()).padStart(2, "0");
+  if (g === "minute") {
+    const hh = String(d.getHours()).padStart(2, "0");
+    const mm = String(d.getMinutes()).padStart(2, "0");
+    return `${y}-${m}-${day} ${hh}:${mm}`;
+  }
   if (g === "hour") {
     const hh = String(d.getHours()).padStart(2, "0");
     return `${y}-${m}-${day} ${hh}:00`;
@@ -106,7 +115,9 @@ function bucketKey(ts: number, g: Granularity): string {
 
 function bucketStartTime(ts: number, g: Granularity): number {
   const d = new Date(ts);
-  d.setMinutes(0, 0, 0);
+  d.setSeconds(0, 0);
+  if (g === "minute") return d.getTime();
+  d.setMinutes(0);
   if (g === "hour") return d.getTime();
   d.setHours(0);
   if (g === "day") return d.getTime();
@@ -116,6 +127,10 @@ function bucketStartTime(ts: number, g: Granularity): number {
 
 function nextBucketTime(ts: number, g: Granularity): number {
   const d = new Date(ts);
+  if (g === "minute") {
+    d.setMinutes(d.getMinutes() + 1, 0, 0);
+    return d.getTime();
+  }
   if (g === "hour") {
     d.setHours(d.getHours() + 1, 0, 0, 0);
     return d.getTime();
@@ -271,19 +286,22 @@ export function aggregate(
     }
   }
 
-  // Pre-seed hour buckets across the requested window so empty hours
+  // Pre-seed buckets across the requested window so empty buckets
   // render as zero points (preserving uniform x-axis spacing) instead
-  // of just disappearing from the series.
-  if (granularity === "hour" && window) {
+  // of just disappearing from the series. Applies to both minute and
+  // hour granularities — the latter is much sparser so the optimization
+  // matters less but it costs nothing to share.
+  if ((granularity === "hour" || granularity === "minute") && window) {
     const start = window.start ?? records.reduce(
       (m, r) => (r.startedAt < m ? r.startedAt : m),
       window.end
     );
     const dStart = new Date(start);
-    dStart.setMinutes(0, 0, 0);
-    const stepMs = 60 * 60 * 1000;
+    if (granularity === "hour") dStart.setMinutes(0, 0, 0);
+    else dStart.setSeconds(0, 0);
+    const stepMs = granularity === "hour" ? 60 * 60 * 1000 : 60 * 1000;
     for (let t = dStart.getTime(); t <= window.end; t += stepMs) {
-      const k = bucketKey(t, "hour");
+      const k = bucketKey(t, granularity);
       if (!bucketMap.has(k)) {
         bucketMap.set(k, { date: k, totalTokens: 0, costUsd: 0 });
       }

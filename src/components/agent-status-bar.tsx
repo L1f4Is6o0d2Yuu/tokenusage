@@ -6,7 +6,6 @@ import { interp } from "@/i18n/interp";
 import type { Dictionary } from "@/i18n/types";
 
 const AGENT_LIVE_THRESHOLD_MS = 90 * 1000;
-const RELOAD_DELAY_MS = 4_000;
 
 function ago(target: number, now: number): string {
   const sec = Math.max(0, Math.floor((now - target) / 1000));
@@ -33,7 +32,6 @@ export function AgentStatusBar({
 }) {
   const [now, setNow] = useState<number | null>(null);
   const [pending, startTransition] = useTransition();
-  const [requested, setRequested] = useState(false);
   const [toggling, setToggling] = useState(false);
 
   useEffect(() => {
@@ -46,19 +44,6 @@ export function AgentStatusBar({
     agentSeenAt != null && now != null && now - agentSeenAt < AGENT_LIVE_THRESHOLD_MS;
   const everSynced = lastSyncedAt != null;
   const installed = everSynced || agentSeenAt != null;
-
-  function handleSync() {
-    if (requested || pending || paused) return;
-    setRequested(true);
-    startTransition(async () => {
-      try {
-        await fetch("/api/sync-now", { method: "POST" });
-      } catch {
-        // best-effort
-      }
-      setTimeout(() => window.location.reload(), RELOAD_DELAY_MS);
-    });
-  }
 
   function handleToggle() {
     if (toggling) return;
@@ -159,18 +144,6 @@ export function AgentStatusBar({
                 : t.pauseTracking}
           </button>
         )}
-        <button
-          type="button"
-          onClick={handleSync}
-          disabled={pending || requested || paused || !installed}
-          className={cn(
-            "rounded-md border bg-background px-3 py-1.5 text-xs font-medium hover:bg-muted",
-            "disabled:cursor-not-allowed disabled:opacity-60"
-          )}
-          title={paused ? t.resumeFirstHint : undefined}
-        >
-          {requested ? t.syncing : t.syncNow}
-        </button>
       </div>
     </div>
   );

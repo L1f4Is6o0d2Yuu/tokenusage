@@ -4,7 +4,7 @@ import type { CustomRange, Period } from "@/lib/types";
 import type { Dictionary } from "@/i18n/types";
 import { cn } from "@/lib/utils";
 
-const ORDER: Period[] = ["today", "24h", "7d", "30d", "month", "year", "all", "custom"];
+const ORDER: Period[] = ["1h", "today", "24h", "7d", "30d", "month", "year", "all", "custom"];
 
 // Controlled tab bar: parent owns the period state, this just renders
 // buttons and calls back. We deliberately don't push to the URL here —
