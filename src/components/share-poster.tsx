@@ -138,9 +138,9 @@ function percentileChipStyle(
   switch (tier) {
     case "ok":
       return {
-        background: "rgba(136, 255, 171, 0.18)",
-        color: "#88FFAB",
-        border: "1px solid rgba(136, 255, 171, 0.5)",
+        background: "rgba(159, 232, 112, 0.18)",
+        color: "#9fe870",
+        border: "1px solid rgba(159, 232, 112, 0.5)",
       };
     case "warn":
       return {
@@ -157,7 +157,7 @@ function percentileChipStyle(
     default:
       return {
         background: "rgba(201, 190, 255, 0.14)",
-        color: "#C9BEFF",
+        color: "#cdffad",
         border: "1px solid rgba(201, 190, 255, 0.4)",
       };
   }
@@ -268,7 +268,7 @@ export function computeSharePosterData(args: {
     compare,
     hoursOpinionLabel: hoursOpinion(hoursPerDay),
     hoursOpinionAccent: hoursOpinionAccent(hoursPerDay),
-    heroColor: inProfit ? "#88FFAB" : "#FFA88A",
+    heroColor: inProfit ? "#9fe870" : "#FFA88A",
     deviceLabel,
     geoLabel,
     savedAt,
@@ -327,25 +327,26 @@ export function SharePoster({ data }: { data: SharePosterData }) {
         height: "1920px",
         display: "flex",
         flexDirection: "column",
+        // Wise dark variant — ink base with a subtle lime-tinted halo
+        // top-left. Reads as "Wise's brand color over Wise's ink"
+        // rather than the previous Anthropic-leaning indigo gradient.
         background:
-          "radial-gradient(circle at 25% -5%, #2f2270 0%, #15103a 45%, #06040f 100%)",
+          "radial-gradient(circle at 25% -5%, #1a2515 0%, #0e0f0c 55%, #060604 100%)",
         color: "white",
         padding: "70px 60px 50px",
         fontFamily: "'Noto Sans SC', ui-monospace, monospace",
         position: "relative",
-        // CJK chars can break at every character boundary; the
-        // default tightens single-line text in flex items so the
-        // browser render matches Satori's "don't shrink unless told".
         whiteSpace: "nowrap",
       }}
     >
-      {/* Background grid */}
+      {/* Background grid — sage-tinted hairlines so the Wise brand color
+          peeks through subtly under the ink. */}
       <div
         style={{
           position: "absolute",
           inset: 0,
           backgroundImage:
-            "linear-gradient(rgba(157, 141, 255, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(157, 141, 255, 0.05) 1px, transparent 1px)",
+            "linear-gradient(rgba(159, 232, 112, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(159, 232, 112, 0.05) 1px, transparent 1px)",
           backgroundSize: "90px 90px",
           display: "flex",
         }}
@@ -360,18 +361,18 @@ export function SharePoster({ data }: { data: SharePosterData }) {
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
-          <svg width="56" height="42" viewBox="0 0 64 48" fill="none" stroke="#9D8DFF">
+          <svg width="56" height="42" viewBox="0 0 64 48" fill="none" stroke="#9fe870">
             <path
               d="M4 38 L 13 22 L 22 31 L 32 13 L 42 24 L 52 8 L 60 16"
               strokeWidth="5"
               strokeLinecap="round"
               strokeLinejoin="round"
             />
-            <circle cx="60" cy="16" r="6" fill="#9D8DFF" />
+            <circle cx="60" cy="16" r="6" fill="#9fe870" />
           </svg>
           <div style={{ display: "flex", fontSize: 40, fontWeight: 600 }}>
             <span>token</span>
-            <span style={{ color: "#9D8DFF" }}>u</span>
+            <span style={{ color: "#9fe870" }}>u</span>
             <span>sage</span>
           </div>
         </div>
@@ -380,10 +381,10 @@ export function SharePoster({ data }: { data: SharePosterData }) {
             display: "flex",
             padding: "10px 22px",
             borderRadius: 999,
-            background: "rgba(123, 111, 255, 0.18)",
-            border: "1px solid rgba(157, 141, 255, 0.5)",
+            background: "rgba(159, 232, 112, 0.15)",
+            border: "1px solid rgba(159, 232, 112, 0.5)",
             fontSize: 26,
-            color: "#C9BEFF",
+            color: "#cdffad",
           }}
         >
           {periodLabel}
@@ -401,7 +402,7 @@ export function SharePoster({ data }: { data: SharePosterData }) {
           zIndex: 1,
         }}
       >
-        <div style={{ display: "flex", fontSize: 30, color: "#9D8DFF" }}>
+        <div style={{ display: "flex", fontSize: 30, color: "#9fe870" }}>
           @{username}
         </div>
         {[data.deviceLabel, data.geoLabel, data.savedAt]
@@ -414,10 +415,10 @@ export function SharePoster({ data }: { data: SharePosterData }) {
                 alignItems: "center",
                 gap: 10,
                 fontSize: 20,
-                color: "#8a85a8",
+                color: "#8a8585",
               }}
             >
-              <div style={{ display: "flex", color: "#5a5570" }}>·</div>
+              <div style={{ display: "flex", color: "#5a5a55" }}>·</div>
               <div style={{ display: "flex" }}>{text}</div>
             </div>
           ))}
@@ -432,9 +433,9 @@ export function SharePoster({ data }: { data: SharePosterData }) {
           padding: "44px 48px 42px",
           borderRadius: 32,
           background:
-            "linear-gradient(165deg, rgba(123, 111, 255, 0.20) 0%, rgba(123, 111, 255, 0.04) 100%)",
-          border: "1px solid rgba(157, 141, 255, 0.30)",
-          boxShadow: "0 30px 80px -40px rgba(123, 111, 255, 0.6)",
+            "linear-gradient(165deg, rgba(159, 232, 112, 0.14) 0%, rgba(159, 232, 112, 0.03) 100%)",
+          border: "1px solid rgba(159, 232, 112, 0.28)",
+          boxShadow: "0 30px 80px -40px rgba(159, 232, 112, 0.4)",
           zIndex: 1,
         }}
       >
@@ -442,7 +443,7 @@ export function SharePoster({ data }: { data: SharePosterData }) {
           style={{
             display: "flex",
             fontSize: 28,
-            color: "#c4bce0",
+            color: "#a8ada3",
             letterSpacing: 1,
           }}
         >
@@ -513,7 +514,7 @@ export function SharePoster({ data }: { data: SharePosterData }) {
                   style={{
                     display: "flex",
                     fontSize: 30,
-                    color: "#dcd3ff",
+                    color: "#e2f6d5",
                     fontWeight: 500,
                     letterSpacing: 0.5,
                   }}
@@ -539,7 +540,7 @@ export function SharePoster({ data }: { data: SharePosterData }) {
                   fontSize: 24,
                 }}
               >
-                <div style={{ display: "flex", color: "#9D8DFF" }}>
+                <div style={{ display: "flex", color: "#9fe870" }}>
                   套餐 {fmtUsd(subFee)}
                 </div>
                 <div style={{ display: "flex", color: heroColor, fontWeight: 600 }}>
@@ -561,7 +562,7 @@ export function SharePoster({ data }: { data: SharePosterData }) {
                     display: "flex",
                     height: "100%",
                     width: `${Math.min(100, (subFee / Math.max(apiValue, subFee)) * 100)}%`,
-                    background: "linear-gradient(90deg, #7B6FFF 0%, #9D8DFF 100%)",
+                    background: "linear-gradient(90deg, #9fe870 0%, #9fe870 100%)",
                   }}
                 />
                 <div
@@ -570,7 +571,7 @@ export function SharePoster({ data }: { data: SharePosterData }) {
                     height: "100%",
                     flex: 1,
                     background: inProfit
-                      ? "linear-gradient(90deg, #4dd47a 0%, #88FFAB 100%)"
+                      ? "linear-gradient(90deg, #2ead4b 0%, #9fe870 100%)"
                       : "linear-gradient(90deg, #d47a5a 0%, #FFA88A 100%)",
                   }}
                 />
@@ -598,7 +599,7 @@ export function SharePoster({ data }: { data: SharePosterData }) {
             style={{
               display: "flex",
               fontSize: 22,
-              color: "#9D8DFF",
+              color: "#9fe870",
               textTransform: "uppercase",
               letterSpacing: 4,
               marginBottom: 22,
@@ -637,7 +638,7 @@ export function SharePoster({ data }: { data: SharePosterData }) {
                     style={{
                       display: "flex",
                       fontSize: 28,
-                      color: "#9D8DFF",
+                      color: "#9fe870",
                       fontWeight: 600,
                     }}
                   >
@@ -661,10 +662,10 @@ export function SharePoster({ data }: { data: SharePosterData }) {
                       width: `${Math.max(0.5, m.pct)}%`,
                       background:
                         i === 0
-                          ? "linear-gradient(90deg, #7B6FFF 0%, #C9BEFF 100%)"
+                          ? "linear-gradient(90deg, #9fe870 0%, #cdffad 100%)"
                           : i === 1
-                            ? "linear-gradient(90deg, #5b4fdb 0%, #9D8DFF 100%)"
-                            : "linear-gradient(90deg, #4a3fb8 0%, #7B6FFF 100%)",
+                            ? "linear-gradient(90deg, #2ead4b 0%, #9fe870 100%)"
+                            : "linear-gradient(90deg, #163300 0%, #9fe870 100%)",
                     }}
                   />
                 </div>
@@ -677,7 +678,7 @@ export function SharePoster({ data }: { data: SharePosterData }) {
       {/* Token panel */}
       <DataPanel
         label="烧了多少 TOKEN"
-        accentColor="#9D8DFF"
+        accentColor="#9fe870"
         big={formatTokensShort(data.totalTokens)}
         bigUnit="tokens"
         sub={tokenRef}
@@ -843,7 +844,7 @@ function DataPanel({
             style={{
               display: "flex",
               fontSize: 26,
-              color: "#c4bce0",
+              color: "#a8ada3",
               marginLeft: "auto",
             }}
           >
