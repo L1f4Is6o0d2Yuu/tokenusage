@@ -2,7 +2,11 @@ export function formatTokens(n: number): string {
   if (n >= 1_000_000_000) return `${(n / 1_000_000_000).toFixed(2)}B`;
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(2)}M`;
   if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
-  return String(n);
+  // Aggregate proration can produce fractional token counts (a session
+  // that overlaps the period for 0.4 of its lifetime contributes 0.4 ×
+  // tokens). Round to an integer here or the KPI card overflows with
+  // "67.02608417784928" type strings.
+  return String(Math.round(n));
 }
 
 export function formatUsd(
