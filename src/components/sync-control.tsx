@@ -51,15 +51,27 @@ export function SyncControl({
     return () => clearInterval(id);
   }, []);
 
-  // Auto-sync once on mount if the data we're showing looks stale.
-  // Stops users having to remember to click anything after first install.
+  // Auto-sync once per session if the data we're showing looks stale.
+  // The sessionStorage marker prevents an infinite reload loop: the
+  // sync triggers a page reload, but `lastSyncedAt` won't bump until
+  // the agent actually uploads (could be minutes), so without the
+  // marker the next mount would re-fire and re-reload forever.
   useEffect(() => {
     if (autoFired.current) return;
     if (!installed || paused) return;
     const stale =
       lastSyncedAt == null || Date.now() - lastSyncedAt > AUTO_STALE_MS;
     if (!stale) return;
+    // Don't re-auto-fire within this browser session (until tab close)
+    // unless > 10 minutes pass — that's enough time for the agent's
+    // next heartbeat to have responded.
+    const lastAutoStr = sessionStorage.getItem("tu-auto-synced-at");
+    if (lastAutoStr) {
+      const lastAuto = Number(lastAutoStr);
+      if (Date.now() - lastAuto < 10 * 60 * 1000) return;
+    }
     autoFired.current = true;
+    sessionStorage.setItem("tu-auto-synced-at", String(Date.now()));
     void trigger();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [installed, paused, lastSyncedAt]);
