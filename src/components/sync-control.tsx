@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { RefreshCw, Check } from "lucide-react";
+import { RefreshCw, Check, AlertCircle } from "lucide-react";
 
 // Header-mounted sync control. Replaces the prominent "立即同步" button
 // that used to live in the AgentStatusBar at the top of the dashboard
@@ -13,16 +13,23 @@ import { RefreshCw, Check } from "lucide-react";
 //      heartbeat and uploads.
 //   2. Manual click does the same, with a 20s cooldown to defang
 //      finger-mash mode.
-//   3. Render a soft top-of-page progress bar while sync is in flight
-//      (6s window — long enough for the agent's next heartbeat tick
-//      under typical 5-min intervals because the long-poll wakes
-//      immediately when the flag flips).
-//   4. After the progress completes, soft-reload so the dashboard
-//      picks up any new sessions.
+//   3. After click, poll /api/sync-status every POLL_MS to learn when
+//      the agent has actually finished uploading. The progress bar is
+//      bound to real state, not a fixed timer:
+//        - 0–40%   grows over the first few seconds (request acked)
+//        - 40–90%  smoothly creeps while we wait for the agent
+//        - 100%    snaps when lastUploadedAt > syncRequestedAt
+//      Times out at TIMEOUT_MS — likely the agent is offline.
+//   4. On real completion, soft-reload so the dashboard picks up new
+//      sessions. On timeout, show an error state instead of reloading.
 
 const AUTO_STALE_MS = 90 * 1000;     // auto-sync if data is older than this
 const COOLDOWN_MS = 20 * 1000;       // re-click guard window
-const PROGRESS_MS = 6 * 1000;        // visible progress duration before reload
+const POLL_MS = 1000;                // how often to check sync-status
+const TIMEOUT_MS = 60 * 1000;        // give up if agent never finishes
+const CREEP_TARGET_MS = 15 * 1000;   // time over which the bar creeps to 90%
+
+type Phase = "idle" | "syncing" | "done" | "timeout";
 
 export function SyncControl({
   lastSyncedAt,
@@ -39,10 +46,13 @@ export function SyncControl({
   syncingLabel: string; // "同步中"
   doneLabel: string;    // "已请求"
 }) {
-  const [status, setStatus] = useState<"idle" | "syncing" | "done">("idle");
+  const [phase, setPhase] = useState<Phase>("idle");
+  const [progress, setProgress] = useState(0); // 0–100
   const [cooldownEnds, setCooldownEnds] = useState<number | null>(null);
   const [now, setNow] = useState(() => Date.now());
   const autoFired = useRef(false);
+  const triggeredAtRef = useRef<number | null>(null);
+  const pollTimer = useRef<ReturnType<typeof setInterval> | null>(null);
   const reloadTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // 1Hz tick so the cooldown countdown re-renders.
@@ -62,9 +72,6 @@ export function SyncControl({
     const stale =
       lastSyncedAt == null || Date.now() - lastSyncedAt > AUTO_STALE_MS;
     if (!stale) return;
-    // Don't re-auto-fire within this browser session (until tab close)
-    // unless > 10 minutes pass — that's enough time for the agent's
-    // next heartbeat to have responded.
     const lastAutoStr = sessionStorage.getItem("tu-auto-synced-at");
     if (lastAutoStr) {
       const lastAuto = Number(lastAutoStr);
@@ -76,84 +83,150 @@ export function SyncControl({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [installed, paused, lastSyncedAt]);
 
+  function clearTimers() {
+    if (pollTimer.current) {
+      clearInterval(pollTimer.current);
+      pollTimer.current = null;
+    }
+    if (reloadTimer.current) {
+      clearTimeout(reloadTimer.current);
+      reloadTimer.current = null;
+    }
+  }
+
   async function trigger() {
-    if (status === "syncing") return;
+    if (phase === "syncing") return;
     const cooldownLeft = cooldownEnds ? cooldownEnds - Date.now() : 0;
     if (cooldownLeft > 0) return;
-    setStatus("syncing");
-    setCooldownEnds(Date.now() + COOLDOWN_MS);
+
+    const startedAt = Date.now();
+    triggeredAtRef.current = startedAt;
+    setPhase("syncing");
+    setProgress(5);
+    setCooldownEnds(startedAt + COOLDOWN_MS);
+
     try {
       await fetch("/api/sync-now", { method: "POST" });
+      // Bump to 40% on POST success — we know the server saw the click.
+      setProgress((p) => Math.max(p, 40));
     } catch {
-      // best-effort; the progress + reload still runs.
+      // best-effort; the polling loop is still authoritative.
     }
-    if (reloadTimer.current) clearTimeout(reloadTimer.current);
-    reloadTimer.current = setTimeout(() => {
-      setStatus("done");
-      // Soft reload — server re-renders the dashboard with any new
-      // sessions the agent uploaded in response to the sync flag.
-      setTimeout(() => window.location.reload(), 600);
-    }, PROGRESS_MS);
+
+    clearTimers();
+    pollTimer.current = setInterval(() => void poll(startedAt), POLL_MS);
   }
+
+  async function poll(startedAt: number) {
+    // Guard against late polls from a stale trigger.
+    if (triggeredAtRef.current !== startedAt) return;
+
+    const elapsed = Date.now() - startedAt;
+
+    // Smooth creep from current → ~90% over CREEP_TARGET_MS while waiting.
+    setProgress((p) => {
+      if (p >= 90) return p;
+      const target = Math.min(90, 40 + (50 * elapsed) / CREEP_TARGET_MS);
+      return Math.max(p, target);
+    });
+
+    try {
+      const res = await fetch("/api/sync-status", { cache: "no-store" });
+      if (!res.ok) throw new Error(`status ${res.status}`);
+      const data = (await res.json()) as {
+        syncRequestedAt: number | null;
+        lastUploadedAt: number | null;
+      };
+      const requested = data.syncRequestedAt ?? 0;
+      const uploaded = data.lastUploadedAt ?? 0;
+      // Done if the agent uploaded *after* our click. We compare against
+      // startedAt (client time) rather than requested (server time) to
+      // dodge clock skew — the agent's upload necessarily happened after
+      // the user clicked, regardless of which clock we trust.
+      if (uploaded > 0 && uploaded >= requested && uploaded > startedAt - 2000) {
+        clearTimers();
+        setProgress(100);
+        setPhase("done");
+        reloadTimer.current = setTimeout(() => {
+          window.location.reload();
+        }, 600);
+        return;
+      }
+    } catch {
+      // Transient network errors — keep polling, the bar keeps creeping.
+    }
+
+    if (elapsed > TIMEOUT_MS) {
+      clearTimers();
+      setPhase("timeout");
+      // Hold the bar where it was so user sees we tried.
+    }
+  }
+
+  // Reset to idle after timeout — user can click again.
+  useEffect(() => {
+    if (phase !== "timeout") return;
+    const id = setTimeout(() => {
+      setPhase("idle");
+      setProgress(0);
+    }, 5000);
+    return () => clearTimeout(id);
+  }, [phase]);
+
+  useEffect(() => () => clearTimers(), []);
 
   const cooldownLeftSec = cooldownEnds
     ? Math.max(0, Math.ceil((cooldownEnds - now) / 1000))
     : 0;
   const disabled =
-    !installed || paused || status === "syncing" || cooldownLeftSec > 0;
+    !installed || paused || phase === "syncing" || cooldownLeftSec > 0;
 
-  const Icon = status === "done" ? Check : RefreshCw;
+  let Icon = RefreshCw;
+  if (phase === "done") Icon = Check;
+  else if (phase === "timeout") Icon = AlertCircle;
+
+  const buttonLabel =
+    phase === "syncing"
+      ? syncingLabel
+      : phase === "done"
+        ? doneLabel
+        : phase === "timeout"
+          ? "agent 未响应"
+          : cooldownLeftSec > 0
+            ? `${cooldownLeftSec}s`
+            : label;
 
   return (
     <>
-      {/* Top-of-page progress strip — visible only while syncing.
-          Animation pre-renders the bar from 0 → 100% over PROGRESS_MS
-          so the user sees actual movement, not a stuck "loading…". */}
-      {status === "syncing" && (
+      {/* Top-of-page progress strip — visible while syncing or briefly
+          on done/timeout. Width is driven by real `progress` state, not
+          a fixed-time CSS animation. */}
+      {(phase === "syncing" || phase === "done" || phase === "timeout") && (
         <div
           aria-hidden
           className="pointer-events-none fixed inset-x-0 top-0 z-50 h-1 overflow-hidden"
         >
           <div
-            className="h-full bg-accent"
-            style={{
-              animation: `tu-sync-progress ${PROGRESS_MS}ms cubic-bezier(0.22, 1, 0.36, 1) forwards`,
-            }}
+            className={`h-full transition-[width] duration-500 ease-out ${
+              phase === "timeout" ? "bg-red-500" : "bg-accent"
+            }`}
+            style={{ width: `${progress}%` }}
           />
-          <style>{`
-            @keyframes tu-sync-progress {
-              0% { width: 0%; }
-              60% { width: 70%; }
-              100% { width: 100%; }
-            }
-          `}</style>
         </div>
       )}
       <button
         type="button"
         onClick={trigger}
         disabled={disabled}
-        title={
-          status === "syncing"
-            ? syncingLabel
-            : cooldownLeftSec > 0
-              ? `${cooldownLeftSec}s`
-              : label
-        }
+        title={buttonLabel}
         className="inline-flex items-center gap-1.5 rounded-md border border-border-subtle bg-bg-panel px-3 py-1.5 text-xs font-medium text-fg-default transition-colors hover:border-accent hover:text-accent disabled:cursor-not-allowed disabled:opacity-60"
       >
         <Icon
-          className={`h-3.5 w-3.5 ${status === "syncing" ? "animate-spin" : ""}`}
+          className={`h-3.5 w-3.5 ${phase === "syncing" ? "animate-spin" : ""}`}
           strokeWidth={2}
           aria-hidden
         />
-        {status === "syncing"
-          ? syncingLabel
-          : status === "done"
-            ? doneLabel
-            : cooldownLeftSec > 0
-              ? `${cooldownLeftSec}s`
-              : label}
+        {buttonLabel}
       </button>
     </>
   );

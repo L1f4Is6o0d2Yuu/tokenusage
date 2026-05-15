@@ -1,6 +1,7 @@
 import type { NextRequest } from "next/server";
 import { authenticateApiToken } from "@/lib/auth";
 import { openServerDb } from "@/lib/server-db";
+import { classifySqliteError, retryableErrorHeaders } from "@/lib/sqlite-errors";
 
 type IngestRecord = {
   provider: string;
@@ -20,12 +21,17 @@ type IngestRecord = {
   title?: string | null;
 };
 
-function err(status: number, message: string): Response {
+function err(
+  status: number,
+  message: string,
+  extraHeaders?: Record<string, string>
+): Response {
   return new Response(JSON.stringify({ ok: false, message }), {
     status,
-    headers: { "content-type": "application/json" },
+    headers: { "content-type": "application/json", ...extraHeaders },
   });
 }
+
 
 export async function POST(req: NextRequest): Promise<Response> {
   const auth = req.headers.get("authorization") ?? "";
@@ -107,7 +113,19 @@ export async function POST(req: NextRequest): Promise<Response> {
         else inserted += 1;
       }
     });
-    txn(records as IngestRecord[]);
+    try {
+      txn(records as IngestRecord[]);
+    } catch (e) {
+      const retry = classifySqliteError(e);
+      if (retry) {
+        console.error(
+          `[api/ingest] retryable sqlite error (${retry.reason}):`,
+          e instanceof Error ? e.message : e
+        );
+        return err(503, `server busy: ${retry.reason}`, retryableErrorHeaders(retry));
+      }
+      throw e;
+    }
   } finally {
     db.close();
   }

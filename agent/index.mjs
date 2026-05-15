@@ -256,29 +256,52 @@ async function main() {
 
   // Chunk to avoid massive request bodies.
   const CHUNK = 500;
+  // When the server returns 503 (disk full, busy, readonly), back off for
+  // Retry-After seconds and retry the same chunk — up to MAX_RETRY times
+  // per chunk before giving up. Stops the agent dropping a whole sync just
+  // because the server briefly couldn't write.
+  const MAX_RETRY = 3;
   let totalInserted = 0;
   let totalUpdated = 0;
   for (let i = 0; i < records.length; i += CHUNK) {
     const chunk = records.slice(i, i + CHUNK);
     const url = `${cfg.server.replace(/\/$/, "")}/api/ingest`;
-    const res = await fetch(url, {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        authorization: `Bearer ${cfg.token}`,
-      },
-      body: JSON.stringify(chunk),
-    });
-    const text = await res.text();
-    if (!res.ok) {
-      console.error(`[agent] HTTP ${res.status}: ${text}`);
-      process.exit(1);
+    let attempt = 0;
+    let json = null;
+    while (attempt <= MAX_RETRY) {
+      const res = await fetch(url, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          authorization: `Bearer ${cfg.token}`,
+        },
+        body: JSON.stringify(chunk),
+      });
+      const text = await res.text();
+      if (res.status === 503 && attempt < MAX_RETRY) {
+        const reason = res.headers.get("x-tu-reason") || "busy";
+        const retryAfter = Number(res.headers.get("retry-after")) || 30;
+        attempt += 1;
+        console.error(
+          `[agent] chunk ${i / CHUNK + 1}: 503 (${reason}), retry ${attempt}/${MAX_RETRY} in ${retryAfter}s`
+        );
+        await new Promise((r) => setTimeout(r, retryAfter * 1000));
+        continue;
+      }
+      if (!res.ok) {
+        console.error(`[agent] HTTP ${res.status}: ${text}`);
+        process.exit(1);
+      }
+      try {
+        json = JSON.parse(text);
+      } catch {
+        console.error(`[agent] non-JSON response: ${text.slice(0, 200)}`);
+        process.exit(1);
+      }
+      break;
     }
-    let json;
-    try {
-      json = JSON.parse(text);
-    } catch {
-      console.error(`[agent] non-JSON response: ${text.slice(0, 200)}`);
+    if (!json) {
+      console.error(`[agent] chunk ${i / CHUNK + 1}: retries exhausted, aborting`);
       process.exit(1);
     }
     totalInserted += json.inserted ?? 0;

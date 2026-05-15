@@ -11,6 +11,7 @@ import { markUploaded } from "@/lib/sync-state";
 import { parseHermesFromPath } from "@/lib/adapters/hermes";
 import { parseCodexFromDir } from "@/lib/adapters/codex";
 import { parseClaudeCodeFromDir } from "@/lib/adapters/claude-code";
+import { classifySqliteError, retryableErrorHeaders } from "@/lib/sqlite-errors";
 import type { UsageRecord } from "@/lib/types";
 
 // Cap upload size at 500 MB. Real-world payloads are tens to a couple
@@ -18,10 +19,14 @@ import type { UsageRecord } from "@/lib/types";
 // we expect an order of magnitude smaller. 500 MB is a safety net.
 const MAX_BYTES = 500 * 1024 * 1024;
 
-function err(status: number, message: string): Response {
+function err(
+  status: number,
+  message: string,
+  extraHeaders?: Record<string, string>
+): Response {
   return new Response(JSON.stringify({ ok: false, message }), {
     status,
-    headers: { "content-type": "application/json" },
+    headers: { "content-type": "application/json", ...extraHeaders },
   });
 }
 
@@ -177,8 +182,23 @@ export async function POST(req: NextRequest): Promise<Response> {
       updated,
     });
   } catch (e) {
+    const retry = classifySqliteError(e);
+    if (retry) {
+      console.error(
+        `[api/upload] retryable sqlite error (${retry.reason}):`,
+        e instanceof Error ? e.message : e
+      );
+      return err(503, `server busy: ${retry.reason}`, retryableErrorHeaders(retry));
+    }
     return err(500, e instanceof Error ? e.message : "upload failed");
   } finally {
-    fs.rm(tempDir, { recursive: true, force: true }).catch(() => {});
+    try {
+      await fs.rm(tempDir, { recursive: true, force: true });
+    } catch (cleanupErr) {
+      console.error(
+        `[api/upload] failed to clean ${tempDir}:`,
+        cleanupErr instanceof Error ? cleanupErr.message : cleanupErr
+      );
+    }
   }
 }

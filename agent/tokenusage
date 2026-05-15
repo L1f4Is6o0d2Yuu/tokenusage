@@ -381,18 +381,28 @@ upload() {
   tar czf "$TMP/payload.tar.gz" -C "$TMP/payload" .
   SIZE=$(wc -c < "$TMP/payload.tar.gz" | tr -d ' ')
 
-  if curl -fsS --max-time 600 \
+  HTTP_CODE=$(curl -sS --max-time 600 \
     -X POST "$SERVER/api/upload" \
     -H "Authorization: Bearer $TOKEN" -H "X-Agent-Version: $VERSION" \
     -H "Content-Type: application/gzip" \
     --data-binary "@$TMP/payload.tar.gz" \
-    -o /dev/null; then
-    LAST_UPLOAD=$(date +%s)
-    printf '%s' "$LAST_UPLOAD" > "$STATE_FILE"
-    printf '[%s] upload OK (%s bytes)\n' "$(ts)" "$SIZE"
-  else
-    printf '[%s] upload FAILED\n' "$(ts)"
-  fi
+    -o /dev/null -w '%{http_code}' 2>/dev/null) || HTTP_CODE=000
+
+  case "$HTTP_CODE" in
+    2*)
+      LAST_UPLOAD=$(date +%s)
+      printf '%s' "$LAST_UPLOAD" > "$STATE_FILE"
+      printf '[%s] upload OK (%s bytes)\n' "$(ts)" "$SIZE"
+      ;;
+    503)
+      # Server is busy (disk full / locked). The outer loop retries every
+      # 5 min anyway, so just log and move on — no exit, no state bump.
+      printf '[%s] upload 503 (server busy) — will retry next cycle\n' "$(ts)"
+      ;;
+    *)
+      printf '[%s] upload FAILED (HTTP %s)\n' "$(ts)" "$HTTP_CODE"
+      ;;
+  esac
 
   rm -rf "$TMP"
 }
