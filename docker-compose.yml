@@ -42,10 +42,14 @@ services:
       - "443:443"
     environment:
       TOKENUSAGE_DOMAIN: ${TOKENUSAGE_DOMAIN:-localhost}
+      TOKENUSAGE_DEV_DOMAIN: ${TOKENUSAGE_DEV_DOMAIN:-dev.localhost}
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
       - caddy_config:/config
+    networks:
+      - default
+      - edge
     depends_on:
       - app
 
@@ -53,3 +57,8 @@ volumes:
   tokenusage_data:
   caddy_data:
   caddy_config:
+
+networks:
+  default:
+  edge:
+    name: tokenusage_edge

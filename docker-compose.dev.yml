@@ -1,0 +1,45 @@
+# Dev stack for tokenusage. Runs alongside the prod stack on the same host,
+# sharing the prod-managed Caddy via the external `tokenusage_edge` network.
+#
+# Usage on the host:
+#
+#   cd /opt/tokenusage-dev   # separate clone, checked out to `dev` branch
+#   docker compose -f docker-compose.dev.yml -p tokenusage-dev up -d --build
+#
+# Prereqs:
+#   - `tokenusage_edge` external network exists (created by the prod stack's
+#     first `up` after the Caddy-shared-network change).
+#   - DNS for $TOKENUSAGE_DEV_DOMAIN (default dev.tokenusage.online) points
+#     at this host. Caddy will auto-provision a Let's Encrypt cert.
+#   - .env contains TOKENUSAGE_DEV_DOMAIN=dev.tokenusage.online (optional;
+#     dev.tokenusage.online is hardcoded as the upstream alias regardless).
+
+services:
+  app-dev:
+    build: .
+    image: tokenusage:dev
+    restart: unless-stopped
+    environment:
+      TOKENUSAGE_SERVER_DB: /data/server.db
+      TOKENUSAGE_PUBLIC_URL: https://${TOKENUSAGE_DEV_DOMAIN:-dev.tokenusage.online}
+      # OpenRouter intentionally left unset on dev — no auth-gated calls.
+    volumes:
+      - tokenusage_data_dev:/data
+    networks:
+      - edge
+    expose:
+      - "3000"
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1:3000/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+volumes:
+  tokenusage_data_dev:
+
+networks:
+  edge:
+    name: tokenusage_edge
+    external: true

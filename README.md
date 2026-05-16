@@ -63,6 +63,23 @@ For sharing one dashboard across multiple machines — your home server hosts it
 
 The server DB lives in the named Docker volume `tokenusage_data` (mounted at `/data/server.db` inside the container). Back it up with `docker compose run --rm app cp /data/server.db /data/server.db.bak` or by snapshotting the volume host-side.
 
+### Dev stack on the same host
+
+For staging new versions without touching prod, run a second compose project that shares Caddy via an external network:
+
+1. Add an `A`/`AAAA` record for `dev.your.domain.example` pointing at the same host.
+2. In the prod stack's `.env`, set `TOKENUSAGE_DEV_DOMAIN=dev.your.domain.example`, then `docker compose up -d` once to apply the new Caddyfile (this also creates the `tokenusage_edge` network).
+3. Clone the repo to a separate directory and check out the dev branch:
+
+   ```bash
+   git clone https://github.com/L1f4Is6o0d2Yuu/tokenusage /opt/tokenusage-dev
+   cd /opt/tokenusage-dev && git checkout dev
+   echo "TOKENUSAGE_DEV_DOMAIN=dev.your.domain.example" > .env
+   docker compose -f docker-compose.dev.yml -p tokenusage-dev up -d --build
+   ```
+
+The dev stack has its own DB volume (`tokenusage_data_dev`) and its own admin user — create one at `https://dev.your.domain.example/signup`. Promotion to prod is the usual `git merge dev → main` flow followed by the prod deploy command.
+
 ### Bare-metal alternative
 
 If you'd rather not use Docker:
