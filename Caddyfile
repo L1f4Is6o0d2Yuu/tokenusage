@@ -1,6 +1,22 @@
 # Reverse-proxy + automatic HTTPS for tokenusage.
 # {$TOKENUSAGE_DOMAIN} comes from docker-compose's environment.
 
+{
+	# rate_limit must be ordered relative to other handlers. Place it before
+	# reverse_proxy so a flooded request never reaches the upstream.
+	order rate_limit before reverse_proxy
+
+	# Trust Cloudflare's published IP ranges as proxies. With this:
+	#   - {client_ip} returns the real visitor IP (from CF-Connecting-IP /
+	#     X-Forwarded-For), not the CF anycast hop
+	#   - upstream X-Forwarded-For carries the real chain
+	# Without this, rate_limit by IP would key off CF's anycast addresses
+	# (so a few hundred users behind the same CF PoP would share a limit).
+	servers {
+		trusted_proxies cloudflare
+	}
+}
+
 (common) {
 	encode gzip
 	# Tighten a couple of headers. The dashboard doesn't load third-party
@@ -24,7 +40,30 @@
 	}
 }
 
+# Per-IP rate limit for auth and write endpoints. Two zones because legit
+# usage patterns differ — humans hit /login a handful of times, agents
+# hit /api/upload steadily but never in bursts.
+(rate_limits) {
+	@auth path /login /signup /forgot-password
+	rate_limit @auth {
+		zone auth_per_ip {
+			key {client_ip}
+			events 10
+			window 1m
+		}
+	}
+	@write path /api/upload /api/ingest
+	rate_limit @write {
+		zone write_per_ip {
+			key {client_ip}
+			events 60
+			window 1m
+		}
+	}
+}
+
 {$TOKENUSAGE_DOMAIN} {
+	import rate_limits
 	reverse_proxy app:3000
 	import common
 }
@@ -33,6 +72,7 @@
 # attaches an `app-dev` alias to the shared `tokenusage_edge` network.
 # Until then this site 502s, which is fine for staging URLs.
 {$TOKENUSAGE_DEV_DOMAIN} {
+	import rate_limits
 	reverse_proxy app-dev:3000
 	import common
 }
