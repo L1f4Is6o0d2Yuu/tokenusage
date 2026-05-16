@@ -15,12 +15,16 @@
 		output stdout
 		format console
 	}
+	# DNS-01 ACME challenge via Cloudflare. Works regardless of whether
+	# the zone is behind Cloudflare's orange-cloud proxy. Requires the
+	# caddy-dns/cloudflare plugin (baked into ./caddy/Dockerfile) and
+	# CLOUDFLARE_API_TOKEN in the environment.
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
 }
 
 {$TOKENUSAGE_DOMAIN} {
-	# Caddy auto-provisions Let's Encrypt certs for any real domain. For
-	# `localhost` it falls back to its internal CA — trust the cert that
-	# Caddy prints to logs on first start.
 	reverse_proxy app:3000
 	import common
 }

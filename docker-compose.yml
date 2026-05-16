@@ -35,7 +35,8 @@ services:
       start_period: 15s
 
   caddy:
-    image: caddy:2-alpine
+    build: ./caddy
+    image: tokenusage-caddy:latest
     restart: unless-stopped
     ports:
       - "80:80"
@@ -43,6 +44,10 @@ services:
     environment:
       TOKENUSAGE_DOMAIN: ${TOKENUSAGE_DOMAIN:-localhost}
       TOKENUSAGE_DEV_DOMAIN: ${TOKENUSAGE_DEV_DOMAIN:-dev.localhost}
+      # Required when sites are behind Cloudflare proxy so LE renewals
+      # use DNS-01 instead of HTTP-01. Caddy fails to start without it
+      # if the Caddyfile references the dns module — set in .env.
+      CLOUDFLARE_API_TOKEN: ${CLOUDFLARE_API_TOKEN:?CLOUDFLARE_API_TOKEN required for DNS-01 challenge — see .env.example}
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
