@@ -225,6 +225,28 @@ function migrate(db: Database.Database): void {
     CREATE INDEX IF NOT EXISTS idx_shares_user
       ON shares(user_id, created_at DESC);
   `);
+
+  // v0.24: audit log. One row per security-relevant action (login,
+  // signup, invite redemption, password reset, agent upload/ingest).
+  // user_id is nullable so we can record `login_failed` against a
+  // non-existent or unknown user. `meta` is a freeform JSON blob.
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS audit_log (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+      action TEXT NOT NULL,
+      ip TEXT,
+      user_agent TEXT,
+      meta TEXT,
+      ts INTEGER NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_audit_log_user_ts
+      ON audit_log(user_id, ts DESC);
+    CREATE INDEX IF NOT EXISTS idx_audit_log_action_ts
+      ON audit_log(action, ts DESC);
+    CREATE INDEX IF NOT EXISTS idx_audit_log_ts
+      ON audit_log(ts DESC);
+  `);
 }
 
 export function openServerDb(): Database.Database {

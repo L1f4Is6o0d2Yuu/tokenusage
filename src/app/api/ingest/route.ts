@@ -2,6 +2,7 @@ import type { NextRequest } from "next/server";
 import { authenticateApiToken } from "@/lib/auth";
 import { openServerDb } from "@/lib/server-db";
 import { classifySqliteError, retryableErrorHeaders } from "@/lib/sqlite-errors";
+import { recordAudit } from "@/lib/audit";
 
 type IngestRecord = {
   provider: string;
@@ -129,6 +130,18 @@ export async function POST(req: NextRequest): Promise<Response> {
   } finally {
     db.close();
   }
+
+  recordAudit({
+    userId: user.id,
+    action: "ingest",
+    ip: req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null,
+    userAgent: req.headers.get("user-agent"),
+    meta: {
+      submitted: Array.isArray(records) ? records.length : 0,
+      inserted,
+      updated,
+    },
+  });
 
   return new Response(
     JSON.stringify({ ok: true, inserted, updated, user: user.username }),

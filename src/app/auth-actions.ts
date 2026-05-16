@@ -17,6 +17,7 @@ import {
 import { isFirstRun, isMultiUserMode } from "@/lib/server-db";
 import { cookieOptions } from "@/lib/cookie-opts";
 import { isValidEmail, checkPasswordPolicy } from "@/lib/auth-validation";
+import { recordAudit } from "@/lib/audit";
 
 const ONE_MONTH = 60 * 60 * 24 * 30;
 
@@ -36,6 +37,11 @@ async function clientIpFromHeaders(): Promise<string> {
   return h.get("x-real-ip")?.trim() ?? "";
 }
 
+async function userAgentFromHeaders(): Promise<string | null> {
+  const h = await headers();
+  return h.get("user-agent");
+}
+
 export type AuthFormState = { error?: string };
 
 export async function loginAction(
@@ -45,10 +51,21 @@ export async function loginAction(
   const username = String(formData.get("username") ?? "").trim();
   const password = String(formData.get("password") ?? "");
   if (!username || !password) return { error: "username and password are required" };
+  const ip = await clientIpFromHeaders();
+  const ua = await userAgentFromHeaders();
   const user = authenticate(username, password);
-  if (!user) return { error: "invalid username or password" };
-  recordUserIp(user.id, await clientIpFromHeaders());
-  recordUserIp(user.id, await clientIpFromHeaders());
+  if (!user) {
+    recordAudit({
+      userId: null,
+      action: "login_failed",
+      ip,
+      userAgent: ua,
+      meta: { username },
+    });
+    return { error: "invalid username or password" };
+  }
+  recordUserIp(user.id, ip);
+  recordAudit({ userId: user.id, action: "login", ip, userAgent: ua });
   const token = createSession(user.id);
   await setSessionCookie(token);
   revalidatePath("/", "layout");
@@ -85,7 +102,10 @@ export async function signupAction(
     password,
     isAdmin: true,
   });
-  recordUserIp(user.id, await clientIpFromHeaders());
+  const ip = await clientIpFromHeaders();
+  const ua = await userAgentFromHeaders();
+  recordUserIp(user.id, ip);
+  recordAudit({ userId: user.id, action: "signup", ip, userAgent: ua });
   const token = createSession(user.id);
   await setSessionCookie(token);
   revalidatePath("/", "layout");
@@ -119,7 +139,16 @@ export async function redeemInviteAction(
     }
     return { error: msg };
   }
-  recordUserIp(user.id, await clientIpFromHeaders());
+  const ip = await clientIpFromHeaders();
+  const ua = await userAgentFromHeaders();
+  recordUserIp(user.id, ip);
+  recordAudit({
+    userId: user.id,
+    action: "invite_redeemed",
+    ip,
+    userAgent: ua,
+    meta: { username: finalUsername },
+  });
   const token = createSession(user.id);
   await setSessionCookie(token);
   revalidatePath("/", "layout");
@@ -167,7 +196,10 @@ export async function forgotPasswordCompleteAction(
   // Log the user in directly: the admin already vouched for them.
   const auth = authenticate(email, password);
   if (auth) {
-    recordUserIp(auth.id, await clientIpFromHeaders());
+    const ip = await clientIpFromHeaders();
+    const ua = await userAgentFromHeaders();
+    recordUserIp(auth.id, ip);
+    recordAudit({ userId: auth.id, action: "password_reset", ip, userAgent: ua });
     const token = createSession(auth.id);
     await setSessionCookie(token);
   }

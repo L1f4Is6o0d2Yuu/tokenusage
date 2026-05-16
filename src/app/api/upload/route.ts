@@ -9,6 +9,7 @@ import { pipeline } from "node:stream/promises";
 import { authenticateApiToken, recordAgentVersion } from "@/lib/auth";
 import { openServerDb } from "@/lib/server-db";
 import { markUploaded } from "@/lib/sync-state";
+import { recordAudit } from "@/lib/audit";
 import { parseHermesFromPath } from "@/lib/adapters/hermes";
 import { parseCodexFromDir } from "@/lib/adapters/codex";
 import { parseClaudeCodeFromDir } from "@/lib/adapters/claude-code";
@@ -195,6 +196,22 @@ export async function POST(req: NextRequest): Promise<Response> {
     const all = [...hermesRecs, ...codexRecs, ...claudeRecs];
     const { inserted, updated } = upsertRecords(user.id, all);
     markUploaded(user.id);
+
+    recordAudit({
+      userId: user.id,
+      action: "upload",
+      ip: req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null,
+      userAgent: req.headers.get("user-agent"),
+      meta: {
+        hermes: hermesRecs.length,
+        codex: codexRecs.length,
+        claudeCode: claudeRecs.length,
+        inserted,
+        updated,
+        bytes: lengthHeader ? Number(lengthHeader) : null,
+        agentVersion: reportedVersion ?? null,
+      },
+    });
 
     return Response.json({
       ok: true,
