@@ -10,6 +10,7 @@ import {
 import { getPublicUrl } from "@/lib/public-url";
 import { cookieOptions } from "@/lib/cookie-opts";
 import {
+  createPendingOauthUser,
   createSession,
   findUserByEmail,
   recordUserIp,
@@ -68,36 +69,43 @@ export async function GET(req: NextRequest): Promise<Response> {
     return await redirectToLogin("oauth_email_unverified");
   }
 
-  const user = findUserByEmail(identity.email);
+  let user = findUserByEmail(identity.email);
   const h = await headers();
   const ip = h.get("x-forwarded-for")?.split(",")[0]?.trim() ?? h.get("x-real-ip") ?? null;
   const ua = h.get("user-agent");
 
   if (!user) {
-    // No matching account. We don't auto-create; new users must redeem
-    // an invite first. Record the attempt so an admin can see "Alice
-    // tried to sign in via Google" and decide whether to invite her.
+    // No matching account → create a pending user. The (app) layout will
+    // redirect them to /pending until an admin flips them active from
+    // /users. We session them in so the admin can see who they are and
+    // they can return to /pending without re-doing the Google flow.
+    user = createPendingOauthUser({
+      email: identity.email,
+      preferredUsername: identity.name,
+    });
     recordAudit({
-      userId: null,
-      action: "login_failed",
+      userId: user.id,
+      action: "oauth_pending_created",
       ip,
       userAgent: ua,
-      meta: { method: "google", reason: "no_account", email: identity.email },
+      meta: { method: "google", email: identity.email, name: identity.name },
     });
-    return await redirectToLogin("oauth_no_account");
+  } else {
+    recordAudit({
+      userId: user.id,
+      action: "login",
+      ip,
+      userAgent: ua,
+      meta: { method: "google", activated: user.activatedAt != null },
+    });
   }
 
   recordUserIp(user.id, ip ?? "");
-  recordAudit({
-    userId: user.id,
-    action: "login",
-    ip,
-    userAgent: ua,
-    meta: { method: "google" },
-  });
 
   const sessionToken = createSession(user.id);
-  const res = NextResponse.redirect(new URL("/", origin), { status: 303 });
+  // Pending users land on /pending; activated users land on /.
+  const landingPath = user.activatedAt == null ? "/pending" : "/";
+  const res = NextResponse.redirect(new URL(landingPath, origin), { status: 303 });
   res.cookies.set(SESSION_COOKIE, sessionToken, cookieOptions(ONE_MONTH));
   // Clear the flow cookies — they served their purpose.
   res.cookies.set(OAUTH_STATE_COOKIE, "", { path: "/", maxAge: 0 });

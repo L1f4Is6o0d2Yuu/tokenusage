@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import {
   readCurrentUser,
@@ -8,7 +9,9 @@ import {
   revokeInvite,
   flagPasswordReset,
   updateInviteNote,
+  activateUser,
 } from "@/lib/auth";
+import { recordAudit } from "@/lib/audit";
 
 async function requireAdmin() {
   const user = await readCurrentUser();
@@ -53,5 +56,25 @@ export async function resetUserPasswordAction(formData: FormData): Promise<void>
   const id = Number(formData.get("userId"));
   if (!Number.isFinite(id) || id === admin.id) return;
   flagPasswordReset(id);
+  revalidatePath("/users");
+}
+
+// Flip a pending OAuth-created user to active. After this the user can
+// sign in and land directly in the dashboard. Records an audit entry
+// pointing at the admin who approved, so we can answer "who let this
+// person in?" later.
+export async function activateUserAction(formData: FormData): Promise<void> {
+  const admin = await requireAdmin();
+  const id = Number(formData.get("userId"));
+  if (!Number.isFinite(id)) return;
+  activateUser(id);
+  const h = await headers();
+  recordAudit({
+    userId: admin.id,
+    action: "user_activated",
+    ip: h.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null,
+    userAgent: h.get("user-agent"),
+    meta: { target_user_id: id },
+  });
   revalidatePath("/users");
 }

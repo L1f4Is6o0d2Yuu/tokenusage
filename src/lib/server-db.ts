@@ -226,6 +226,15 @@ function migrate(db: Database.Database): void {
       ON shares(user_id, created_at DESC);
   `);
 
+  // v0.24: pending-user gate. New users created via OAuth without an
+  // existing matching email are inserted with activated_at=NULL, which
+  // the (app) layout redirects to /pending until an admin flips them
+  // active. Existing users at migration time are all pre-activated.
+  if (!hasColumn(db, "users", "activated_at")) {
+    db.exec(`ALTER TABLE users ADD COLUMN activated_at INTEGER`);
+    db.exec(`UPDATE users SET activated_at = created_at WHERE activated_at IS NULL`);
+  }
+
   // v0.24: audit log. One row per security-relevant action (login,
   // signup, invite redemption, password reset, agent upload/ingest).
   // user_id is nullable so we can record `login_failed` against a

@@ -7,7 +7,6 @@ import { googleConfigured } from "@/lib/oauth-google";
 import { getDictionary } from "@/i18n";
 
 const OAUTH_ERROR_MESSAGES: Record<string, string> = {
-  oauth_no_account: "no account with that Google address — ask an admin for an invite",
   oauth_email_unverified: "Google says this address is unverified",
   oauth_state_mismatch: "session got out of sync — try again",
   oauth_expired: "sign-in link expired — try again",

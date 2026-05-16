@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { readCurrentUser, listUsers, listInvites } from "@/lib/auth";
 import { isMultiUserMode } from "@/lib/server-db";
 import { getPublicUrl } from "@/lib/public-url";
-import { createInviteAction, revokeInviteAction, resetUserPasswordAction } from "./actions";
+import { createInviteAction, revokeInviteAction, resetUserPasswordAction, activateUserAction } from "./actions";
 import { SubmitButton } from "@/components/submit-button";
 import { CopyInviteLink } from "@/components/copy-invite-link";
 import { EditableInviteNote } from "@/components/editable-invite-note";
@@ -269,8 +269,21 @@ export default async function UsersPage({
                         <span className="text-xs text-fg-faint">—</span>
                       )}
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="space-x-2">
                       {u.isAdmin && <Badge variant="outline">{t.badgeAdmin}</Badge>}
+                      {u.activatedAt == null && (
+                        <>
+                          <Badge variant="outline" className="text-warning">Pending</Badge>
+                          {u.id !== user.id && (
+                            <form action={activateUserAction} className="inline-block">
+                              <input type="hidden" name="userId" value={u.id} />
+                              <SubmitButton pendingText="Activating…">
+                                Activate
+                              </SubmitButton>
+                            </form>
+                          )}
+                        </>
+                      )}
                     </TableCell>
                   </TableRow>
                   );

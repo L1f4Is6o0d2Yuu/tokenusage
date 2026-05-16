@@ -13,6 +13,10 @@ export type User = {
   username: string;
   email: string | null;
   isAdmin: boolean;
+  // NULL = pending (created via OAuth before admin approval). Non-NULL
+  // = activation timestamp. The (app) layout redirects pending users
+  // to /pending instead of letting them into the dashboard.
+  activatedAt: number | null;
   // Only populated by readCurrentUser(); other constructors leave it
   // undefined. Used by (app)/layout.tsx to decide whether to backfill
   // the IP for a session issued before IP tracking landed.
@@ -81,6 +85,7 @@ export async function readCurrentUser(): Promise<User | null> {
       .prepare(
         `SELECT u.id AS id, u.username AS username, u.email AS email,
                 u.is_admin AS is_admin, u.last_ip_at AS last_ip_at,
+                u.activated_at AS activated_at,
                 s.expires_at AS expires_at
          FROM auth_sessions s
          JOIN users u ON u.id = s.user_id
@@ -93,6 +98,7 @@ export async function readCurrentUser(): Promise<User | null> {
           email: string | null;
           is_admin: number;
           last_ip_at: number | null;
+          activated_at: number | null;
           expires_at: number;
         }
       | undefined;
@@ -106,6 +112,7 @@ export async function readCurrentUser(): Promise<User | null> {
       username: row.username,
       email: row.email,
       isAdmin: row.is_admin === 1,
+      activatedAt: row.activated_at,
       lastIpAt: row.last_ip_at,
     };
   } finally {
@@ -125,24 +132,85 @@ export type CreateUserInput = {
 export function createUser(input: CreateUserInput): User {
   const db = openServerDb();
   try {
+    const now = Date.now();
     const info = db
       .prepare(
-        `INSERT INTO users (username, email, password_hash, is_admin, created_at)
-         VALUES (?, ?, ?, ?, ?)`
+        `INSERT INTO users (username, email, password_hash, is_admin, created_at, activated_at)
+         VALUES (?, ?, ?, ?, ?, ?)`
       )
       .run(
         input.username,
         input.email ?? null,
         hashPassword(input.password),
         input.isAdmin ? 1 : 0,
-        Date.now()
+        now,
+        now
       );
     return {
       id: Number(info.lastInsertRowid),
       username: input.username,
       email: input.email ?? null,
       isAdmin: !!input.isAdmin,
+      activatedAt: now,
     };
+  } finally {
+    db.close();
+  }
+}
+
+// OAuth sign-in path: user proves they own the email via Google but has
+// no account yet. We create the row in a pending state (no password, no
+// admin, activated_at NULL) so an admin can review on /users and flip
+// them active. Until then they get the /pending placeholder.
+export function createPendingOauthUser(input: {
+  email: string;
+  preferredUsername?: string | null;
+}): User {
+  const db = openServerDb();
+  try {
+    const now = Date.now();
+    // Username defaults to the email local-part, with a numeric suffix on
+    // collision. We cap the candidate at 32 chars to leave room for the
+    // suffix and avoid surprising values in admin UI.
+    const seed = (input.preferredUsername || input.email.split("@")[0] || "user")
+      .toLowerCase()
+      .replace(/[^a-z0-9_-]/g, "")
+      .slice(0, 32) || "user";
+    let username = seed;
+    const exists = db.prepare(`SELECT 1 FROM users WHERE username = ? LIMIT 1`);
+    for (let i = 1; exists.get(username) && i < 1000; i++) {
+      username = `${seed}${i}`;
+    }
+    // No usable password — the bcrypt-shaped placeholder can never match a
+    // real password attempt because we set a random scrypt salt+key the
+    // user will never see. If the user later wants password login, the
+    // admin uses /forgot-password's flag flow.
+    const placeholder = hashPassword(crypto.randomBytes(32).toString("hex"));
+    const info = db
+      .prepare(
+        `INSERT INTO users (username, email, password_hash, is_admin, created_at, activated_at)
+         VALUES (?, ?, ?, 0, ?, NULL)`
+      )
+      .run(username, input.email, placeholder, now);
+    return {
+      id: Number(info.lastInsertRowid),
+      username,
+      email: input.email,
+      isAdmin: false,
+      activatedAt: null,
+    };
+  } finally {
+    db.close();
+  }
+}
+
+export function activateUser(userId: number): void {
+  const db = openServerDb();
+  try {
+    db.prepare(`UPDATE users SET activated_at = ? WHERE id = ? AND activated_at IS NULL`).run(
+      Date.now(),
+      userId
+    );
   } finally {
     db.close();
   }
@@ -157,11 +225,17 @@ export function findUserByEmail(email: string): User | null {
   try {
     const row = db
       .prepare(
-        `SELECT id, username, email, is_admin
+        `SELECT id, username, email, is_admin, activated_at
          FROM users WHERE lower(email) = lower(?) LIMIT 1`
       )
       .get(email) as
-      | { id: number; username: string; email: string | null; is_admin: number }
+      | {
+          id: number;
+          username: string;
+          email: string | null;
+          is_admin: number;
+          activated_at: number | null;
+        }
       | undefined;
     if (!row) return null;
     return {
@@ -169,6 +243,7 @@ export function findUserByEmail(email: string): User | null {
       username: row.username,
       email: row.email,
       isAdmin: row.is_admin === 1,
+      activatedAt: row.activated_at,
     };
   } finally {
     db.close();
@@ -182,7 +257,7 @@ export function authenticate(identifier: string, password: string): User | null 
   try {
     const row = db
       .prepare(
-        `SELECT id, username, email, is_admin, password_hash
+        `SELECT id, username, email, is_admin, password_hash, activated_at
          FROM users WHERE username = ? OR email = ? LIMIT 1`
       )
       .get(identifier, identifier) as
@@ -192,6 +267,7 @@ export function authenticate(identifier: string, password: string): User | null 
           email: string | null;
           is_admin: number;
           password_hash: string;
+          activated_at: number | null;
         }
       | undefined;
     if (!row) return null;
@@ -201,6 +277,7 @@ export function authenticate(identifier: string, password: string): User | null 
       username: row.username,
       email: row.email,
       isAdmin: row.is_admin === 1,
+      activatedAt: row.activated_at,
     };
   } finally {
     db.close();
@@ -364,17 +441,18 @@ export function redeemInvite(
       if (inv.usedAt != null) throw new Error("invite already used");
       if (inv.expiresAt < Date.now()) throw new Error("invite expired");
 
+      const now = Date.now();
       const info = db
         .prepare(
-          `INSERT INTO users (username, email, password_hash, is_admin, created_at)
-           VALUES (?, ?, ?, 0, ?)`
+          `INSERT INTO users (username, email, password_hash, is_admin, created_at, activated_at)
+           VALUES (?, ?, ?, 0, ?, ?)`
         )
-        .run(username, email, hashPassword(password), Date.now());
+        .run(username, email, hashPassword(password), now, now);
       const userId = Number(info.lastInsertRowid);
       db.prepare(
         `UPDATE invite_tokens SET used_at = ?, used_by_user_id = ? WHERE id = ?`
-      ).run(Date.now(), userId, inv.id);
-      return { id: userId, username, email, isAdmin: false };
+      ).run(now, userId, inv.id);
+      return { id: userId, username, email, isAdmin: false, activatedAt: now };
     });
     return txn();
   } finally {
@@ -388,6 +466,7 @@ export function listUsers(): Array<{
   email: string | null;
   isAdmin: boolean;
   createdAt: number;
+  activatedAt: number | null;
   passwordResetAt: number | null;
   lastIp: string | null;
   lastIpAt: number | null;
@@ -397,6 +476,7 @@ export function listUsers(): Array<{
     return db
       .prepare(
         `SELECT id, username, email, is_admin AS isAdmin, created_at AS createdAt,
+                activated_at AS activatedAt,
                 password_reset_at AS passwordResetAt,
                 last_ip AS lastIp, last_ip_at AS lastIpAt
          FROM users ORDER BY created_at ASC`
@@ -409,6 +489,7 @@ export function listUsers(): Array<{
           email: string | null;
           isAdmin: number;
           createdAt: number;
+          activatedAt: number | null;
           passwordResetAt: number | null;
           lastIp: string | null;
           lastIpAt: number | null;
@@ -523,13 +604,21 @@ export function authenticateApiToken(plaintext: string): User | null {
     const row = db
       .prepare(
         `SELECT u.id AS id, u.username AS username, u.email AS email,
-                u.is_admin AS is_admin, t.id AS token_id
+                u.is_admin AS is_admin, u.activated_at AS activated_at,
+                t.id AS token_id
          FROM api_tokens t
          JOIN users u ON u.id = t.user_id
          WHERE t.token_hash = ?`
       )
       .get(hashToken(plaintext)) as
-      | { id: number; username: string; email: string | null; is_admin: number; token_id: number }
+      | {
+          id: number;
+          username: string;
+          email: string | null;
+          is_admin: number;
+          activated_at: number | null;
+          token_id: number;
+        }
       | undefined;
     if (!row) return null;
     db.prepare(`UPDATE api_tokens SET last_used_at = ? WHERE id = ?`).run(
@@ -541,6 +630,7 @@ export function authenticateApiToken(plaintext: string): User | null {
       username: row.username,
       email: row.email,
       isAdmin: row.is_admin === 1,
+      activatedAt: row.activated_at,
     };
   } finally {
     db.close();

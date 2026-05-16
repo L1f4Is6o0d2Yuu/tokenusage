@@ -12,7 +12,9 @@ export type AuditAction =
   | "invite_redeemed"
   | "password_reset"
   | "upload"
-  | "ingest";
+  | "ingest"
+  | "oauth_pending_created"
+  | "user_activated";
 
 export function recordAudit(params: {
   userId: number | null;

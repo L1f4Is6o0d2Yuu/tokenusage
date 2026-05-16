@@ -1,4 +1,5 @@
 import { cookies, headers } from "next/headers";
+import { redirect } from "next/navigation";
 import { Sidebar } from "@/components/sidebar";
 import { readCurrentUser, recordUserIp, readAgentVersion } from "@/lib/auth";
 import { isMultiUserMode } from "@/lib/server-db";
@@ -33,6 +34,11 @@ export default async function AppLayout({
   const skin: Skin = isSkin(skinRaw) ? skinRaw : "linear";
 
   const user = isMultiUserMode() ? await readCurrentUser() : null;
+
+  // Pending users (created via OAuth before an admin approved them) are
+  // never allowed into the dashboard. The /pending page is outside this
+  // layout, so the redirect breaks out cleanly.
+  if (user && user.activatedAt == null) redirect("/pending");
 
   // Opportunistic IP backfill. Existing sessions issued before IP tracking
   // landed have a NULL last_ip; without this they'd stay invisible to the
