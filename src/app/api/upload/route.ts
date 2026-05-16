@@ -5,6 +5,7 @@ import fs from "node:fs/promises";
 import crypto from "node:crypto";
 import { spawn } from "node:child_process";
 import { Readable } from "node:stream";
+import { pipeline } from "node:stream/promises";
 import { authenticateApiToken, recordAgentVersion } from "@/lib/auth";
 import { openServerDb } from "@/lib/server-db";
 import { markUploaded } from "@/lib/sync-state";
@@ -32,6 +33,7 @@ function err(
 
 async function extractTarGz(req: NextRequest, dest: string): Promise<void> {
   if (!req.body) throw new Error("missing request body");
+
   const proc = spawn(
     "tar",
     ["xzf", "-", "-C", dest, "--no-same-owner", "--no-same-permissions"],
@@ -42,17 +44,41 @@ async function extractTarGz(req: NextRequest, dest: string): Promise<void> {
     stderr += chunk.toString("utf8");
   });
 
-  // Pipe Web ReadableStream → Node Readable → tar.stdin
-  const nodeBody = Readable.fromWeb(req.body as never);
-  nodeBody.pipe(proc.stdin);
+  // EPIPE on stdin shows up when tar dies before the body finishes; the real
+  // failure surfaces via pipeline() or the exit code, so swallow it here to
+  // avoid a stray unhandled stream error.
+  proc.stdin.on("error", () => {});
 
-  await new Promise<void>((resolve, reject) => {
-    proc.on("error", reject);
-    proc.on("exit", (code) => {
-      if (code === 0) resolve();
-      else reject(new Error(`tar exited ${code}: ${stderr.trim().slice(0, 500)}`));
-    });
-  });
+  // Capture exit eagerly so we can await it even after pipeline() rejects.
+  const exit = new Promise<{ code: number | null; signal: NodeJS.Signals | null }>(
+    (resolve) => {
+      proc.once("exit", (code, signal) => resolve({ code, signal }));
+    }
+  );
+
+  // Client abort → kill tar so we don't keep extracting after the agent hangs up.
+  const onAbort = () => {
+    if (!proc.killed && proc.exitCode == null) proc.kill("SIGTERM");
+  };
+  req.signal.addEventListener("abort", onAbort);
+
+  try {
+    const nodeBody = Readable.fromWeb(req.body as never);
+    // pipeline() propagates errors in both directions and closes streams on
+    // failure — unlike bare .pipe(), an abort here reliably rejects instead
+    // of dangling as an unhandled 'error' event on the body stream.
+    await pipeline(nodeBody, proc.stdin);
+    const { code, signal } = await exit;
+    if (code !== 0) {
+      throw new Error(
+        `tar exited ${code ?? signal}: ${stderr.trim().slice(0, 500)}`
+      );
+    }
+  } finally {
+    req.signal.removeEventListener("abort", onAbort);
+    if (!proc.killed && proc.exitCode == null) proc.kill("SIGTERM");
+    await exit;
+  }
 }
 
 function upsertRecords(
