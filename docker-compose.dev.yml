@@ -23,6 +23,10 @@ services:
       TOKENUSAGE_SERVER_DB: /data/server.db
       TOKENUSAGE_PUBLIC_URL: https://${TOKENUSAGE_DEV_DOMAIN:-dev.tokenusage.online}
       # OpenRouter intentionally left unset on dev — no auth-gated calls.
+      # Google Sign-In env vars are passed through so the dev stack can
+      # exercise the OAuth flow against a registered dev redirect URI.
+      GOOGLE_OAUTH_CLIENT_ID: ${GOOGLE_OAUTH_CLIENT_ID:-}
+      GOOGLE_OAUTH_CLIENT_SECRET: ${GOOGLE_OAUTH_CLIENT_SECRET:-}
     volumes:
       - tokenusage_data_dev:/data
     networks:

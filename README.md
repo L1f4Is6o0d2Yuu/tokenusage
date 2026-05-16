@@ -80,6 +80,22 @@ For staging new versions without touching prod, run a second compose project tha
 
 The dev stack has its own DB volume (`tokenusage_data_dev`) and its own admin user — create one at `https://dev.your.domain.example/signup`. Promotion to prod is the usual `git merge dev → main` flow followed by the prod deploy command.
 
+### Google Sign-In (optional)
+
+Add a "Sign in with Google" button to the login page by setting two env vars:
+
+1. At <https://console.cloud.google.com/apis/credentials>, create an **OAuth 2.0 Client ID** of type *Web application*.
+2. Under "Authorized redirect URIs", add `https://your.domain.example/auth/oauth/google/callback` (and the dev URL if you run the dev stack — both can live on the same client).
+3. Copy the **Client ID** and **Client secret** into `.env`:
+
+   ```
+   GOOGLE_OAUTH_CLIENT_ID=...
+   GOOGLE_OAUTH_CLIENT_SECRET=...
+   ```
+4. `docker compose up -d` (no rebuild needed — the env vars are read at request time).
+
+Google Sign-In is restricted to email addresses that already match an existing account. New users go through the regular invite flow (which collects their email), then can switch to Google on next sign-in using the same email.
+
 ### Bare-metal alternative
 
 If you'd rather not use Docker:

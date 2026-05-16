@@ -148,6 +148,33 @@ export function createUser(input: CreateUserInput): User {
   }
 }
 
+// Look up a user by email. Returns null when no row matches. Email
+// comparison is case-sensitive at the SQLite level — the UNIQUE index
+// is on the raw column — so we lowercase here to avoid mismatch with
+// the address Google reports for OAuth sign-in.
+export function findUserByEmail(email: string): User | null {
+  const db = openServerDb();
+  try {
+    const row = db
+      .prepare(
+        `SELECT id, username, email, is_admin
+         FROM users WHERE lower(email) = lower(?) LIMIT 1`
+      )
+      .get(email) as
+      | { id: number; username: string; email: string | null; is_admin: number }
+      | undefined;
+    if (!row) return null;
+    return {
+      id: row.id,
+      username: row.username,
+      email: row.email,
+      isAdmin: row.is_admin === 1,
+    };
+  } finally {
+    db.close();
+  }
+}
+
 // Login by either username or email — whichever the user typed in. Passwords
 // are still always required.
 export function authenticate(identifier: string, password: string): User | null {

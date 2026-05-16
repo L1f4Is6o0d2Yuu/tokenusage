@@ -23,6 +23,9 @@ services:
       # higher rate limits and paves the way for credits/generation
       # endpoints. The public /api/v1/models path still works without.
       OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+      # Optional Google Sign-In; both must be set for the button to render.
+      GOOGLE_OAUTH_CLIENT_ID: ${GOOGLE_OAUTH_CLIENT_ID:-}
+      GOOGLE_OAUTH_CLIENT_SECRET: ${GOOGLE_OAUTH_CLIENT_SECRET:-}
     volumes:
       - tokenusage_data:/data
     expose:
