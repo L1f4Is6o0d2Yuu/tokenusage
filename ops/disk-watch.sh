@@ -74,6 +74,10 @@ $sweep_summary."
     ;;
   *)
     # No state change: stay quiet (don't spam every 5 min).
-    [ "$new_level" != "$last_level" ] && echo "$new_level" > "$STATE_FILE"
+    if [ "$new_level" != "$last_level" ]; then
+      echo "$new_level" > "$STATE_FILE"
+    fi
     ;;
 esac
+
+exit 0
