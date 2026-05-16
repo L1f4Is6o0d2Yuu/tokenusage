@@ -3,10 +3,13 @@ import { authenticateApiToken, recordAgentVersion } from "@/lib/auth";
 import { getUserSyncState } from "@/lib/sync-state";
 import { waitSync } from "@/lib/sync-events";
 
-// Server-side maximum hold. Some proxies / NATs kill connections that go
-// quiet for too long, so even users who picked "1 hour" get 5-minute hold
-// cycles — they just won't trigger heartbeat uploads on every cycle.
-const MAX_HOLD_MS = 5 * 60 * 1000;
+// Server-side maximum hold. We're behind Cloudflare's orange-cloud proxy
+// (Free plan), which cuts any connection at 100s with a hard TCP reset.
+// Holding longer than that leaves the agent seeing "connection reset"
+// every cycle instead of a clean `{ sync: false }` response. 90s gives
+// us a safety margin under the limit while still amortising reconnect
+// cost across most idle minutes.
+const MAX_HOLD_MS = 90 * 1000;
 
 function err(status: number, message: string): Response {
   return new Response(JSON.stringify({ ok: false, message }), {
