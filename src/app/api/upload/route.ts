@@ -8,7 +8,7 @@ import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import { authenticateApiToken, recordAgentVersion } from "@/lib/auth";
 import { openServerDb } from "@/lib/server-db";
-import { markUploaded } from "@/lib/sync-state";
+import { markUploaded, clearUploadInProgress } from "@/lib/sync-state";
 import { recordAudit } from "@/lib/audit";
 import { parseHermesFromPath } from "@/lib/adapters/hermes";
 import { parseCodexFromDir } from "@/lib/adapters/codex";
@@ -203,6 +203,7 @@ export async function POST(req: NextRequest): Promise<Response> {
     const all = [...hermesRecs, ...codexRecs, ...claudeRecs];
     const { inserted, updated } = upsertRecords(user.id, all);
     markUploaded(user.id);
+    clearUploadInProgress(user.id);
 
     recordAudit({
       userId: user.id,
@@ -233,6 +234,9 @@ export async function POST(req: NextRequest): Promise<Response> {
       updated,
     });
   } catch (e) {
+    // Failed uploads should not leave a stale "uploading…" indicator
+    // sitting on the dashboard for the next 24 hours.
+    clearUploadInProgress(user.id);
     const retry = classifySqliteError(e);
     if (retry) {
       console.error(

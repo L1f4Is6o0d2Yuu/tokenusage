@@ -19,7 +19,7 @@
 
 set -uo pipefail
 
-VERSION="0.24.0"
+VERSION="0.25.0"
 CONFIG_DIR="$HOME/.tokenusage"
 CONFIG_FILE="$CONFIG_DIR/config.env"
 STATE_FILE="$CONFIG_DIR/state"
@@ -417,6 +417,18 @@ upload() {
 
   tar czf "$TMP/payload.tar.gz" -C "$TMP/payload" .
   SIZE=$(wc -c < "$TMP/payload.tar.gz" | tr -d ' ')
+
+  # Tell the server the tarball size before we start streaming the
+  # body. The dashboard reads this from /api/sync-status so it can show
+  # a real "uploading X MB · 1m 30s elapsed" indicator for the first
+  # sync (which can take minutes for a 300+ MB raw payload). Failures
+  # here are non-fatal — we still attempt the upload.
+  curl -sS --max-time 10 \
+    -X POST "$SERVER/api/upload-progress" \
+    -H "Authorization: Bearer $TOKEN" -H "X-Agent-Version: $VERSION" \
+    -H "Content-Type: application/json" \
+    --data "{\"totalBytes\":$SIZE}" \
+    -o /dev/null 2>/dev/null || true
 
   # Cloudflare Free/Pro caps request bodies at 100 MB at the edge.
   # If UPLOAD_SERVER is set in config.env (typically a "DNS only"

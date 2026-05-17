@@ -226,6 +226,19 @@ function migrate(db: Database.Database): void {
       ON shares(user_id, created_at DESC);
   `);
 
+  // v0.24: live upload-progress fields. The agent pings
+  // /api/upload-progress with `totalBytes` just before the curl POST,
+  // and the upload route clears them on success/failure. /install and
+  // SyncControl read these via /api/sync-status to render a real
+  // "uploading X MB · 1m 30s elapsed" indicator instead of leaving
+  // first-time users to wonder why nothing's happening.
+  if (!hasColumn(db, "users", "upload_started_at")) {
+    db.exec(`ALTER TABLE users ADD COLUMN upload_started_at INTEGER`);
+  }
+  if (!hasColumn(db, "users", "upload_total_bytes")) {
+    db.exec(`ALTER TABLE users ADD COLUMN upload_total_bytes INTEGER`);
+  }
+
   // v0.24: pending-user gate. New users created via OAuth without an
   // existing matching email are inserted with activated_at=NULL, which
   // the (app) layout redirects to /pending until an admin flips them

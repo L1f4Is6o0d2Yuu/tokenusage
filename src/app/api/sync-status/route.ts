@@ -24,5 +24,7 @@ export async function GET(): Promise<Response> {
     syncRequestedAt: state.syncRequestedAt,
     lastUploadedAt: state.lastUploadedAt,
     paused: state.paused,
+    uploadStartedAt: state.uploadStartedAt,
+    uploadTotalBytes: state.uploadTotalBytes,
   });
 }

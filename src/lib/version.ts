@@ -6,7 +6,7 @@
 // Two source of truths is regrettable but keeping it server-side
 // means we can show a stale-client warning even if a user is on an
 // old `tokenusage` binary that doesn't know about a newer one.
-export const LATEST_AGENT_VERSION = "0.24.0";
+export const LATEST_AGENT_VERSION = "0.25.0";
 
 // SemVer-ish comparison good enough for our X.Y.Z scheme. Returns
 // negative if a < b, 0 if equal, positive if a > b. Treats missing
