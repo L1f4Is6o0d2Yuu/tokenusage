@@ -381,8 +381,15 @@ upload() {
   tar czf "$TMP/payload.tar.gz" -C "$TMP/payload" .
   SIZE=$(wc -c < "$TMP/payload.tar.gz" | tr -d ' ')
 
+  # Cloudflare Free/Pro caps request bodies at 100 MB at the edge.
+  # If UPLOAD_SERVER is set in config.env (typically a "DNS only"
+  # sibling of $SERVER like https://direct.tokenusage.online), the
+  # tarball POST bypasses CF and lands directly on the origin Caddy,
+  # which allows up to 500 MB. Everything else (sync-wait long-poll,
+  # sync-now, export) still uses $SERVER and benefits from CF.
+  UPLOAD_URL="${UPLOAD_SERVER:-$SERVER}/api/upload"
   HTTP_CODE=$(curl -sS --max-time 600 \
-    -X POST "$SERVER/api/upload" \
+    -X POST "$UPLOAD_URL" \
     -H "Authorization: Bearer $TOKEN" -H "X-Agent-Version: $VERSION" \
     -H "Content-Type: application/gzip" \
     --data-binary "@$TMP/payload.tar.gz" \
@@ -398,6 +405,16 @@ upload() {
       # Server is busy (disk full / locked). The outer loop retries every
       # 5 min anyway, so just log and move on — no exit, no state bump.
       printf '[%s] upload 503 (server busy) — will retry next cycle\n' "$(ts)"
+      ;;
+    413)
+      # Body too large at the edge (likely Cloudflare's 100 MB cap).
+      # Bump LAST_UPLOAD so the retry storm subsides: the user will
+      # see a stale "last synced" stamp and notice, instead of the
+      # agent thrashing every 90s. They should set UPLOAD_SERVER in
+      # ~/.tokenusage/config.env to a DNS-only origin endpoint.
+      LAST_UPLOAD=$(date +%s)
+      printf '%s' "$LAST_UPLOAD" > "$STATE_FILE"
+      printf '[%s] upload 413 — payload exceeds proxy limit. Set UPLOAD_SERVER in %s to a DNS-only origin endpoint (e.g. https://direct.your.domain).\n' "$(ts)" "$CONFIG_FILE"
       ;;
     *)
       printf '[%s] upload FAILED (HTTP %s)\n' "$(ts)" "$HTTP_CODE"

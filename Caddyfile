@@ -68,6 +68,17 @@
 	import common
 }
 
+# Direct (non-CF-proxied) endpoint for the agent's tarball upload. CF
+# Free caps request bodies at 100 MB; once a user's claude-projects
+# directory grows past that, every upload 413s at the edge. This
+# subdomain is DNS-only at Cloudflare, so the agent's TLS connection
+# terminates here without going through CF. Caddy enforces a 500 MB
+# limit at the route layer; that's the actual ceiling.
+{$TOKENUSAGE_DIRECT_DOMAIN} {
+	reverse_proxy app:3000
+	import common
+}
+
 # Dev stack — only reachable when the dev compose project is up, which
 # attaches an `app-dev` alias to the shared `tokenusage_edge` network.
 # Until then this site 502s, which is fine for staging URLs.

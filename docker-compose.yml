@@ -47,6 +47,10 @@ services:
     environment:
       TOKENUSAGE_DOMAIN: ${TOKENUSAGE_DOMAIN:-localhost}
       TOKENUSAGE_DEV_DOMAIN: ${TOKENUSAGE_DEV_DOMAIN:-dev.localhost}
+      # Non-proxied upload endpoint. Same upstream as the prod site, but
+      # the DNS record is "DNS only" at Cloudflare so the agent's POSTs
+      # avoid CF's 100 MB body cap.
+      TOKENUSAGE_DIRECT_DOMAIN: ${TOKENUSAGE_DIRECT_DOMAIN:-direct.localhost}
       # Required when sites are behind Cloudflare proxy so LE renewals
       # use DNS-01 instead of HTTP-01. Caddy fails to start without it
       # if the Caddyfile references the dns module — set in .env.
