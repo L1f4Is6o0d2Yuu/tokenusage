@@ -15,7 +15,7 @@
 set -u
 
 BACKUP_DIR="${BACKUP_DIR:-/var/backups/tokenusage}"
-CONTAINER="${CONTAINER:-tokenusage-app-1}"
+VOLUME="${VOLUME:-tokenusage_tokenusage_data}"
 KEEP_DAYS="${KEEP_DAYS:-14}"
 NOTIFY="${NOTIFY:-/opt/tokenusage/ops/notify.sh}"
 
@@ -23,17 +23,22 @@ mkdir -p "$BACKUP_DIR"
 TS=$(date -u +%Y-%m-%dT%H%M%SZ)
 SNAPSHOT="$BACKUP_DIR/server.${TS}.db"
 
-# Snapshot inside the container, then copy out.
-if ! docker exec "$CONTAINER" sqlite3 /data/server.db ".backup /tmp/server.snapshot.db" 2>/dev/null; then
-  /bin/sh "$NOTIFY" "🚨 backup FAILED" "sqlite3 .backup inside $CONTAINER returned non-zero"
+# Resolve the host-side mountpoint of the named volume. Running sqlite3
+# from the host (rather than docker exec) avoids needing the CLI inside
+# our minimal Alpine app image. .backup is WAL-safe even with the app
+# writing concurrently — sqlite3 acquires a shared reader lock for the
+# duration and re-tries on the busy timeout.
+SRC=$(docker volume inspect "$VOLUME" --format '{{.Mountpoint}}' 2>/dev/null)/server.db
+if [ ! -f "$SRC" ]; then
+  /bin/sh "$NOTIFY" "🚨 backup FAILED" "server.db not found at $SRC"
   exit 1
 fi
-if ! docker cp "$CONTAINER:/tmp/server.snapshot.db" "$SNAPSHOT" 2>/dev/null; then
-  /bin/sh "$NOTIFY" "🚨 backup FAILED" "docker cp from $CONTAINER returned non-zero"
-  docker exec "$CONTAINER" rm -f /tmp/server.snapshot.db 2>/dev/null
+
+if ! sqlite3 "$SRC" ".backup $SNAPSHOT" 2>/dev/null; then
+  /bin/sh "$NOTIFY" "🚨 backup FAILED" "sqlite3 .backup against $SRC returned non-zero"
+  rm -f "$SNAPSHOT"
   exit 1
 fi
-docker exec "$CONTAINER" rm -f /tmp/server.snapshot.db 2>/dev/null
 
 # Compress to save disk (~40% reduction on a typical sqlite file).
 gzip -9 "$SNAPSHOT"
