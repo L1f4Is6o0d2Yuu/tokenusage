@@ -19,7 +19,7 @@
 
 set -uo pipefail
 
-VERSION="0.19.2"
+VERSION="0.24.0"
 CONFIG_DIR="$HOME/.tokenusage"
 CONFIG_FILE="$CONFIG_DIR/config.env"
 STATE_FILE="$CONFIG_DIR/state"
@@ -373,6 +373,38 @@ upload() {
     fi
   fi
 
+  # Incremental mode: prune big JSONL files that haven't changed since
+  # the last successful upload. Control files (hermes.db slim,
+  # codex/state_5.sqlite) always stay — the server-side parsers need
+  # them to enumerate which sessions exist at all.
+  #
+  # First upload after install (LAST_UPLOAD=0) sends everything. Same
+  # for the eager retry after a 413 — we bumped LAST_UPLOAD on that
+  # path so subsequent syncs are incremental.
+  INCREMENTAL=0
+  if [ "$LAST_UPLOAD" -gt 0 ]; then
+    # Build a marker file with mtime exactly $LAST_UPLOAD so find -newer
+    # is portable across BSD (macOS) and GNU (Linux) flavors of touch.
+    MARKER="$TMP/.mtime-marker"
+    case "$(uname -s)" in
+      Darwin) touch -t "$(date -r "$LAST_UPLOAD" +%Y%m%d%H%M.%S)" "$MARKER" 2>/dev/null ;;
+      *)      touch -d "@$LAST_UPLOAD" "$MARKER" 2>/dev/null ;;
+    esac
+    if [ -f "$MARKER" ]; then
+      # Sweep large JSONLs that haven't changed. Use find ! -newer so
+      # the marker file itself (mtime == $LAST_UPLOAD) doesn't get
+      # included spuriously.
+      for sweep in "$TMP/payload/claude-projects" "$TMP/payload/codex/sessions"; do
+        [ -d "$sweep" ] || continue
+        find "$sweep" -type f -name '*.jsonl' \! -newer "$MARKER" -delete 2>/dev/null
+        # Remove any now-empty subdirs so tar doesn't carry them.
+        find "$sweep" -type d -empty -delete 2>/dev/null
+      done
+      rm -f "$MARKER"
+      INCREMENTAL=1
+    fi
+  fi
+
   # Even when none of the source dirs exist, send the (empty) tarball
   # anyway. Server-side it costs ~nothing — 0 records insert, 0 bytes
   # written to sessions_data — but `last_uploaded_at` gets updated, so
@@ -393,10 +425,12 @@ upload() {
   # which allows up to 500 MB. Everything else (sync-wait long-poll,
   # sync-now, export) still uses $SERVER and benefits from CF.
   UPLOAD_URL="${UPLOAD_SERVER:-$SERVER}/api/upload"
+  INCR_HEADER="X-Incremental: $INCREMENTAL"
   HTTP_CODE=$(curl -sS --max-time 600 \
     -X POST "$UPLOAD_URL" \
     -H "Authorization: Bearer $TOKEN" -H "X-Agent-Version: $VERSION" \
     -H "Content-Type: application/gzip" \
+    -H "$INCR_HEADER" \
     --data-binary "@$TMP/payload.tar.gz" \
     -o /dev/null -w '%{http_code}' 2>/dev/null) || HTTP_CODE=000
 
@@ -404,7 +438,8 @@ upload() {
     2*)
       LAST_UPLOAD=$(date +%s)
       printf '%s' "$LAST_UPLOAD" > "$STATE_FILE"
-      printf '[%s] upload OK (%s bytes)\n' "$(ts)" "$SIZE"
+      printf '[%s] upload OK (%s bytes, %s)\n' "$(ts)" "$SIZE" \
+        "$([ "$INCREMENTAL" = "1" ] && echo "incremental" || echo "full")"
       ;;
     503)
       # Server is busy (disk full / locked). The outer loop retries every

@@ -183,13 +183,20 @@ export async function POST(req: NextRequest): Promise<Response> {
   try {
     await extractTarGz(req, tempDir);
 
+    // The agent flags incremental uploads via X-Incremental: 1. In that
+    // mode the tarball only carries JSONLs that changed since the last
+    // successful upload — codex sessions whose rollout file is absent
+    // are unchanged and should be left alone, not rewritten with the
+    // threads.tokens_used fallback.
+    const incremental = req.headers.get("x-incremental") === "1";
+
     // Run all three parsers in parallel against the extracted tree. Missing
     // sources just yield empty arrays.
     const [hermesRecs, codexRecs, claudeRecs] = await Promise.all([
       Promise.resolve().then(() =>
         parseHermesFromPath(path.join(tempDir, "hermes.db"))
       ),
-      parseCodexFromDir(path.join(tempDir, "codex")),
+      parseCodexFromDir(path.join(tempDir, "codex"), { incremental }),
       parseClaudeCodeFromDir(path.join(tempDir, "claude-projects")),
     ]);
 
@@ -210,6 +217,7 @@ export async function POST(req: NextRequest): Promise<Response> {
         updated,
         bytes: lengthHeader ? Number(lengthHeader) : null,
         agentVersion: reportedVersion ?? null,
+        incremental,
       },
     });
 

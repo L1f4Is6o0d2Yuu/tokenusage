@@ -134,14 +134,23 @@ export const codexAdapter: ProviderAdapter = {
 // the same shape as `~/.codex/`. The `rollout_path` recorded in the DB is
 // usually an absolute host path; we re-anchor it onto `dir` by taking
 // everything after `/sessions/`.
-export async function parseCodexFromDir(dir: string): Promise<UsageRecord[]> {
+export async function parseCodexFromDir(
+  dir: string,
+  opts: { incremental?: boolean } = {}
+): Promise<UsageRecord[]> {
   const threads = readThreads(dir);
   if (threads.length === 0) return [];
   const sessionsDir = path.join(dir, "sessions");
 
   const records = await Promise.all(
-    threads.map(async (t): Promise<UsageRecord> => {
+    threads.map(async (t): Promise<UsageRecord | null> => {
       const localPath = reanchorRolloutPath(t.rollout_path, sessionsDir);
+      // Incremental upload: the agent pruned JSONLs whose mtime predated
+      // the last successful upload. If we don't have the rollout file
+      // here, the session is "unchanged since last sync" — skip it so
+      // upsertRecords leaves the existing row alone instead of stomping
+      // accurate token counts back to the threads.tokens_used fallback.
+      if (opts.incremental && !fs.existsSync(localPath)) return null;
       const { tokens: breakdown, model: jsonlModel } =
         await lastTokenCountAndModel(localPath);
       const input = breakdown?.input ?? 0;
@@ -181,7 +190,7 @@ export async function parseCodexFromDir(dir: string): Promise<UsageRecord[]> {
     })
   );
 
-  return records;
+  return records.filter((r): r is UsageRecord => r != null);
 }
 
 function reanchorRolloutPath(rolloutPath: string, sessionsDir: string): string {
