@@ -339,7 +339,7 @@ upload() {
   mkdir -p "$TMP/payload/codex"
   for base in "$HOME/.codex" "$HOME/.config/codex"; do
     [ -f "$base/state_5.sqlite" ] && cp "$base/state_5.sqlite" "$TMP/payload/codex/state_5.sqlite"
-    [ -d "$base/sessions" ] && cp -R "$base/sessions" "$TMP/payload/codex/sessions"
+    [ -d "$base/sessions" ] && cp -Rp "$base/sessions" "$TMP/payload/codex/sessions"
   done
   # Empty? drop the dir to keep the tar slim.
   [ -z "$(ls -A "$TMP/payload/codex" 2>/dev/null)" ] && rmdir "$TMP/payload/codex"
@@ -348,7 +348,7 @@ upload() {
   # Borrowed from hanbu97/tokenusage — some installs put logs under XDG.
   for cand in "$HOME/.claude/projects" "$HOME/.config/claude/projects"; do
     if [ -d "$cand" ]; then
-      cp -R "$cand" "$TMP/payload/claude-projects"
+      cp -Rp "$cand" "$TMP/payload/claude-projects"
       break
     fi
   done
@@ -361,7 +361,7 @@ upload() {
       _sz=$(du -sk "$cursor_dir" 2>/dev/null | awk '{print $1}')
       if [ -n "$_sz" ] && [ "$_sz" -lt 204800 ]; then
         mkdir -p "$TMP/payload/cursor"
-        cp -R "$cursor_dir" "$TMP/payload/cursor/" 2>/dev/null || true
+        cp -Rp "$cursor_dir" "$TMP/payload/cursor/" 2>/dev/null || true
       fi
     fi
   done
@@ -369,7 +369,7 @@ upload() {
     _sz=$(du -sk "$HOME/.codeium/windsurf" 2>/dev/null | awk '{print $1}')
     if [ -n "$_sz" ] && [ "$_sz" -lt 204800 ]; then
       mkdir -p "$TMP/payload/windsurf"
-      cp -R "$HOME/.codeium/windsurf" "$TMP/payload/windsurf/" 2>/dev/null || true
+      cp -Rp "$HOME/.codeium/windsurf" "$TMP/payload/windsurf/" 2>/dev/null || true
     fi
   fi
 
