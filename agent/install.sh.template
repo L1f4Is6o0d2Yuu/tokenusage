@@ -12,6 +12,12 @@ set -euo pipefail
 
 SERVER="__SERVER__"
 TOKEN="__TOKEN__"
+# Optional. When set, the agent POSTs the tarball here instead of $SERVER.
+# Typically a DNS-only sibling of $SERVER (e.g. https://direct.example.com)
+# so the upload bypasses any proxy that caps request bodies (Cloudflare
+# Free/Pro is 100 MB). The substituting route leaves this blank when the
+# server hasn't configured a direct-upload endpoint.
+UPLOAD_SERVER="__UPLOAD_SERVER__"
 
 if ! command -v curl >/dev/null; then
   echo "error: curl not found" >&2
@@ -28,4 +34,6 @@ chmod 700 "$HOME/.tokenusage"
 curl -fsSL "$SERVER/api/agent-script" -o "$HOME/.tokenusage/tokenusage"
 chmod +x "$HOME/.tokenusage/tokenusage"
 
-exec "$HOME/.tokenusage/tokenusage" start --server "$SERVER" --token "$TOKEN"
+args=(start --server "$SERVER" --token "$TOKEN")
+[ -n "${UPLOAD_SERVER:-}" ] && args+=(--upload-server "$UPLOAD_SERVER")
+exec "$HOME/.tokenusage/tokenusage" "${args[@]}"

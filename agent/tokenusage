@@ -19,7 +19,7 @@
 
 set -uo pipefail
 
-VERSION="0.18.2"
+VERSION="0.19.2"
 CONFIG_DIR="$HOME/.tokenusage"
 CONFIG_FILE="$CONFIG_DIR/config.env"
 STATE_FILE="$CONFIG_DIR/state"
@@ -147,11 +147,12 @@ stop_service() {
 # ---------- subcommands ----------
 
 cmd_start() {
-  local server="" token=""
+  local server="" token="" upload_server=""
   while [ $# -gt 0 ]; do
     case "$1" in
       --server) server="$2"; shift 2 ;;
       --token) token="$2"; shift 2 ;;
+      --upload-server) upload_server="$2"; shift 2 ;;
       -h|--help) usage; exit 0 ;;
       *) err "unknown arg: $1"; exit 1 ;;
     esac
@@ -161,10 +162,14 @@ cmd_start() {
   chmod 700 "$CONFIG_DIR"
 
   if [ -n "$server" ] && [ -n "$token" ]; then
-    cat > "$CONFIG_FILE" <<CONFIG
-SERVER="$server"
-TOKEN="$token"
-CONFIG
+    {
+      printf 'SERVER="%s"\n' "$server"
+      printf 'TOKEN="%s"\n' "$token"
+      # Optional override for the upload endpoint (typically a DNS-only
+      # sibling of $server like https://direct.example.com). Bypasses
+      # Cloudflare's 100 MB body cap when the regular server is proxied.
+      [ -n "$upload_server" ] && printf 'UPLOAD_SERVER="%s"\n' "$upload_server"
+    } > "$CONFIG_FILE"
     chmod 600 "$CONFIG_FILE"
   fi
 
@@ -452,6 +457,13 @@ cmd_loop() {
 
     NEW_INTERVAL=$(printf '%s' "$RESP" | sed -nE 's/.*"intervalSeconds":([0-9]+).*/\1/p')
     [ -n "$NEW_INTERVAL" ] && INTERVAL_SECONDS=$NEW_INTERVAL
+
+    # Server-advertised upload endpoint. Overrides any local UPLOAD_SERVER
+    # set in config.env — lets the server roll out an off-CF upload host
+    # to existing agents without anyone editing files. Empty / absent
+    # means "use whatever you had before" (UPLOAD_SERVER → SERVER).
+    SERVER_UPLOAD=$(printf '%s' "$RESP" | sed -nE 's/.*"uploadServer":"([^"]+)".*/\1/p')
+    [ -n "$SERVER_UPLOAD" ] && UPLOAD_SERVER="$SERVER_UPLOAD"
 
     PAUSED=$(printf '%s' "$RESP" | sed -nE 's/.*"paused":(true|false).*/\1/p')
     SYNC=$(printf '%s' "$RESP" | sed -nE 's/.*"sync":(true|false).*/\1/p')

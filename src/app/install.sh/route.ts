@@ -22,11 +22,21 @@ export async function GET(req: NextRequest): Promise<Response> {
   }
 
   const server = await getPublicUrl();
+  // Optional direct-upload endpoint. Prefer an explicit env var; fall
+  // back to deriving https://${TOKENUSAGE_DIRECT_DOMAIN} so a single
+  // entry in .env wires both Caddy routing and install-command output.
+  // Empty when neither is set — the agent then uses $SERVER for uploads.
+  const uploadServer =
+    process.env.TOKENUSAGE_UPLOAD_SERVER ||
+    (process.env.TOKENUSAGE_DIRECT_DOMAIN
+      ? `https://${process.env.TOKENUSAGE_DIRECT_DOMAIN}`
+      : "");
   const tmplPath = path.join(process.cwd(), "agent", "install.sh.template");
   const tmpl = await fs.readFile(tmplPath, "utf8");
   const body = tmpl
     .replace(/__SERVER__/g, server)
-    .replace(/__TOKEN__/g, token);
+    .replace(/__TOKEN__/g, token)
+    .replace(/__UPLOAD_SERVER__/g, uploadServer);
 
   return new Response(body, {
     headers: {

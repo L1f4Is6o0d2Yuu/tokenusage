@@ -26,6 +26,9 @@ services:
       # Optional Google Sign-In; both must be set for the button to render.
       GOOGLE_OAUTH_CLIENT_ID: ${GOOGLE_OAUTH_CLIENT_ID:-}
       GOOGLE_OAUTH_CLIENT_SECRET: ${GOOGLE_OAUTH_CLIENT_SECRET:-}
+      # Surfaced to /install.sh + /api/sync-wait so the agent learns where
+      # to POST tarballs without going through Cloudflare's 100 MB cap.
+      TOKENUSAGE_DIRECT_DOMAIN: ${TOKENUSAGE_DIRECT_DOMAIN:-}
     volumes:
       - tokenusage_data:/data
     expose:

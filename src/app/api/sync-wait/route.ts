@@ -11,6 +11,17 @@ import { waitSync } from "@/lib/sync-events";
 // cost across most idle minutes.
 const MAX_HOLD_MS = 90 * 1000;
 
+// Direct-upload endpoint. Agents on v0.19.0+ read this field from each
+// sync-wait response and switch their upload URL accordingly. Empty
+// means "use $SERVER" — covers self-hosted installs that don't sit
+// behind a CDN cap.
+function getUploadServer(): string | null {
+  const explicit = process.env.TOKENUSAGE_UPLOAD_SERVER;
+  if (explicit) return explicit;
+  const direct = process.env.TOKENUSAGE_DIRECT_DOMAIN;
+  return direct ? `https://${direct}` : null;
+}
+
 function err(status: number, message: string): Response {
   return new Response(JSON.stringify({ ok: false, message }), {
     status,
@@ -32,6 +43,7 @@ export async function GET(req: NextRequest): Promise<Response> {
   const state = getUserSyncState(user.id);
   const userIntervalMs = state.syncIntervalSeconds * 1000;
   const holdMs = Math.min(userIntervalMs, MAX_HOLD_MS);
+  const uploadServer = getUploadServer();
 
   // If the user already clicked "Sync now" since the last successful upload,
   // return immediately so the agent picks up the request. We use the upload
@@ -48,6 +60,7 @@ export async function GET(req: NextRequest): Promise<Response> {
       sync: !state.paused && state.syncRequestedAt != null,
       paused: state.paused,
       intervalSeconds: state.syncIntervalSeconds,
+      uploadServer,
     });
   }
 
@@ -58,5 +71,6 @@ export async function GET(req: NextRequest): Promise<Response> {
     sync: triggered && !after.paused,
     paused: after.paused,
     intervalSeconds: after.syncIntervalSeconds,
+    uploadServer,
   });
 }

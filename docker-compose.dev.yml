@@ -27,6 +27,9 @@ services:
       # exercise the OAuth flow against a registered dev redirect URI.
       GOOGLE_OAUTH_CLIENT_ID: ${GOOGLE_OAUTH_CLIENT_ID:-}
       GOOGLE_OAUTH_CLIENT_SECRET: ${GOOGLE_OAUTH_CLIENT_SECRET:-}
+      # Direct-upload endpoint for the dev stack. Same dev app upstream
+      # but a separate hostname so dev's agents bypass CF too.
+      TOKENUSAGE_DIRECT_DOMAIN: ${TOKENUSAGE_DEV_DIRECT_DOMAIN:-}
     volumes:
       - tokenusage_data_dev:/data
     networks:
