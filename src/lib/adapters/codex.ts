@@ -36,14 +36,30 @@ type TokenBreakdown = {
   reasoning: number;
 };
 
-// Read the last `event_msg.token_count` line that has a populated `info` field
-// — that holds the cumulative `total_token_usage` for the whole session.
-async function lastTokenCount(jsonlPath: string): Promise<TokenBreakdown | null> {
-  if (!fs.existsSync(jsonlPath)) return null;
+// One pass over the JSONL recovers two things we need:
+//   1. The cumulative `total_token_usage` (last token_count event_msg)
+//   2. The first observed model — `turn_context` events carry it on
+//      `payload.model`, and threads.model in state_5.sqlite is sometimes
+//      NULL for the same row, so JSONL is the more reliable source.
+async function lastTokenCountAndModel(
+  jsonlPath: string
+): Promise<{ tokens: TokenBreakdown | null; model: string | null }> {
+  if (!fs.existsSync(jsonlPath)) return { tokens: null, model: null };
   const stream = fs.createReadStream(jsonlPath, { encoding: "utf8" });
   const rl = readline.createInterface({ input: stream, crlfDelay: Infinity });
   let last: TokenBreakdown | null = null;
+  let model: string | null = null;
   for await (const line of rl) {
+    if (!model && line.includes("\"turn_context\"")) {
+      try {
+        const obj = JSON.parse(line);
+        if (obj?.type === "turn_context" && typeof obj.payload?.model === "string") {
+          model = obj.payload.model;
+        }
+      } catch {
+        // skip malformed line
+      }
+    }
     if (!line.includes("token_count")) continue;
     try {
       const obj = JSON.parse(line);
@@ -62,7 +78,7 @@ async function lastTokenCount(jsonlPath: string): Promise<TokenBreakdown | null>
       // skip malformed line
     }
   }
-  return last;
+  return { tokens: last, model };
 }
 
 function readThreads(dir: string): ThreadRow[] {
@@ -126,14 +142,18 @@ export async function parseCodexFromDir(dir: string): Promise<UsageRecord[]> {
   const records = await Promise.all(
     threads.map(async (t): Promise<UsageRecord> => {
       const localPath = reanchorRolloutPath(t.rollout_path, sessionsDir);
-      const breakdown = await lastTokenCount(localPath);
+      const { tokens: breakdown, model: jsonlModel } =
+        await lastTokenCountAndModel(localPath);
       const input = breakdown?.input ?? 0;
       const output = breakdown?.output ?? 0;
       const cacheRead = breakdown?.cacheRead ?? 0;
       const reasoning = breakdown?.reasoning ?? 0;
       const fallback = breakdown ? 0 : t.tokens_used;
+      // threads.model is often NULL for sessions that started before
+      // codex 0.117; fall back to the model we found in the rollout JSONL.
+      const model = t.model ?? jsonlModel;
 
-      const cost = estimateCost(t.model, {
+      const cost = estimateCost(model, {
         input,
         output: output + fallback,
         cacheRead,
@@ -145,7 +165,7 @@ export async function parseCodexFromDir(dir: string): Promise<UsageRecord[]> {
         id: `codex:${t.id}`,
         provider: "codex",
         source: t.source,
-        model: t.model,
+        model,
         startedAt: t.created_at * 1000,
         endedAt: t.updated_at ? t.updated_at * 1000 : null,
         inputTokens: input,

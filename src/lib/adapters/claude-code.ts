@@ -82,7 +82,18 @@ async function readSessionFile(filePath: string, projectSlug: string): Promise<S
           seenApiCall.add(dedupKey);
         }
         acc.apiCalls += 1;
-        if (!acc.model && typeof msg.model === "string") acc.model = msg.model;
+        // Claude Code tags system-injected (synthetic) messages with the
+        // pseudo model name "<synthetic>". They're not real assistant
+        // turns and shouldn't anchor the session's model. Skip any
+        // angle-bracket placeholder, which covers `<synthetic>` and any
+        // future variant Anthropic adds in that namespace.
+        if (
+          !acc.model &&
+          typeof msg.model === "string" &&
+          !msg.model.startsWith("<")
+        ) {
+          acc.model = msg.model;
+        }
         acc.inputTokens += Number(usage.input_tokens ?? 0);
         acc.outputTokens += Number(usage.output_tokens ?? 0);
         acc.cacheReadTokens += Number(usage.cache_read_input_tokens ?? 0);
