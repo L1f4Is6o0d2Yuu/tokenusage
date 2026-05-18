@@ -61,11 +61,13 @@ export function SyncControl({
     return () => clearInterval(id);
   }, []);
 
-  // Auto-sync once per session if the data we're showing looks stale.
-  // The sessionStorage marker prevents an infinite reload loop: the
-  // sync triggers a page reload, but `lastSyncedAt` won't bump until
-  // the agent actually uploads (could be minutes), so without the
-  // marker the next mount would re-fire and re-reload forever.
+  // Auto-sync on every dashboard open. The agent is now pull-based —
+  // it doesn't push uploads on a schedule anymore — so the dashboard
+  // is responsible for waking the agent up. The sessionStorage marker
+  // still prevents an infinite reload loop within a single session
+  // (sync triggers a page reload, lastSyncedAt won't bump until the
+  // agent actually uploads, ~10s), but the cooldown is tight (60s) so
+  // a real second visit a minute later does re-sync.
   useEffect(() => {
     if (autoFired.current) return;
     if (!installed || paused) return;
@@ -75,7 +77,7 @@ export function SyncControl({
     const lastAutoStr = sessionStorage.getItem("tu-auto-synced-at");
     if (lastAutoStr) {
       const lastAuto = Number(lastAutoStr);
-      if (Date.now() - lastAuto < 10 * 60 * 1000) return;
+      if (Date.now() - lastAuto < 60 * 1000) return;
     }
     autoFired.current = true;
     sessionStorage.setItem("tu-auto-synced-at", String(Date.now()));

@@ -19,7 +19,7 @@
 
 set -uo pipefail
 
-VERSION="0.26.0"
+VERSION="0.27.0"
 CONFIG_DIR="$HOME/.tokenusage"
 CONFIG_FILE="$CONFIG_DIR/config.env"
 STATE_FILE="$CONFIG_DIR/state"
@@ -547,11 +547,17 @@ cmd_loop() {
     NOW=$(date +%s)
     ELAPSED=$((NOW - LAST_UPLOAD))
 
+    # Pull-based sync: only upload when the server explicitly asks via
+    # SYNC=true (the dashboard auto-fires /api/sync-now when a user
+    # opens or refreshes a page). The old "every $INTERVAL_SECONDS
+    # regardless of viewer activity" branch is gone — agents on idle
+    # machines whose owner isn't looking now stay silent instead of
+    # burning bandwidth into a void. ELAPSED / INTERVAL_SECONDS still
+    # come back from the server so this is a single-version change to
+    # flip back if needed.
     if [ "$PAUSED" = "true" ]; then
       printf '[%s] tracking paused — skipping upload\n' "$(ts)"
     elif [ "$SYNC" = "true" ]; then
-      upload
-    elif [ "$ELAPSED" -ge "$INTERVAL_SECONDS" ]; then
       upload
     fi
 
