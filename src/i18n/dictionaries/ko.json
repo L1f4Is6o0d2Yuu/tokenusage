@@ -477,5 +477,17 @@
     "copied": "Copied!",
     "longPress": "Mobile: long-press the image to save / share.",
     "close": "Close"
+  },
+  "forecast": {
+    "title": "월말 예측",
+    "pace": "일평균 {amount} · 최근 {n}일",
+    "lookback": "최근 {n}일",
+    "vsLastMonth": "지난달 동기",
+    "higher": "{pct}% 높음",
+    "lower": "{pct}% 낮음",
+    "flat": "비슷함",
+    "notEnoughData": "데이터 부족",
+    "cheaperSub": "구독 유지가 유리",
+    "cheaperPaygo": "사용량 청구가 유리"
   }
 }

@@ -477,5 +477,17 @@
     "copied": "Copied!",
     "longPress": "Mobile: long-press the image to save / share.",
     "close": "Close"
+  },
+  "forecast": {
+    "title": "月末予測",
+    "pace": "1日あたり {amount} · 過去 {n} 日",
+    "lookback": "過去 {n} 日",
+    "vsLastMonth": "先月同期",
+    "higher": "{pct}% 高い",
+    "lower": "{pct}% 低い",
+    "flat": "横ばい",
+    "notEnoughData": "データ不足",
+    "cheaperSub": "サブスク継続が得",
+    "cheaperPaygo": "従量課金が得"
   }
 }

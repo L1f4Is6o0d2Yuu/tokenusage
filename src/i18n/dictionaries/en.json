@@ -477,5 +477,17 @@
     "copied": "Copied!",
     "longPress": "Mobile: long-press the image to save / share.",
     "close": "Close"
+  },
+  "forecast": {
+    "title": "Month-end forecast",
+    "pace": "{amount}/day pace · last {n} days",
+    "lookback": "last {n} days",
+    "vsLastMonth": "vs last month",
+    "higher": "{pct}% higher",
+    "lower": "{pct}% lower",
+    "flat": "flat",
+    "notEnoughData": "not enough data yet",
+    "cheaperSub": "Keep the subscription",
+    "cheaperPaygo": "Pay-as-you-go is cheaper"
   }
 }

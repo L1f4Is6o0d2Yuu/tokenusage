@@ -477,5 +477,17 @@
     "copied": "已复制",
     "longPress": "手机端：长按图片可保存 / 转发。",
     "close": "关闭"
+  },
+  "forecast": {
+    "title": "月底預測",
+    "pace": "按日均 {amount} 推算 · 近 {n} 天",
+    "lookback": "近 {n} 天",
+    "vsLastMonth": "上月同期",
+    "higher": "高 {pct}%",
+    "lower": "低 {pct}%",
+    "flat": "持平",
+    "notEnoughData": "資料不足",
+    "cheaperSub": "續訂更划算",
+    "cheaperPaygo": "按用量直付更划算"
   }
 }

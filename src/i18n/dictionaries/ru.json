@@ -477,5 +477,17 @@
     "copied": "Copied!",
     "longPress": "Mobile: long-press the image to save / share.",
     "close": "Close"
+  },
+  "forecast": {
+    "title": "Прогноз на конец месяца",
+    "pace": "Темп {amount}/день · последние {n} дней",
+    "lookback": "последние {n} дней",
+    "vsLastMonth": "vs прошлый месяц",
+    "higher": "{pct}% больше",
+    "lower": "{pct}% меньше",
+    "flat": "почти то же",
+    "notEnoughData": "недостаточно данных",
+    "cheaperSub": "Оставьте подписку",
+    "cheaperPaygo": "Оплата по факту дешевле"
   }
 }

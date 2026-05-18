@@ -477,5 +477,17 @@
     "copied": "Copied!",
     "longPress": "Mobile: long-press the image to save / share.",
     "close": "Close"
+  },
+  "forecast": {
+    "title": "Proyección de fin de mes",
+    "pace": "Ritmo {amount}/día · últimos {n} días",
+    "lookback": "últimos {n} días",
+    "vsLastMonth": "vs mes anterior",
+    "higher": "{pct}% más",
+    "lower": "{pct}% menos",
+    "flat": "igual",
+    "notEnoughData": "datos insuficientes",
+    "cheaperSub": "Mantén la suscripción",
+    "cheaperPaygo": "Pago por uso es más barato"
   }
 }

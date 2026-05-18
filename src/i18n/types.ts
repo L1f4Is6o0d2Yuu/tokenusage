@@ -173,6 +173,18 @@ export type Dictionary = {
     longPress: string;
     close: string;
   };
+  forecast: {
+    title: string;
+    pace: string;
+    lookback: string;
+    vsLastMonth: string;
+    higher: string;
+    lower: string;
+    flat: string;
+    notEnoughData: string;
+    cheaperSub: string;
+    cheaperPaygo: string;
+  };
   topModels: {
     title: string;
     description: string;

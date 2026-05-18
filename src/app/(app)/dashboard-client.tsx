@@ -11,6 +11,8 @@ import type { Rule } from "@/lib/pricing";
 import type { Dictionary } from "@/i18n/types";
 import { PeriodTabs } from "@/components/period-tabs";
 import { ShareButton, SHARE_EVENT } from "@/components/share-button";
+import { ForecastCard } from "@/components/forecast-card";
+import { computeForecast } from "@/lib/forecast";
 import { Share2 } from "lucide-react";
 import { UsageTrend } from "@/components/usage-trend";
 import { OnboardingCard } from "@/components/onboarding-card";
@@ -124,6 +126,28 @@ export function DashboardClient({
   // sync useMemo for small datasets, Web Worker for >10k records. The
   // call surface stays identical from the component's POV.
   const { agg, scoped, granularity } = useAggregate(records, period, customRange);
+
+  // Forecast feeds off ALL daily cost history (not just the selected
+  // period) so it can compare this calendar month to last and project
+  // to month-end. The aggregation here is a stripped-down per-day cost
+  // bucket — no model breakdown, no token totals — to keep the work
+  // cheap when records is large.
+  const forecastByDay = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const r of records) {
+      const d = new Date(r.startedAt);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+      m.set(key, (m.get(key) ?? 0) + (r.costUsd ?? 0));
+    }
+    return [...m.entries()]
+      .map(([date, costUsd]) => ({ date, totalTokens: 0, costUsd }))
+      .sort((a, b) => a.date.localeCompare(b.date));
+  }, [records]);
+
+  const forecast = useMemo(
+    () => computeForecast(forecastByDay),
+    [forecastByDay]
+  );
 
   const recent = useMemo(
     () =>
@@ -259,6 +283,19 @@ export function DashboardClient({
             )}
           </div>
         )}
+
+        {/* Forecast card sits above the KPI row. It's the only number
+            on the page that's *predictive* rather than retrospective —
+            "按这节奏月底大约 $X" — so giving it dedicated airtime makes
+            the decision (keep the subscription? switch to pay-as-you-
+            go?) actionable instead of inferred. */}
+        <section className="tu-rise mt-4" style={{ animationDelay: "20ms" }}>
+          <ForecastCard
+            forecast={forecast}
+            activePlans={activePlans}
+            labels={t.forecast}
+          />
+        </section>
 
         <section
           className="tu-rise mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4"
