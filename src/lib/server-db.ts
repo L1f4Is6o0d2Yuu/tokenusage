@@ -226,6 +226,17 @@ function migrate(db: Database.Database): void {
       ON shares(user_id, created_at DESC);
   `);
 
+  // v0.25: leaderboard privacy opt-out. When 0, the user's row on
+  // /leaderboard renders as `Anon #<id>` to everyone except themselves.
+  // Default 1 (visible) — the leaderboard's social pressure is its
+  // whole point, but we let people quietly bow out without nuking
+  // the page for them.
+  if (!hasColumn(db, "users", "show_on_leaderboard")) {
+    db.exec(
+      `ALTER TABLE users ADD COLUMN show_on_leaderboard INTEGER NOT NULL DEFAULT 1`
+    );
+  }
+
   // v0.24: live upload-progress fields. The agent pings
   // /api/upload-progress with `totalBytes` just before the curl POST,
   // and the upload route clears them on success/failure. /install and

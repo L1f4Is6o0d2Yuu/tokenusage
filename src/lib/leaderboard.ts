@@ -11,6 +11,11 @@ export type LeaderboardRow = {
   userId: number;
   username: string;
   isAdmin: boolean;
+  // Honors users.show_on_leaderboard. When false, the page should
+  // render this row as `Anon #<id>` for everyone except the viewer
+  // who matches `userId`. The raw username stays in the field so the
+  // viewer can still recognize themselves.
+  showOnLeaderboard: boolean;
   totalCost: number;
   totalTokens: number;
   sessionCount: number;
@@ -70,9 +75,10 @@ export function loadLeaderboard(
       .prepare(
         `
         SELECT
-          u.id           AS userId,
-          u.username     AS username,
-          u.is_admin     AS isAdmin,
+          u.id                    AS userId,
+          u.username              AS username,
+          u.is_admin              AS isAdmin,
+          u.show_on_leaderboard   AS showOnLeaderboard,
           COALESCE(SUM(s.cost_usd), 0)
             AS totalCost,
           COALESCE(SUM(s.input_tokens + s.output_tokens
@@ -93,6 +99,7 @@ export function loadLeaderboard(
         userId: number;
         username: string;
         isAdmin: number;
+        showOnLeaderboard: number;
         totalCost: number;
         totalTokens: number;
         sessionCount: number;
@@ -105,6 +112,7 @@ export function loadLeaderboard(
         userId: r.userId,
         username: r.username,
         isAdmin: r.isAdmin === 1,
+        showOnLeaderboard: r.showOnLeaderboard === 1,
         totalCost: r.totalCost,
         totalTokens: r.totalTokens,
         sessionCount: r.sessionCount,
@@ -157,6 +165,31 @@ function hash(s: string): number {
     h = Math.imul(h, 16777619) >>> 0;
   }
   return h;
+}
+
+// Flip a user's "show me on the leaderboard" preference. Called from a
+// server action triggered by the toggle on /leaderboard. We don't gate
+// on isAdmin — it's the user's own row to manage.
+export function setShowOnLeaderboard(userId: number, show: boolean): void {
+  const db = openServerDb();
+  try {
+    db.prepare(
+      `UPDATE users SET show_on_leaderboard = ? WHERE id = ?`
+    ).run(show ? 1 : 0, userId);
+  } finally {
+    db.close();
+  }
+}
+
+// Returns the display name for a row given the viewer. Honors the
+// row's privacy preference: hidden rows show as `Anon #<id>` to
+// everyone except the viewer themselves.
+export function displayNameFor(
+  row: LeaderboardRow,
+  viewerId: number | null
+): string {
+  if (row.showOnLeaderboard || row.userId === viewerId) return row.username;
+  return `Anon #${row.userId}`;
 }
 
 export function rowFlavor(
