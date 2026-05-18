@@ -19,7 +19,7 @@
 
 set -uo pipefail
 
-VERSION="0.25.0"
+VERSION="0.26.0"
 CONFIG_DIR="$HOME/.tokenusage"
 CONFIG_FILE="$CONFIG_DIR/config.env"
 STATE_FILE="$CONFIG_DIR/state"
@@ -372,6 +372,36 @@ upload() {
       cp -Rp "$HOME/.codeium/windsurf" "$TMP/payload/windsurf/" 2>/dev/null || true
     fi
   fi
+
+  # JSONL slim — strip lines the server-side parser doesn't read.
+  #
+  # Claude Code JSONL averages 5% of the original size after this filter:
+  # we only need `type: ai-title` for the session title and
+  # `type: assistant` for token usage + model. User messages, tool
+  # results, system reminders — all dropped.
+  #
+  # Codex same idea: token_count carries the cumulative usage,
+  # turn_context the model, session_meta the session header. Everything
+  # else (response_item, agent_message, user_message) is content that
+  # the parser ignores.
+  #
+  # We `touch -r` to preserve the original mtime so the incremental
+  # filter below still sees "unchanged" files correctly.
+  slim_jsonl_dir() {
+    local dir="$1" pattern="$2"
+    [ -d "$dir" ] || return 0
+    find "$dir" -type f -name '*.jsonl' 2>/dev/null | while IFS= read -r f; do
+      grep -E "$pattern" "$f" > "$f.slim" 2>/dev/null
+      if [ -s "$f.slim" ]; then
+        touch -r "$f" "$f.slim" 2>/dev/null
+        mv "$f.slim" "$f"
+      else
+        rm -f "$f.slim" "$f"
+      fi
+    done
+  }
+  slim_jsonl_dir "$TMP/payload/claude-projects" '"type":"(ai-title|assistant)"'
+  slim_jsonl_dir "$TMP/payload/codex/sessions"  '"(token_count|turn_context|session_meta)"'
 
   # Incremental mode: prune big JSONL files that haven't changed since
   # the last successful upload. Control files (hermes.db slim,
