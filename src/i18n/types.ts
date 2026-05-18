@@ -311,6 +311,7 @@ export type Dictionary = {
     workspace: string;
     account: string;
     dashboard: string;
+    leaderboard: string;
     subscriptions: string;
     models: string;
     tokens: string;

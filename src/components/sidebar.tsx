@@ -8,6 +8,7 @@ import {
   LogOut,
   Sword,
   Sparkles,
+  Trophy,
 } from "lucide-react";
 import { logoutAction } from "@/app/auth-actions";
 import { ThemeSwitcher } from "@/components/theme-switcher";
@@ -51,6 +52,7 @@ export function Sidebar({
   // the link so they can issue / revoke tokens for themselves.
   const primary: Item[] = [
     { href: "/dashboard", label: t.nav.dashboard, icon: LayoutDashboard },
+    { href: "/leaderboard", label: t.nav.leaderboard, icon: Trophy },
     { href: "/subscriptions", label: t.nav.subscriptions, icon: Sword },
     { href: "/models", label: t.nav.models, icon: Sparkles },
     { href: "/prices", label: t.nav.prices, icon: DollarSign },

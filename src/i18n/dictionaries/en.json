@@ -346,6 +346,7 @@
     "workspace": "Workspace",
     "account": "Account",
     "dashboard": "Dashboard",
+    "leaderboard": "Leaderboard",
     "tokens": "API tokens",
     "prices": "Prices",
     "users": "Users",
