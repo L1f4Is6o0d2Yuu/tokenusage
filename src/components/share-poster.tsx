@@ -1,12 +1,9 @@
-// Shareable poster JSX, used by both server-side rendering (Satori,
-// via /api/share/[period]) and client-side rendering (html-to-image,
-// via ShareButton). Keep CSS within the Satori subset:
+// Shareable poster JSX, rendered server-side by Satori via
+// /api/share/[period] (the per-KPI Share2 icons on the dashboard
+// open that route in a new tab). Keep CSS within the Satori subset:
 //   * display: flex only (no grid, no block)
 //   * no transforms / filters that browsers tolerate but Satori drops
 //   * inline styles only (no className → Tailwind doesn't run here)
-//
-// Both render paths feed the same `SharePosterData` so the visual is
-// guaranteed to match.
 
 import type { Aggregation, Period } from "@/lib/types";
 import type { PlanLite, RoiResult } from "@/lib/roi-client";
@@ -170,6 +167,21 @@ function fmtUsd(n: number): string {
   if (abs < 1) return `$${n.toFixed(4)}`;
   const [whole, frac] = n.toFixed(2).split(".");
   return `$${Number(whole).toLocaleString("en-US")}.${frac}`;
+}
+
+// Hero number font size, sized to fit the ~920px-wide content column
+// even when the formatted value gets long ($22,256.23). 188 is the
+// design-target for short labels ($X.YY through $XXX.YY); anything
+// longer scales down proportionally so the glyph never overflows the
+// poster's right edge — which was the bug behind the "超框" report
+// on a $2,256.23 weekly poster.
+function heroUsdFontSize(label: string): number {
+  const TARGET_CHARS = 8; // "$XXX.YY" is the design break point
+  const len = label.length;
+  if (len <= TARGET_CHARS) return 188;
+  // 8/len keeps the visual width roughly constant. Floor at 110 so the
+  // poster doesn't end up looking timid for $1M+ pathological cases.
+  return Math.max(110, Math.round((188 * TARGET_CHARS) / len));
 }
 
 export function formatTokensShort(n: number): string {
@@ -452,7 +464,7 @@ export function SharePoster({ data }: { data: SharePosterData }) {
         <div
           style={{
             display: "flex",
-            fontSize: 188,
+            fontSize: heroUsdFontSize(fmtUsd(apiValue)),
             fontWeight: 800,
             letterSpacing: -6,
             lineHeight: 1,
@@ -811,9 +823,14 @@ function DataPanel({
       </div>
       <div
         style={{
+          // Satori's baseline alignment is unreliable when the two
+          // children have wildly different fontSizes (92 vs 30) — it
+          // would render the small "tokens" overlapping the big "3.5B"
+          // glyph's right edge. flex-end + matching lineHeight on both
+          // children anchors them to the same bottom edge predictably.
           display: "flex",
-          alignItems: "baseline",
-          gap: 14,
+          alignItems: "flex-end",
+          gap: 18,
           marginTop: 8,
         }}
       >
@@ -833,6 +850,8 @@ function DataPanel({
           style={{
             display: "flex",
             fontSize: 30,
+            lineHeight: 1,
+            paddingBottom: 8,
             color: "#a39dc0",
             fontWeight: 600,
           }}

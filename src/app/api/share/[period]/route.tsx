@@ -40,11 +40,10 @@ function getLatinFont(): Buffer {
   return latinFontData;
 }
 
-// Server-side render of the same SharePoster used client-side by the
-// dashboard's Share button. Kept available because (a) Open Graph
-// crawlers can't run our client renderer and (b) future public share
-// URLs will plug into this route. ShareButton itself no longer hits
-// this endpoint — it renders the poster locally and downloads.
+// Server-side poster render. The dashboard's per-KPI Share2 icons
+// open this route in a new tab, so the browser does the
+// "save image as" dance and the no-store header below means closing
+// the tab forgets the bytes.
 export async function GET(
   _req: Request,
   { params }: { params: Promise<{ period: string }> }
@@ -87,6 +86,13 @@ export async function GET(
   return new ImageResponse(<SharePoster data={data} />, {
     width: 1080,
     height: 1920,
+    // No caching: every page load renders a fresh poster against the
+    // user's current data. Closing the tab means the bytes are gone —
+    // that's the contract the new "open in a new tab" share flow
+    // promises ("愿意保存就保存，不愿意就清掉").
+    headers: {
+      "cache-control": "no-store, no-cache, must-revalidate",
+    },
     fonts: [
       {
         name: "Noto Sans SC",

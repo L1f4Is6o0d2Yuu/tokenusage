@@ -10,7 +10,6 @@ import type { CustomRange, Period, UsageRecord } from "@/lib/types";
 import type { Rule } from "@/lib/pricing";
 import type { Dictionary } from "@/i18n/types";
 import { PeriodTabs } from "@/components/period-tabs";
-import { ShareButton, SHARE_EVENT } from "@/components/share-button";
 import { ForecastCard } from "@/components/forecast-card";
 import { computeForecast } from "@/lib/forecast";
 import { Share2 } from "lucide-react";
@@ -215,25 +214,6 @@ export function DashboardClient({
         </div>
       </header>
 
-      {/* ShareButton dialog stays mounted but the visible trigger is now
-          per-KPI-card (a tiny icon in each SummaryCard's top-right
-          corner). The card icons dispatch `tu-share-now`, which the
-          ShareButton's internal listener uses to open the dialog. The
-          component still renders its own button for accessibility, but
-          we hide it with sr-only so it doesn't float awkwardly in the
-          header. */}
-      <div className="sr-only">
-        <ShareButton
-          username={username ?? ""}
-          userId={userId ?? 0}
-          period={period === "custom" ? "today" : period}
-          agg={agg}
-          codingHours={codingHours}
-          activePlans={activePlans}
-          labels={{ share: t.share.share, copied: t.share.copied }}
-        />
-      </div>
-
       <div className="flex-1 px-6 py-5">
         <SourceBanner
           sources={sources}
@@ -314,6 +294,7 @@ export function DashboardClient({
                 : `~${formatUsd(agg.totals.costUsd, { precise: true })}`
             }
             hint={agg.totals.costKnown ? t.cards.estimated : t.cards.partialCost}
+            shareHref={`/api/share/${period === "custom" ? "today" : period}`}
           />
           <SummaryCard
             label={
@@ -323,6 +304,7 @@ export function DashboardClient({
             }
             value={formatTokens(agg.totals.totalTokens)}
             hint={interp(t.cards.sessions, { n: formatInt(agg.totals.records) })}
+            shareHref={`/api/share/${period === "custom" ? "today" : period}`}
           />
           <SummaryCard
             label={t.cards.inputOutput}
@@ -330,6 +312,7 @@ export function DashboardClient({
               agg.totals.outputTokens
             )}`}
             hint={t.cards.nonCache}
+            shareHref={`/api/share/${period === "custom" ? "today" : period}`}
           />
           <CacheCard
             hitTokens={agg.totals.cacheReadTokens}
@@ -627,36 +610,38 @@ function SummaryCard({
   value,
   hint,
   accent,
+  shareHref,
 }: {
   label: string;
   value: string;
   hint?: string;
   accent?: boolean;
+  // When set, renders a Share2 link in the card's top-right that
+  // opens /api/share/<period> in a new tab. The route streams a PNG
+  // with `cache-control: no-store`, so closing the tab is the same
+  // as forgetting it — matches the "愿意保存就保存，不愿意就清掉"
+  // contract.
+  shareHref?: string;
 }) {
   return (
     <Card
       className={
-        "group " +
-        (accent
+        accent
           ? "relative overflow-hidden panel-hover before:absolute before:inset-y-0 before:left-0 before:w-[3px] before:bg-foreground/70"
-          : "relative overflow-hidden panel-hover")
+          : "relative overflow-hidden panel-hover"
       }
     >
-      {/* Per-card share trigger — hover-revealed so it doesn't clutter
-          a glance at the number. Click dispatches the shared event the
-          single ShareButton in the page tree listens for. */}
-      <button
-        type="button"
-        aria-label="share"
-        onClick={() => {
-          if (typeof window !== "undefined") {
-            window.dispatchEvent(new Event(SHARE_EVENT));
-          }
-        }}
-        className="absolute right-2 top-2 z-10 rounded p-1 text-fg-faint opacity-0 transition-opacity hover:bg-bg-panel-2 hover:text-fg-default group-hover:opacity-100 focus-visible:opacity-100"
-      >
-        <Share2 className="h-3.5 w-3.5" />
-      </button>
+      {shareHref && (
+        <a
+          href={shareHref}
+          target="_blank"
+          rel="noopener"
+          aria-label="share"
+          className="absolute right-2 top-2 z-10 rounded p-1 text-fg-muted transition-colors hover:bg-bg-panel-2 hover:text-fg-default"
+        >
+          <Share2 className="h-3.5 w-3.5" />
+        </a>
+      )}
       <CardHeader className="pb-1">
         <CardDescription className="text-[11px] font-medium uppercase tracking-wider">
           {label}
