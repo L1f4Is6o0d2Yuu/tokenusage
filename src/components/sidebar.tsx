@@ -50,7 +50,7 @@ export function Sidebar({
   // that regular users never need to look at this surface. Admins keep
   // the link so they can issue / revoke tokens for themselves.
   const primary: Item[] = [
-    { href: "/", label: t.nav.dashboard, icon: LayoutDashboard },
+    { href: "/dashboard", label: t.nav.dashboard, icon: LayoutDashboard },
     { href: "/subscriptions", label: t.nav.subscriptions, icon: Sword },
     { href: "/models", label: t.nav.models, icon: Sparkles },
     { href: "/prices", label: t.nav.prices, icon: DollarSign },
@@ -69,7 +69,7 @@ export function Sidebar({
           with the central 'u' painted in the accent indigo. */}
       <div className="flex h-14 items-center px-4">
         <Link
-          href="/"
+          href="/dashboard"
           className="flex items-center gap-2.5 text-accent transition-opacity hover:opacity-90"
           aria-label="tokenusage"
         >

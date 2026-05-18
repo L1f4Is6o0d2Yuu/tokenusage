@@ -54,7 +54,7 @@ export default async function TokensPage({
   // install once via the onboarding card on the dashboard and never
   // need to see the raw token table. Admin-self-install on a new
   // machine still works through this page.
-  if (isMultiUserMode() && user && !user.isAdmin) redirect("/");
+  if (isMultiUserMode() && user && !user.isAdmin) redirect("/dashboard");
   const locale = await readLocale();
   const t = (await getDictionary(locale)).tokensPage;
   const installT = (await getDictionary(locale)).install;
@@ -74,7 +74,7 @@ export default async function TokensPage({
   return (
     <main className="mx-auto w-full max-w-3xl px-6 py-10">
       <Link
-        href="/"
+        href="/dashboard"
         className="mb-6 inline-flex text-sm text-muted-foreground hover:text-foreground"
       >
         {(await getDictionary(locale)).session.back}

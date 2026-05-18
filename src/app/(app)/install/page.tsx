@@ -70,11 +70,11 @@ function estimateProgress(
 export default async function InstallPage() {
   const user = await requireUser();
   if (!user) redirect("/login");
-  if (!isMultiUserMode()) redirect("/");
+  if (!isMultiUserMode()) redirect("/dashboard");
 
   // Already onboarded → straight to dashboard.
   const sessionCount = countServerRecords(user.id);
-  if (sessionCount > 0) redirect("/");
+  if (sessionCount > 0) redirect("/dashboard");
 
   const locale = await readLocale();
   const dict = await getDictionary(locale);

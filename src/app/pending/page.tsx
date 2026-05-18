@@ -8,7 +8,7 @@ export default async function PendingPage() {
   const user = await readCurrentUser();
   if (!user) redirect("/login");
   // If the user is already activated, send them straight in.
-  if (user.activatedAt != null) redirect("/");
+  if (user.activatedAt != null) redirect("/dashboard");
 
   return (
     <main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-6 py-10">

@@ -16,7 +16,7 @@ import { recordAudit } from "@/lib/audit";
 async function requireAdmin() {
   const user = await readCurrentUser();
   if (!user) redirect("/login");
-  if (!user.isAdmin) redirect("/");
+  if (!user.isAdmin) redirect("/dashboard");
   return user;
 }
 

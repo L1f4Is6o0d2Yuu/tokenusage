@@ -69,7 +69,7 @@ export async function loginAction(
   const token = createSession(user.id);
   await setSessionCookie(token);
   revalidatePath("/", "layout");
-  redirect("/");
+  redirect("/dashboard");
 }
 
 function passwordError(password: string): string | null {
@@ -109,7 +109,7 @@ export async function signupAction(
   const token = createSession(user.id);
   await setSessionCookie(token);
   revalidatePath("/", "layout");
-  redirect("/");
+  redirect("/dashboard");
 }
 
 export async function redeemInviteAction(
@@ -152,7 +152,7 @@ export async function redeemInviteAction(
   const token = createSession(user.id);
   await setSessionCookie(token);
   revalidatePath("/", "layout");
-  redirect("/");
+  redirect("/dashboard");
 }
 
 // Step 1 of forgot-password: confirm an admin has flagged the user's account
@@ -204,7 +204,7 @@ export async function forgotPasswordCompleteAction(
     await setSessionCookie(token);
   }
   revalidatePath("/", "layout");
-  redirect("/");
+  redirect("/dashboard");
 }
 
 export async function logoutAction(): Promise<void> {

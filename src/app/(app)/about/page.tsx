@@ -56,7 +56,7 @@ export default async function AboutPage() {
   return (
     <main className="mx-auto w-full max-w-4xl px-6 py-10">
       <Link
-        href="/"
+        href="/dashboard"
         className="mb-6 inline-flex text-sm text-muted-foreground transition-colors hover:text-foreground"
       >
         {t.back}

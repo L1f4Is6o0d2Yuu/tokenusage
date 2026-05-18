@@ -435,7 +435,6 @@ export const DAILY_ZH: string[][] = [
   [
     "$100+ — 你已经超越套餐的物理上限。",
     "建议低调用，别被风控盯上。",
-    "Pro 套餐被你吃成了 Free Tier。",
     "{vendor} 的 abuse 团队连夜评估你的账号。",
     "每多一块都是给老板的精神打击。",
     "你的 username 被钉在 {vendor} 的「不要给他升级」名单。",
@@ -794,7 +793,6 @@ export const ROI_ZH: string[][] = [
     "他们打算调整套餐定价（因为你）。",
     "你是 {vendor} 这个产品的盈利反例。",
     "建议低调用，别被风控了。",
-    "Pro 套餐被你吃成了 Free Tier。",
     "{net} 直接装进口袋，{vendor} 内部已经开始追责。",
     "翻倍回本 = {vendor} 的产品总监给 CEO 写检讨的开始。",
     "你的薅率已经达到「值得开除某个销售」级别。",
@@ -1352,7 +1350,6 @@ export const ROI_EN: string[][] = [
     "2× recovered. {net} in pocket. {vendor} ghosted.",
     "Their next pricing redesign? Because of you.",
     "Living counterexample to {vendor}'s margins.",
-    "Pro became Free Tier in your hands.",
   ],
   [
     "2.5× recovered. Board called an emergency.",

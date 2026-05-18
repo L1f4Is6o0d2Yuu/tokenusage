@@ -37,11 +37,11 @@ export default async function UsersPage({
 }: {
   searchParams: Promise<{ new?: string }>;
 }) {
-  if (!isMultiUserMode()) redirect("/");
+  if (!isMultiUserMode()) redirect("/dashboard");
 
   const user = await readCurrentUser();
   if (!user) redirect("/login");
-  if (!user.isAdmin) redirect("/");
+  if (!user.isAdmin) redirect("/dashboard");
 
   const { new: newInvite } = await searchParams;
   const users = listUsers();
@@ -63,7 +63,7 @@ export default async function UsersPage({
   return (
     <main className="mx-auto w-full max-w-4xl px-6 py-10">
       <Link
-        href="/"
+        href="/dashboard"
         className="mb-6 inline-flex text-sm text-muted-foreground hover:text-foreground"
       >
         {dict.session.back}

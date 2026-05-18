@@ -44,7 +44,7 @@ export default async function PricesPage({
   return (
     <main className="mx-auto w-full max-w-5xl px-6 py-10">
       <Link
-        href="/"
+        href="/dashboard"
         className="mb-6 inline-flex text-sm text-muted-foreground hover:text-foreground"
       >
         {t.back}

@@ -13,7 +13,7 @@ export default async function SignupPage({
   const { invite } = await searchParams;
 
   const current = await readCurrentUser();
-  if (current) redirect("/");
+  if (current) redirect("/dashboard");
 
   const t = (await getDictionary()).authForms;
 
@@ -72,7 +72,7 @@ export default async function SignupPage({
     );
   }
 
-  if (!isMultiUserMode()) redirect("/");
+  if (!isMultiUserMode()) redirect("/dashboard");
 
   // Multi-user mode, no invite in URL → ask the user to paste their code.
   // Submitting the form pushes them to /signup?invite=… which hits the

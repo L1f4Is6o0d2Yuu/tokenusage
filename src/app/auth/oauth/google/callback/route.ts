@@ -104,7 +104,7 @@ export async function GET(req: NextRequest): Promise<Response> {
 
   const sessionToken = createSession(user.id);
   // Pending users land on /pending; activated users land on /.
-  const landingPath = user.activatedAt == null ? "/pending" : "/";
+  const landingPath = user.activatedAt == null ? "/pending" : "/dashboard";
   const res = NextResponse.redirect(new URL(landingPath, origin), { status: 303 });
   res.cookies.set(SESSION_COOKIE, sessionToken, cookieOptions(ONE_MONTH));
   // Clear the flow cookies — they served their purpose.
