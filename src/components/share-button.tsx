@@ -1,6 +1,11 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+
+// Event the dashboard's per-KPI share icons dispatch. ShareButton mounts
+// a `window.addEventListener("tu-share-now", …)` and runs the same flow
+// as a direct click on the (now sr-only) standalone trigger.
+export const SHARE_EVENT = "tu-share-now";
 import { Share2, Check, AlertCircle, Loader2 } from "lucide-react";
 import { computeRoi, periodDays } from "@/lib/roi-client";
 import type { PlanLite } from "@/lib/roi-client";
@@ -139,6 +144,21 @@ export function ShareButton({
   const [sharedUrl, setSharedUrl] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const posterRef = useRef<HTMLDivElement | null>(null);
+
+  // Per-KPI share icons (rendered by SummaryCard) dispatch
+  // window.dispatchEvent(new Event(SHARE_EVENT)) to ask us to run the
+  // share flow without exposing a visible button up here. Treat it the
+  // same as a direct user click.
+  useEffect(() => {
+    const onTrigger = () => {
+      if (status !== "loading") void handleSave();
+    };
+    window.addEventListener(SHARE_EVENT, onTrigger);
+    return () => window.removeEventListener(SHARE_EVENT, onTrigger);
+    // handleSave closes over current state but is stable enough — the
+    // `status !== "loading"` guard inside catches the only race.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status]);
 
   async function handleSave() {
     if (status === "loading") return;

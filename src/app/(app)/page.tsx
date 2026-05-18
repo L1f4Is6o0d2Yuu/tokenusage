@@ -12,6 +12,7 @@ import {
   PLAN_CATALOG,
 } from "@/lib/subscriptions";
 import { getDictionary, readLocale } from "@/i18n";
+import { pickTagline } from "@/i18n/taglines";
 import { DashboardClient } from "./dashboard-client";
 
 // Thin server shell. We still do the auth + record fetch + a one-shot read
@@ -88,7 +89,15 @@ export default async function Page({
     redirect("/subscriptions?welcome=1");
   }
   const locale = await readLocale();
-  const t = await getDictionary(locale);
+  const baseDict = await getDictionary(locale);
+  // Pick a random tagline per request from the per-locale PUA-tone
+  // corpus. Mutating a dict copy here keeps the rest of the i18n
+  // plumbing untouched; the client component still reads
+  // `t.header.tagline` like before.
+  const t = {
+    ...baseDict,
+    header: { ...baseDict.header, tagline: pickTagline(locale) },
+  };
 
   const { records, sources, fellBackToSample, mode } = await loadRecords();
 
