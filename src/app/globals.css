@@ -607,3 +607,118 @@ html.lenis, html.lenis body { height: auto; }
 .lenis.lenis-smooth [data-lenis-prevent] { overscroll-behavior: contain; }
 .lenis.lenis-stopped { overflow: hidden; }
 .lenis.lenis-scrolling iframe { pointer-events: none; }
+
+/* ─── Motion utility kit ────────────────────────────────────────────────
+ * Reusable classes that high-traffic interactive surfaces opt into.
+ * Each follows the same easing language as the existing tu-rise / tu-
+ * slide-in / tu-fade-in: cubic-bezier(0.22, 1, 0.36, 1) for entrances
+ * (gentle deceleration), shorter durations for state changes.
+ * All wrapped in prefers-reduced-motion: no-preference. The reduced-
+ * motion fallback (handled by the @media at the bottom) zeroes out
+ * keyframe animations but keeps non-animated state.
+ * ───────────────────────────────────────────────────────────────────── */
+
+/* Tabular row / list-item hover: subtle background tone shift + cursor
+ * affordance. No translate so dense tables don't jitter. */
+@layer components {
+  .row-hover {
+    @apply transition-colors duration-150 ease-out hover:bg-bg-panel-2/40;
+  }
+  /* Inline-y nudges for chips, badges, small buttons. */
+  .chip-hover {
+    @apply transition-[transform,background-color,border-color,color] duration-150 ease-out hover:-translate-y-px;
+  }
+  /* Iconic mini buttons (share, copy, etc.) get a soft pill bg on hover. */
+  .icon-btn {
+    @apply inline-flex items-center justify-center rounded transition-[background-color,color,transform] duration-150 ease-out hover:bg-bg-panel-2 hover:text-foreground active:scale-95;
+  }
+  /* Focus ring shared across inputs/buttons that don't have shadcn's. */
+  .focus-ring {
+    @apply outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-bg-app;
+  }
+  .focus-ring:focus-visible {
+    --tw-ring-color: var(--accent-ring);
+  }
+}
+
+/* Stagger helpers — drop on a list parent; children with --i custom
+ * property get a 50ms-times-i delay. Pair with .tu-rise on each child. */
+@layer components {
+  .stagger > * { animation-delay: calc(var(--i, 0) * 60ms); }
+}
+
+/* Stamp keyframe — used for "just copied / just saved" pulse on action
+ * buttons. Single 360ms shot, no loop. */
+@keyframes tu-stamp {
+  0%   { transform: scale(1); }
+  35%  { transform: scale(1.08); }
+  60%  { transform: scale(0.96); }
+  100% { transform: scale(1); }
+}
+@keyframes tu-pulse-ring {
+  0%   { box-shadow: 0 0 0 0 var(--accent-ring); }
+  60%  { box-shadow: 0 0 0 10px transparent; }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+@keyframes tu-shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+@keyframes tu-pop-in {
+  0%   { opacity: 0; transform: scale(0.96) translateY(4px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+@keyframes tu-pop-out {
+  0%   { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(0.96) translateY(-4px); }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .tu-stamp {
+    animation: tu-stamp 360ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  }
+  .tu-pulse-ring {
+    animation: tu-pulse-ring 680ms cubic-bezier(0.4, 0, 0.2, 1) both;
+  }
+  .tu-pop-in {
+    animation: tu-pop-in 220ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  .tu-pop-out {
+    animation: tu-pop-out 180ms cubic-bezier(0.55, 0, 0.6, 0.05) both;
+  }
+  /* Skeleton shimmer — gradient sweep across background-position-x. The
+   * receiving element should set its own background as a gradient. */
+  .tu-shimmer {
+    background: linear-gradient(
+      90deg,
+      var(--bg-panel-2) 0%,
+      var(--bg-panel) 50%,
+      var(--bg-panel-2) 100%
+    );
+    background-size: 200% 100%;
+    animation: tu-shimmer 1.4s linear infinite;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tu-stamp, .tu-pulse-ring, .tu-pop-in, .tu-pop-out, .tu-shimmer {
+    animation: none;
+  }
+  .tu-shimmer {
+    background: var(--bg-panel-2);
+  }
+}
+
+/* Cross-page view transitions — only for browsers that support the
+ * View Transitions API. Falls back to instant on unsupported browsers
+ * with no JS shim needed. Tailored to feel quick (200ms cross-fade)
+ * so dashboard nav stays snappy. */
+@view-transition { navigation: auto; }
+::view-transition-old(root) {
+  animation: tu-fade-in 200ms reverse cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+::view-transition-new(root) {
+  animation: tu-fade-in 200ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(root),
+  ::view-transition-new(root) { animation: none; }
+}

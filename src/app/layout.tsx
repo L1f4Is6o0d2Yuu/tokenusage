@@ -5,6 +5,8 @@ import "./globals.css";
 import { getDictionary, readLocale } from "@/i18n";
 import { isTheme, THEME_COOKIE, type Theme } from "@/lib/theme";
 import { isSkin, SKIN_COOKIE, type Skin } from "@/lib/skin";
+import { Toaster } from "sonner";
+import { CommandPalette } from "@/components/command-palette";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -68,7 +70,20 @@ export default async function RootLayout({
       <head>
         <script dangerouslySetInnerHTML={{ __html: NO_FLASH_SCRIPT }} />
       </head>
-      <body className="min-h-dvh bg-bg-app text-foreground">{children}</body>
+      <body className="min-h-dvh bg-bg-app text-foreground">
+        {children}
+        <CommandPalette />
+        <Toaster
+          position="bottom-right"
+          theme="system"
+          richColors
+          closeButton
+          toastOptions={{
+            className:
+              "border border-border-subtle bg-bg-panel text-foreground",
+          }}
+        />
+      </body>
     </html>
   );
 }
