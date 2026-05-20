@@ -111,14 +111,43 @@ export function Landing({
            the poster lands under the headline instead of being
            crushed. */
         @media (max-width: 880px) {
-          .tu-hero, .tu-steps { grid-template-columns: 1fr !important; }
+          .tu-hero, .tu-steps, .tu-feature { grid-template-columns: 1fr !important; }
           .tu-h1 { font-size: 64px !important; }
-          .tu-h2 { font-size: 44px !important; }
+          .tu-h2 { font-size: 38px !important; }
           .tu-poster-frame { transform: rotate(0deg) !important; }
         }
       `}</style>
       <NavBar />
       <Hero inviteRequired={inviteRequired} />
+      <FeatureSection
+        title="打开看板，谁在替你打字"
+        tagline="点开就是答卷：哪些 token 干了正事，哪些纯属心血来潮。每张卡右上角带分享按钮，看哪个数据够拿，直接甩朋友圈。"
+        visual={<KpiPreview />}
+      />
+      <FeatureSection
+        title="钱是怎么烧没的"
+        tagline="哪天你失控了一目了然，第二天就能装作没看见。30 天日均曲线 + 突发尖刺标注，逃也逃不掉。"
+        visual={<TrendPreview />}
+        reversed
+        background={W.canvasSoft}
+      />
+      <FeatureSection
+        title="月底大约多狠，先有个数"
+        tagline="按你最近 14 天的节奏推算月末账单，再跟上月同期一刀切。趋势不对劲，比账单到了再哭强。"
+        visual={<ForecastPreview />}
+      />
+      <FeatureSection
+        title="套餐还吃得起，还是该换 PAYG"
+        tagline="别再凭感觉续费了，那不叫节俭叫送钱。每月给你算一遍：套餐 vs 按用量，差多少一目了然。"
+        visual={<SubPaygPreview />}
+        reversed
+        background={W.canvasSoft}
+      />
+      <FeatureSection
+        title="卷王 vs 冤大头"
+        tagline="谁是套餐之神，谁是 OpenAI 年度 VIP，朋友圈集体公开处刑。隐去昵称也行，反正排名不会让你藏。"
+        visual={<LeaderboardPreview />}
+      />
       <Steps />
       <CTABand inviteRequired={inviteRequired} />
       <Footer />
@@ -235,8 +264,8 @@ function Hero({ inviteRequired }: { inviteRequired: boolean }) {
             maxWidth: 520,
           }}
         >
-          Claude Code、Codex、Cursor、Hermes、Windsurf 的 token
-          用量一锅端，告诉你回本几倍，再骂你两句。
+          Claude Code、Codex、Cursor、Hermes、Windsurf 全凑一处。
+          月底算账：你是薅了 AI 公司，还是给人家送了一台 MacBook。
         </p>
 
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
@@ -355,7 +384,7 @@ function Steps() {
             就开始。
           </h2>
           <p style={{ fontSize: 17, color: W.body, lineHeight: 1.6, margin: 0 }}>
-            没有引导教程，没有 30 天试用倒计时。注册、装、看。
+            没说明书，没倒计时，没销售加你微信。注册、装、看。
           </p>
         </div>
 
@@ -399,7 +428,7 @@ function Steps() {
             </span>
           </Step>
           <Step n="3" title="开 dashboard">
-            数据 5 分钟内到。看够了点「分享」，把战绩甩朋友圈。
+            数据 5 分钟内回来。手痒了点「分享」，把战绩甩朋友圈装个 B。
           </Step>
         </ol>
       </div>
@@ -497,7 +526,7 @@ function CTABand({ inviteRequired }: { inviteRequired: boolean }) {
             lineHeight: 1,
           }}
         >
-          来玩一把？
+          算一算自己什么段位？
         </h2>
         <p
           style={{
@@ -511,8 +540,8 @@ function CTABand({ inviteRequired }: { inviteRequired: boolean }) {
           }}
         >
           {inviteRequired
-            ? "邀请制。找熟人要个码，或者去 GitHub 提个 issue 蹭。"
-            : "免费。不收 token，不要邮箱。"}
+            ? "邀请制。找熟人要个码，没熟人去 GitHub 蹭一个。"
+            : "免费。不要钱，不要信用卡，不要 token 钥匙。"}
         </p>
         <div
           style={{
@@ -623,3 +652,660 @@ const codeInline = {
   borderRadius: 6,
   wordBreak: "break-all" as const,
 };
+
+// Extra accent colors used across the dashboard previews below. Kept
+// here rather than in `W` so they're only loaded by the section the
+// poster doesn't touch.
+const W2 = {
+  danger: "#c5453d",
+  panelBorder: "#dde0d8",
+  highlightBg: "#f0fae6",
+};
+
+// Section wrapper: title + tagline on one side, scaled preview on the
+// other. `reversed` swaps the order; alternating sections + alternating
+// background tones (canvas / canvasSoft) give the page rhythm without
+// any extra art direction.
+function FeatureSection({
+  title,
+  tagline,
+  visual,
+  reversed,
+  background,
+}: {
+  title: string;
+  tagline: string;
+  visual: React.ReactNode;
+  reversed?: boolean;
+  background?: string;
+}) {
+  const text = (
+    <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+      <h2
+        className="tu-h2"
+        style={{
+          fontSize: 48,
+          fontWeight: 900,
+          letterSpacing: -2,
+          lineHeight: 1.05,
+          margin: 0,
+          color: W.ink,
+        }}
+      >
+        {title}
+      </h2>
+      <p
+        style={{
+          fontSize: 17,
+          color: W.body,
+          lineHeight: 1.6,
+          margin: 0,
+          maxWidth: 460,
+        }}
+      >
+        {tagline}
+      </p>
+    </div>
+  );
+  const vis = (
+    <div style={{ display: "flex", justifyContent: "center", minWidth: 0 }}>
+      <div style={{ width: "100%", maxWidth: 460 }}>{visual}</div>
+    </div>
+  );
+  return (
+    <section
+      style={{
+        background: background ?? W.canvas,
+        padding: "72px 32px",
+      }}
+    >
+      <div
+        className="tu-feature"
+        style={{
+          maxWidth: 1200,
+          margin: "0 auto",
+          display: "grid",
+          gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1.1fr)",
+          gap: 56,
+          alignItems: "center",
+        }}
+      >
+        {reversed ? (
+          <>
+            {vis}
+            {text}
+          </>
+        ) : (
+          <>
+            {text}
+            {vis}
+          </>
+        )}
+      </div>
+    </section>
+  );
+}
+
+// Mock dashboard KPI cards — same three the live dashboard surfaces,
+// with believable numbers from the hero poster sample so the page
+// stays internally consistent.
+function KpiPreview() {
+  const cards = [
+    {
+      label: "ESTIMATED COST",
+      value: "$1,247.36",
+      hint: "扣完套餐 $220，还赚 $1,027",
+      accent: true,
+    },
+    {
+      label: "TOTAL TOKENS",
+      value: "1.84B",
+      hint: "187 sessions",
+      accent: false,
+    },
+    {
+      label: "INPUT / OUTPUT",
+      value: "420M / 51M",
+      hint: "不含缓存",
+      accent: false,
+    },
+  ];
+  return (
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        gap: 12,
+        width: "100%",
+      }}
+    >
+      {cards.map((card) => (
+        <div
+          key={card.label}
+          style={{
+            position: "relative",
+            background: W.canvas,
+            border: `1px solid ${W2.panelBorder}`,
+            borderRadius: 12,
+            padding: "16px 20px",
+            ...(card.accent
+              ? { boxShadow: `inset 4px 0 0 ${W.ink}` }
+              : {}),
+          }}
+        >
+          {/* Share icon mimic */}
+          <div
+            style={{
+              position: "absolute",
+              top: 10,
+              right: 12,
+              color: W.mute,
+              fontSize: 14,
+              opacity: 0.6,
+            }}
+            aria-hidden
+          >
+            ↗
+          </div>
+          <div
+            style={{
+              fontSize: 10,
+              letterSpacing: 1.3,
+              color: W.mute,
+              fontWeight: 700,
+            }}
+          >
+            {card.label}
+          </div>
+          <div
+            style={{
+              fontSize: 32,
+              fontWeight: 700,
+              color: W.ink,
+              marginTop: 4,
+              letterSpacing: -1.2,
+              fontVariantNumeric: "tabular-nums",
+            }}
+          >
+            {card.value}
+          </div>
+          <div style={{ fontSize: 12, color: W.body, marginTop: 4 }}>
+            {card.hint}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// 30-day cost trend, mocked with a believable shape (gentle ramp + one
+// outlier spike on day 17 — the kind of "I forgot a model running
+// overnight" moment the product is designed to catch). Pure SVG so we
+// don't pull recharts into the public-facing bundle.
+function TrendPreview() {
+  const data = [
+    8, 12, 6, 18, 22, 14, 10, 28, 35, 24, 19, 32, 41, 38, 29, 45, 89, 52,
+    41, 38, 44, 51, 47, 39, 58, 62, 71, 65, 78, 92,
+  ];
+  const VBW = 720;
+  const VBH = 240;
+  const PAD = 28;
+  const max = Math.max(...data);
+  const xAt = (i: number) => PAD + (i / (data.length - 1)) * (VBW - 2 * PAD);
+  const yAt = (v: number) => VBH - PAD - (v / max) * (VBH - 2 * PAD);
+  const linePoints = data.map((v, i) => `${xAt(i)},${yAt(v)}`).join(" ");
+  // Closed area path under the curve for the soft fill.
+  const areaPath = `M ${xAt(0)},${VBH - PAD} L ${linePoints
+    .split(" ")
+    .join(" L ")} L ${xAt(data.length - 1)},${VBH - PAD} Z`;
+  const spikeIdx = data.indexOf(Math.max(...data.slice(15, 20)));
+  return (
+    <div
+      style={{
+        background: W.canvas,
+        border: `1px solid ${W2.panelBorder}`,
+        borderRadius: 12,
+        padding: 20,
+        width: "100%",
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "baseline",
+          marginBottom: 12,
+        }}
+      >
+        <span
+          style={{
+            fontSize: 10,
+            letterSpacing: 1.3,
+            color: W.mute,
+            fontWeight: 700,
+          }}
+        >
+          近 30 天 · 每日成本
+        </span>
+        <span style={{ fontSize: 12, color: W.body, fontWeight: 600 }}>
+          ${data.reduce((a, b) => a + b, 0).toLocaleString()} 累计
+        </span>
+      </div>
+      <svg
+        viewBox={`0 0 ${VBW} ${VBH}`}
+        width="100%"
+        height="auto"
+        preserveAspectRatio="none"
+        style={{ display: "block" }}
+      >
+        {[0.25, 0.5, 0.75].map((f) => (
+          <line
+            key={f}
+            x1={PAD}
+            x2={VBW - PAD}
+            y1={PAD + f * (VBH - 2 * PAD)}
+            y2={PAD + f * (VBH - 2 * PAD)}
+            stroke={W.canvasSoft}
+            strokeDasharray="3 4"
+          />
+        ))}
+        <path d={areaPath} fill={W.primaryPale} opacity={0.7} />
+        <polyline
+          points={linePoints}
+          fill="none"
+          stroke={W.positive}
+          strokeWidth="3"
+          strokeLinejoin="round"
+          strokeLinecap="round"
+        />
+        <circle
+          cx={xAt(spikeIdx)}
+          cy={yAt(data[spikeIdx])}
+          r="6"
+          fill={W.primary}
+          stroke={W.ink}
+          strokeWidth="2.5"
+        />
+        <text
+          x={xAt(spikeIdx) + 12}
+          y={yAt(data[spikeIdx]) - 8}
+          fontSize="14"
+          fontWeight="700"
+          fill={W.ink}
+        >
+          ${data[spikeIdx]}
+        </text>
+      </svg>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          fontSize: 11,
+          color: W.mute,
+          marginTop: 6,
+        }}
+      >
+        <span>30 天前</span>
+        <span style={{ color: W.body, fontWeight: 600 }}>
+          ← 那天你忘了关 Opus
+        </span>
+        <span>今天</span>
+      </div>
+    </div>
+  );
+}
+
+// Month-end projection card mimic. Same three pieces as the live
+// ForecastCard: big projected number, daily pace line, vs-last-month
+// delta, and the "stick with sub vs switch to PAYG" verdict.
+function ForecastPreview() {
+  return (
+    <div
+      style={{
+        background: W.canvas,
+        border: `1px solid ${W2.panelBorder}`,
+        borderRadius: 12,
+        padding: "20px 22px",
+        width: "100%",
+      }}
+    >
+      <div
+        style={{
+          fontSize: 10,
+          letterSpacing: 1.3,
+          color: W.mute,
+          fontWeight: 700,
+          marginBottom: 14,
+        }}
+      >
+        月底预测
+      </div>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "flex-end",
+          justifyContent: "space-between",
+          gap: 16,
+        }}
+      >
+        <div>
+          <div
+            style={{
+              fontSize: 44,
+              fontWeight: 800,
+              color: W.ink,
+              letterSpacing: -1.8,
+              lineHeight: 1,
+              fontVariantNumeric: "tabular-nums",
+            }}
+          >
+            $5,316.42
+          </div>
+          <div style={{ fontSize: 12, color: W.body, marginTop: 8 }}>
+            按日均 $172.13 推算 · 近 14 天
+          </div>
+        </div>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 4,
+            fontSize: 13,
+            fontWeight: 700,
+            color: W2.danger,
+            whiteSpace: "nowrap",
+          }}
+        >
+          ↗ 上月同期高 38%
+        </div>
+      </div>
+      <div
+        style={{
+          marginTop: 16,
+          padding: "10px 14px",
+          background: W2.highlightBg,
+          borderRadius: 8,
+          fontSize: 13,
+          color: W.ink,
+        }}
+      >
+        <span style={{ color: W.positive, fontWeight: 700 }}>
+          ✓ 继续吃套餐
+        </span>
+        <span style={{ marginLeft: 8, color: W.body }}>
+          ($220 /mo &nbsp;vs&nbsp; ~$5,316)
+        </span>
+      </div>
+    </div>
+  );
+}
+
+// Sub vs PAYG side-by-side. Drives home the "套餐之神" moment with a
+// 24× multiplier so the comparison can't be missed at a glance.
+function SubPaygPreview() {
+  return (
+    <div
+      style={{
+        width: "100%",
+        display: "flex",
+        flexDirection: "column",
+        gap: 12,
+      }}
+    >
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "1fr 1fr",
+          gap: 12,
+        }}
+      >
+        <div
+          style={{
+            position: "relative",
+            background: W.canvas,
+            border: `2px solid ${W.positive}`,
+            borderRadius: 12,
+            padding: 18,
+          }}
+        >
+          <span
+            style={{
+              position: "absolute",
+              top: -10,
+              left: 14,
+              background: W.positive,
+              color: W.canvas,
+              fontSize: 10,
+              fontWeight: 700,
+              padding: "3px 8px",
+              borderRadius: 4,
+              letterSpacing: 0.5,
+            }}
+          >
+            当前
+          </span>
+          <div
+            style={{
+              fontSize: 10,
+              letterSpacing: 1.3,
+              color: W.mute,
+              fontWeight: 700,
+            }}
+          >
+            套餐月费
+          </div>
+          <div
+            style={{
+              fontSize: 32,
+              fontWeight: 800,
+              color: W.ink,
+              marginTop: 8,
+              letterSpacing: -1.2,
+              fontVariantNumeric: "tabular-nums",
+            }}
+          >
+            $220
+          </div>
+          <div
+            style={{
+              fontSize: 12,
+              color: W.body,
+              marginTop: 6,
+              lineHeight: 1.5,
+            }}
+          >
+            Claude Pro $200
+            <br />+ Codex Plus $20
+          </div>
+        </div>
+        <div
+          style={{
+            background: W.canvas,
+            border: `1px solid ${W2.panelBorder}`,
+            borderRadius: 12,
+            padding: 18,
+          }}
+        >
+          <div
+            style={{
+              fontSize: 10,
+              letterSpacing: 1.3,
+              color: W.mute,
+              fontWeight: 700,
+            }}
+          >
+            按 API 计费
+          </div>
+          <div
+            style={{
+              fontSize: 32,
+              fontWeight: 800,
+              color: W2.danger,
+              marginTop: 8,
+              letterSpacing: -1.2,
+              fontVariantNumeric: "tabular-nums",
+            }}
+          >
+            ~$5,316
+          </div>
+          <div style={{ fontSize: 12, color: W.body, marginTop: 6 }}>
+            按近 14 天日均推算
+          </div>
+        </div>
+      </div>
+      <div
+        style={{
+          background: W2.highlightBg,
+          border: `1px solid ${W.primary}`,
+          borderRadius: 12,
+          padding: "12px 16px",
+          fontSize: 14,
+          color: W.ink,
+          lineHeight: 1.5,
+        }}
+      >
+        <span style={{ fontWeight: 800, color: W.positive }}>
+          ✓ 继续吃套餐
+        </span>
+        <span style={{ marginLeft: 8 }}>
+          每月省下 <strong>$5,096</strong>，相当于
+          <strong> 24× </strong>套餐价 — 你就是套餐之神
+        </span>
+      </div>
+    </div>
+  );
+}
+
+// Mini top-5 leaderboard slice. Highlight row reads "你" so visitors
+// immediately picture themselves in it. Cost / tier copy comes from
+// the live LEADERBOARD_TIERS taxonomy.
+function LeaderboardPreview() {
+  const rows = [
+    {
+      rank: "🥇",
+      name: "user-2",
+      cost: "$4,892.13",
+      tier: "🐉 神之化身",
+      me: false,
+    },
+    {
+      rank: "🥈",
+      name: "yyz73",
+      cost: "$1,247.36",
+      tier: "👑 卷王",
+      me: true,
+    },
+    {
+      rank: "🥉",
+      name: "user-9",
+      cost: "$890.42",
+      tier: "👑 卷王",
+      me: false,
+    },
+    {
+      rank: "#4",
+      name: "user-3",
+      cost: "$312.08",
+      tier: "🧱 砖头",
+      me: false,
+    },
+    {
+      rank: "#5",
+      name: "user-11",
+      cost: "$87.55",
+      tier: "🐟 摸鱼",
+      me: false,
+    },
+  ];
+  return (
+    <div
+      style={{
+        background: W.canvas,
+        border: `1px solid ${W2.panelBorder}`,
+        borderRadius: 12,
+        width: "100%",
+        overflow: "hidden",
+      }}
+    >
+      <div
+        style={{
+          padding: "14px 18px",
+          borderBottom: `1px solid ${W2.panelBorder}`,
+          fontSize: 14,
+          fontWeight: 800,
+          color: W.ink,
+        }}
+      >
+        完整排名 · 近 30 天
+      </div>
+      {rows.map((r, i) => (
+        <div
+          key={r.name}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 12,
+            padding: "13px 18px",
+            borderBottom:
+              i < rows.length - 1
+                ? `1px solid ${W2.panelBorder}`
+                : "none",
+            background: r.me ? W2.highlightBg : "transparent",
+          }}
+        >
+          <span
+            style={{
+              width: 32,
+              fontSize: 16,
+              fontWeight: 700,
+              color: W.mute,
+              textAlign: "center",
+              fontFamily: 'ui-monospace, "SF Mono", Menlo, monospace',
+            }}
+          >
+            {r.rank}
+          </span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div
+              style={{
+                fontSize: 14,
+                fontWeight: 700,
+                color: W.ink,
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                flexWrap: "wrap",
+              }}
+            >
+              <span>{r.name}</span>
+              {r.me && (
+                <span
+                  style={{
+                    fontSize: 10,
+                    color: W.positive,
+                    fontWeight: 800,
+                  }}
+                >
+                  ← 你在这
+                </span>
+              )}
+            </div>
+            <div style={{ fontSize: 11, color: W.mute, marginTop: 2 }}>
+              {r.tier}
+            </div>
+          </div>
+          <div
+            style={{
+              fontSize: 15,
+              fontWeight: 800,
+              color: W.ink,
+              fontVariantNumeric: "tabular-nums",
+            }}
+          >
+            {r.cost}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
