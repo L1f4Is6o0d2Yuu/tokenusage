@@ -155,15 +155,40 @@ export function DashboardClient({
     [scoped]
   );
 
+  // Anchor "now" for every time-since-now derivation below. SSR runs
+  // Date.now() at HTTP request time; first client render runs it again
+  // a few hundred ms later, and the resulting drift makes
+  // `hoursPerDay` / `limitWindows.tokens` differ by a fraction of a
+  // percent — enough for React to flag a hydration mismatch on
+  // PercentileBar's width and LimitWindowsPanel's token total. Seed
+  // the first render with the latest record's startedAt (deterministic,
+  // same on both sides), then swap to a real Date.now() after mount.
+  const stableNow = useMemo(
+    () =>
+      records.length === 0
+        ? 0
+        : records.reduce((m, r) => Math.max(m, r.startedAt), 0),
+    [records]
+  );
+  const [liveNow, setLiveNow] = useState<number | null>(null);
+  useEffect(() => {
+    setLiveNow(Date.now());
+    // Refresh every minute so the windows stay fresh while the dash
+    // is open — they're explicitly time-since-now totals.
+    const id = setInterval(() => setLiveNow(Date.now()), 60_000);
+    return () => clearInterval(id);
+  }, []);
+  const anchorNow = liveNow ?? stableNow;
+
   // Coding-hours KPI + the htop-style live panel. Both are pure derivations
   // off the scoped records, so they update for free when the period changes.
   // Clip sessions to the period window so a session that spans the
   // boundary doesn't bleed its full duration into the displayed total
   // (the unclipped version gave us 177h / 7d → 25h/day on busy users).
   const codingHours = useMemo(() => {
-    const win = periodWindow(period, new Date(), customRange);
+    const win = periodWindow(period, new Date(anchorNow), customRange);
     return totalActiveHours(scoped, win);
-  }, [scoped, period, customRange]);
+  }, [scoped, period, customRange, anchorNow]);
   // Period length in days — used to normalize percentile comparisons
   // ("$/day" / "tokens/day") against the industry reference distribution.
   const days = useMemo(
@@ -181,8 +206,8 @@ export function DashboardClient({
   // currently-selected period so the 5h/24h/7d/30d numbers stay
   // honest regardless of what tab the user is on.
   const limitWindows = useMemo(
-    () => computeAllLimitWindows(records),
-    [records]
+    () => computeAllLimitWindows(records, anchorNow),
+    [records, anchorNow]
   );
 
   const handlePeriod = (next: Period) => {

@@ -34,10 +34,10 @@ export function PeriodTabs({
               type="button"
               onClick={() => onChange(p)}
               className={cn(
-                "shrink-0 rounded px-3 py-1.5 transition-colors",
+                "shrink-0 rounded px-3 py-1.5 transition-[background-color,color,transform] duration-150 ease-out active:scale-[0.97]",
                 isActive
                   ? "bg-foreground text-background"
-                  : "text-muted-foreground hover:text-foreground"
+                  : "text-muted-foreground hover:bg-bg-panel-2 hover:text-foreground"
               )}
             >
               {t[p]}

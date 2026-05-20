@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 type Labels = {
@@ -32,9 +33,11 @@ export function CopyInviteLink({
     try {
       await navigator.clipboard.writeText(which === "code" ? code : url);
       setDone(which);
+      toast.success(t.copied);
       setTimeout(() => setDone(""), 2200);
     } catch {
       setError(t.copyError);
+      toast.error(t.copyError);
     }
   }
 

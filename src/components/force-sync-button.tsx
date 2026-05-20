@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { toast } from "sonner";
 
 // "Sync now" button used on the /install page. POSTs to /api/sync-now
 // to set the `sync_requested_at` flag — the agent's long-poll picks it
@@ -24,12 +25,19 @@ export function ForceSyncButton({
   function onClick() {
     if (pending || requested) return;
     setRequested(true);
+    const tid = toast.loading("已通知 agent，等数据回来…");
     startTransition(async () => {
       try {
-        await fetch("/api/sync-now", { method: "POST" });
+        const res = await fetch("/api/sync-now", { method: "POST" });
+        if (!res.ok) {
+          throw new Error(`sync-now returned ${res.status}`);
+        }
+        toast.success("同步请求已发出", { id: tid });
       } catch {
-        // best-effort; the meta-refresh on the parent page will
-        // re-fetch state regardless of network outcome.
+        // Soft-fail — the page reload below will still surface the
+        // current state. We dismiss the loading toast either way so
+        // the user gets a clear "done waiting on me" signal.
+        toast.error("网络不太给力，刷新页面再看一次", { id: tid });
       }
       // Brief delay so the user sees the loading state, then reload
       // and let the server-rendered status checklist redraw.

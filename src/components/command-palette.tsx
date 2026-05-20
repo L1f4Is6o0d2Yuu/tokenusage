@@ -24,6 +24,7 @@ import {
 import { setThemeAction } from "@/app/theme-action";
 import { setSkinAction } from "@/app/skin-action";
 import { logoutAction } from "@/app/auth-actions";
+import { toast } from "sonner";
 
 // Small adapters so the palette can call the FormData-based server
 // actions with a single string. Keeps the action signature unchanged
@@ -31,7 +32,12 @@ import { logoutAction } from "@/app/auth-actions";
 async function applyTheme(value: "light" | "dark" | "system"): Promise<void> {
   const fd = new FormData();
   fd.set("theme", value);
-  await setThemeAction(fd);
+  try {
+    await setThemeAction(fd);
+  } catch {
+    toast.error("主题切换失败，请刷新重试");
+    return;
+  }
   // The server action revalidates; force a class flip immediately so
   // there's no waiting for the navigation to repaint.
   const html = document.documentElement;
@@ -43,12 +49,20 @@ async function applyTheme(value: "light" | "dark" | "system"): Promise<void> {
     ).matches;
     html.classList.toggle("dark", !!prefersDark);
   }
+  const labels = { light: "浅色", dark: "深色", system: "跟随系统" } as const;
+  toast.success(`主题已切到「${labels[value]}」`);
 }
 async function applySkin(value: "linear" | "wise"): Promise<void> {
   const fd = new FormData();
   fd.set("skin", value);
-  await setSkinAction(fd);
+  try {
+    await setSkinAction(fd);
+  } catch {
+    toast.error("皮肤切换失败，请刷新重试");
+    return;
+  }
   document.documentElement.setAttribute("data-skin", value);
+  toast.success(`皮肤已切到「${value === "wise" ? "Wise" : "Linear"}」`);
 }
 
 // Cmd+K command palette. Three things make it feel native rather than a
@@ -90,6 +104,19 @@ export function CommandPalette() {
       if (isToggle) {
         e.preventDefault();
         setOpen((v) => !v);
+        return;
+      }
+      // Esc closes the palette. cmdk doesn't bind Esc on bare <Command>
+      // (only Command.Dialog does), so we wire it ourselves at the
+      // window level — same listener handles toggle + dismiss.
+      if (e.key === "Escape") {
+        setOpen((v) => {
+          if (v) {
+            e.preventDefault();
+            return false;
+          }
+          return v;
+        });
       }
     };
     window.addEventListener("keydown", onKey);
