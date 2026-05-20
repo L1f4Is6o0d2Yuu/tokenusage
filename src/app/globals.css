@@ -596,3 +596,14 @@
     @apply transition-[transform,border-color] duration-200 ease-out hover:-translate-y-px hover:border-accent/40;
   }
 }
+
+/* Lenis (smooth scroll) requires html/body height: auto and disabling
+ * native scroll-behavior so its rAF-driven transforms don't fight the
+ * browser's own smooth-scroll lerp. Only applies once Lenis tags the
+ * <html> with `.lenis-smooth` — pages without the provider keep
+ * native instant scroll. */
+html.lenis, html.lenis body { height: auto; }
+.lenis.lenis-smooth { scroll-behavior: auto !important; }
+.lenis.lenis-smooth [data-lenis-prevent] { overscroll-behavior: contain; }
+.lenis.lenis-stopped { overflow: hidden; }
+.lenis.lenis-scrolling iframe { pointer-events: none; }

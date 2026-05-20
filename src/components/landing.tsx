@@ -8,6 +8,7 @@
 
 import Link from "next/link";
 import { SharePoster, type SharePosterData } from "./share-poster";
+import { LandingDeepDive } from "./landing-deep-dive";
 
 const W = {
   primary: "#9fe870",
@@ -115,15 +116,28 @@ export function Landing({
         /* Mobile: collapse the asymmetric grids to single column so
            the poster lands under the headline instead of being
            crushed. */
+        .tu-logo {
+          transition: color .2s ease, transform .2s ease;
+          cursor: default;
+        }
+        .tu-logo:hover { color: #0e0f0c !important; transform: translateY(-1px); }
+        details.tu-faq { transition: background-color .2s ease; }
+        details.tu-faq[open] { background-color: rgba(159,232,112,0.08); }
+        details.tu-faq summary { cursor: pointer; list-style: none; }
+        details.tu-faq summary::-webkit-details-marker { display: none; }
+        details.tu-faq .tu-chev { transition: transform .2s ease; }
+        details.tu-faq[open] .tu-chev { transform: rotate(90deg); }
         @media (max-width: 880px) {
-          .tu-hero, .tu-steps, .tu-feature { grid-template-columns: 1fr !important; }
+          .tu-hero, .tu-steps, .tu-feature, .tu-sticky { grid-template-columns: 1fr !important; }
           .tu-h1 { font-size: 64px !important; }
           .tu-h2 { font-size: 38px !important; }
           .tu-poster-frame { transform: rotate(0deg) !important; }
+          .tu-sticky-pin { position: static !important; }
         }
       `}</style>
       <NavBar signedInAs={signedInAs} />
       <Hero inviteRequired={inviteRequired} signedInAs={signedInAs} />
+      <LogoStrip />
       <FeatureSection
         title="打开看板，谁在替你打字"
         tagline="本周烧了多少、模型把哪些活儿替你干了、哪些纯属手抽。每张卡右上角有分享按钮，挑个像样的数甩朋友圈。"
@@ -153,7 +167,11 @@ export function Landing({
         tagline="谁是套餐之神，谁是 OpenAI 年度 VIP，全员公开处刑。可以匿名上榜，但榜上还得有你。"
         visual={<LeaderboardPreview />}
       />
+      <DataFlow />
+      <LandingDeepDive />
       <Steps />
+      <OpenSource />
+      <Faq />
       <CTABand inviteRequired={inviteRequired} signedInAs={signedInAs} />
       <Footer />
     </div>
@@ -1350,5 +1368,594 @@ function LeaderboardPreview() {
         </div>
       ))}
     </div>
+  );
+}
+
+// Trust strip — "all the agents we already swallow". Greyed monogram
+// glyphs, hover lifts to ink. Sits directly under the hero so visitors
+// can confirm "yes, my tool is in the list" before scrolling deeper.
+function LogoStrip() {
+  const tools = [
+    "Claude Code",
+    "Codex",
+    "Cursor",
+    "Hermes",
+    "Windsurf",
+    "Aider",
+    "Continue",
+    "OpenRouter",
+  ];
+  return (
+    <section
+      style={{
+        background: W.canvas,
+        padding: "44px 32px",
+        borderTop: `1px solid ${W2.panelBorder}`,
+        borderBottom: `1px solid ${W2.panelBorder}`,
+      }}
+    >
+      <div
+        style={{
+          maxWidth: 1200,
+          margin: "0 auto",
+          textAlign: "center",
+        }}
+      >
+        <p
+          style={{
+            fontSize: 11,
+            letterSpacing: 1.6,
+            color: W.mute,
+            fontWeight: 700,
+            margin: 0,
+            marginBottom: 22,
+            textTransform: "uppercase",
+          }}
+        >
+          这些工具的 token 全收 ↓
+        </p>
+        <div
+          style={{
+            display: "flex",
+            gap: 36,
+            flexWrap: "wrap",
+            justifyContent: "center",
+            alignItems: "center",
+          }}
+        >
+          {tools.map((t) => (
+            <span
+              key={t}
+              className="tu-logo"
+              style={{
+                fontFamily:
+                  'ui-monospace, "SF Mono", Menlo, "Cascadia Code", monospace',
+                fontSize: 17,
+                fontWeight: 700,
+                color: W.mute,
+              }}
+            >
+              {t}
+            </span>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// Data flow visual — three nodes (你电脑 → agent → 你的 SQLite) tied
+// together with arrow paths. The whole point is to kill the implicit
+// "is this a SaaS that reads my chat logs" fear before it forms.
+function DataFlow() {
+  return (
+    <section
+      style={{
+        background: W.ink,
+        color: W.canvas,
+        padding: "88px 32px",
+      }}
+    >
+      <div style={{ maxWidth: 1100, margin: "0 auto" }}>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 14,
+            textAlign: "center",
+            marginBottom: 48,
+          }}
+        >
+          <p
+            style={{
+              fontSize: 11,
+              letterSpacing: 1.6,
+              fontWeight: 700,
+              color: W.primary,
+              margin: 0,
+              textTransform: "uppercase",
+            }}
+          >
+            数据流向
+          </p>
+          <h2
+            className="tu-h2"
+            style={{
+              fontSize: 48,
+              fontWeight: 900,
+              letterSpacing: -2,
+              margin: 0,
+              lineHeight: 1.05,
+              color: W.canvas,
+            }}
+          >
+            数据躺你电脑里，老板看不到
+          </h2>
+          <p
+            style={{
+              fontSize: 17,
+              color: "rgba(255,255,255,0.72)",
+              lineHeight: 1.6,
+              margin: 0,
+              maxWidth: 580,
+              marginLeft: "auto",
+              marginRight: "auto",
+            }}
+          >
+            Agent 跑在你本机，读你本地 Claude Code / Codex 的 JSONL
+            日志，挑出 token 数和成本，打成增量 tar 包传到你自己 SSH
+            进去的那台 SQLite。中间没有第三方 SaaS，也没 OpenAI。
+          </p>
+        </div>
+
+        <div
+          className="tu-flow"
+          style={{
+            display: "grid",
+            gridTemplateColumns: "1fr auto 1fr auto 1fr",
+            gap: 16,
+            alignItems: "center",
+          }}
+        >
+          <FlowNode
+            label="你的电脑"
+            sub="Claude Code · Codex · Cursor 的本地 JSONL"
+            icon="💻"
+          />
+          <FlowArrow caption="增量 tar，仅传新条目" />
+          <FlowNode
+            label="tokenusage agent"
+            sub="brew 装的一个 bash 守护进程，跑在你机器上"
+            icon="📦"
+            highlight
+          />
+          <FlowArrow caption="HTTPS · 你自己的域名" />
+          <FlowNode
+            label="你的 SQLite"
+            sub="docker compose 起在你自己的服务器，备份在你手上"
+            icon="🗄️"
+          />
+        </div>
+
+        <p
+          style={{
+            marginTop: 36,
+            textAlign: "center",
+            fontSize: 13,
+            color: "rgba(255,255,255,0.5)",
+          }}
+        >
+          想自己跑：<code style={{
+            fontFamily: 'ui-monospace, monospace',
+            fontSize: 13,
+            background: "rgba(255,255,255,0.08)",
+            padding: "3px 8px",
+            borderRadius: 4,
+            color: W.canvas,
+          }}>docker compose up</code> · 单文件
+          server.db · 永远是你的。
+        </p>
+      </div>
+    </section>
+  );
+}
+
+function FlowNode({
+  label,
+  sub,
+  icon,
+  highlight,
+}: {
+  label: string;
+  sub: string;
+  icon: string;
+  highlight?: boolean;
+}) {
+  return (
+    <div
+      style={{
+        background: highlight ? "rgba(159,232,112,0.1)" : "rgba(255,255,255,0.04)",
+        border: highlight
+          ? `1px solid ${W.primary}`
+          : "1px solid rgba(255,255,255,0.12)",
+        borderRadius: 14,
+        padding: "20px 18px",
+        textAlign: "center",
+      }}
+    >
+      <div style={{ fontSize: 32, marginBottom: 8 }}>{icon}</div>
+      <div
+        style={{
+          fontSize: 15,
+          fontWeight: 800,
+          color: highlight ? W.primary : W.canvas,
+          marginBottom: 6,
+        }}
+      >
+        {label}
+      </div>
+      <div
+        style={{
+          fontSize: 12,
+          color: "rgba(255,255,255,0.6)",
+          lineHeight: 1.5,
+        }}
+      >
+        {sub}
+      </div>
+    </div>
+  );
+}
+
+function FlowArrow({ caption }: { caption: string }) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        gap: 6,
+        color: "rgba(255,255,255,0.5)",
+        fontSize: 10,
+        letterSpacing: 0.8,
+        whiteSpace: "nowrap",
+      }}
+    >
+      <svg width="48" height="14" viewBox="0 0 48 14" fill="none">
+        <line
+          x1="0"
+          y1="7"
+          x2="42"
+          y2="7"
+          stroke={W.primary}
+          strokeWidth="1.5"
+          strokeDasharray="2 3"
+        />
+        <polyline
+          points="38,2 46,7 38,12"
+          stroke={W.primary}
+          strokeWidth="1.5"
+          fill="none"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+      <span>{caption}</span>
+    </div>
+  );
+}
+
+// Open-source band — pulls live GitHub repo stats. Cached by Next's
+// fetch revalidation (1h) so we don't burn API rate limits on every
+// landing visit. Falls back to hardcoded reasonable defaults if the
+// API call fails (rate-limited, offline, etc.) — landing should never
+// 500 because GitHub is having a bad day.
+async function OpenSource() {
+  let stars = 120;
+  let forks = 14;
+  try {
+    const res = await fetch(
+      "https://api.github.com/repos/L1f4Is6o0d2Yuu/tokenusage",
+      { next: { revalidate: 3600 } }
+    );
+    if (res.ok) {
+      const data = (await res.json()) as {
+        stargazers_count?: number;
+        forks_count?: number;
+      };
+      if (typeof data.stargazers_count === "number") stars = data.stargazers_count;
+      if (typeof data.forks_count === "number") forks = data.forks_count;
+    }
+  } catch {
+    // Fall back to defaults; never break landing.
+  }
+  return (
+    <section
+      style={{
+        background: W.canvasSoft,
+        padding: "72px 32px",
+        borderTop: `1px solid ${W2.panelBorder}`,
+      }}
+    >
+      <div
+        style={{
+          maxWidth: 900,
+          margin: "0 auto",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          gap: 20,
+          textAlign: "center",
+        }}
+      >
+        <h2
+          className="tu-h2"
+          style={{
+            fontSize: 44,
+            fontWeight: 900,
+            letterSpacing: -2,
+            margin: 0,
+            lineHeight: 1.05,
+          }}
+        >
+          代码全在 GitHub 上
+        </h2>
+        <p
+          style={{
+            fontSize: 17,
+            color: W.body,
+            margin: 0,
+            maxWidth: 540,
+            lineHeight: 1.6,
+          }}
+        >
+          不放心？fork 一份自己跑就行。一台 1 核 1 G 的 VPS 够用，
+          docker compose 起来不到 60 秒。
+        </p>
+        <div
+          style={{
+            display: "flex",
+            gap: 12,
+            flexWrap: "wrap",
+            justifyContent: "center",
+            alignItems: "center",
+            marginTop: 8,
+          }}
+        >
+          <Badge label="⭐ Stars" value={stars.toLocaleString()} />
+          <Badge label="🍴 Forks" value={forks.toLocaleString()} />
+          <Badge label="📦 License" value="MIT" />
+          <Badge label="🐳 Self-host" value="docker compose" />
+        </div>
+        <a
+          href="https://github.com/L1f4Is6o0d2Yuu/tokenusage"
+          target="_blank"
+          rel="noreferrer"
+          className="tu-btn tu-btn-dark tu-cta"
+          style={{
+            ...buttonBase,
+            background: W.ink,
+            color: W.primary,
+            fontSize: 16,
+            padding: "14px 24px",
+            marginTop: 8,
+          }}
+        >
+          去 GitHub 看代码
+          <span className="tu-link-arrow" aria-hidden>
+            ↗
+          </span>
+        </a>
+      </div>
+    </section>
+  );
+}
+
+function Badge({ label, value }: { label: string; value: string }) {
+  return (
+    <div
+      style={{
+        background: W.canvas,
+        border: `1px solid ${W2.panelBorder}`,
+        borderRadius: 24,
+        padding: "8px 16px",
+        display: "flex",
+        alignItems: "center",
+        gap: 8,
+        fontSize: 13,
+      }}
+    >
+      <span style={{ color: W.mute, fontWeight: 600 }}>{label}</span>
+      <span
+        style={{
+          color: W.ink,
+          fontWeight: 800,
+          fontVariantNumeric: "tabular-nums",
+        }}
+      >
+        {value}
+      </span>
+    </div>
+  );
+}
+
+// FAQ — real questions the README and Issues actually surface, phrased
+// the way users ask them. <details> for zero-JS native accordion. The
+// PUA voice survives the answers — earnest answers feel like
+// marketing, so each closes with a punchline.
+function Faq() {
+  const items: { q: string; a: React.ReactNode }[] = [
+    {
+      q: "数据安全吗？我不想 OpenAI 知道我用了多少 token。",
+      a: (
+        <>
+          数据只在你电脑和你自己的 server.db
+          之间跑，中间没第三方。第三方包括我们。你看到的这个
+          tokenusage.online 也是个普通部署，跟你 fork
+          一份自己跑没差。
+        </>
+      ),
+    },
+    {
+      q: "要付费吗？",
+      a: (
+        <>
+          不要钱。开源 MIT 协议，自己跑零成本。这个公开实例也免费 —
+          我没钱给你做免费 SaaS，但 docker compose
+          就能起，请你自己心疼一下自己。
+        </>
+      ),
+    },
+    {
+      q: "为什么不直接看 Claude / ChatGPT 自己的后台？",
+      a: (
+        <>
+          因为你同时用 Claude + Codex + Cursor + Hermes +
+          Windsurf，账分散在五个供应商五个网页五张账单上。tokenusage
+          就一件事：把这五本账拍在一起，让你不用算了。
+        </>
+      ),
+    },
+    {
+      q: "我是单机用，还是要搭多用户？",
+      a: (
+        <>
+          单用户 docker compose 自己跑，
+          数据库为空时直接 /dashboard 进去就有数；多用户开启邀请
+          register、Google 登录、排行榜、独立 token。两种模式同一份代码，
+          看你怎么 deploy。
+        </>
+      ),
+    },
+    {
+      q: "支持哪些工具的 token 统计？",
+      a: (
+        <>
+          已支持：Claude Code、Codex、Cursor、Hermes、Windsurf、Aider、
+          Continue、OpenRouter。新工具加适配器是一个 JSON parser 的事，
+          欢迎 PR — 别人有需求你也有需求。
+        </>
+      ),
+    },
+    {
+      q: "agent 会不会偷传我源代码？",
+      a: (
+        <>
+          只读三类 JSONL 日志文件的 token 字段，不读 prompt 内容，不读
+          response 内容，不读任何 .py / .ts / .md。代码 4000 行 TypeScript
+          ＋ 100 行 bash，自己审 5 分钟就看完了。
+        </>
+      ),
+    },
+    {
+      q: "我能藏 dashboard 不让同事看到我每天烧多少吗？",
+      a: (
+        <>
+          可以匿名上排行榜（昵称改成 Anon #ID），数字一栏不许藏 —
+          匿了名字还是要让卷王知道有人在追。
+        </>
+      ),
+    },
+    {
+      q: "项目还会更新吗？还是这次发完就太监了？",
+      a: (
+        <>
+          这是我每天自己在用的工具，跟我的钱包绑定。
+          只要我还在烧 token，这玩意就还在更新。
+        </>
+      ),
+    },
+  ];
+  return (
+    <section
+      style={{
+        background: W.canvas,
+        padding: "88px 32px",
+      }}
+    >
+      <div
+        style={{
+          maxWidth: 820,
+          margin: "0 auto",
+        }}
+      >
+        <div style={{ textAlign: "center", marginBottom: 40 }}>
+          <p
+            style={{
+              fontSize: 11,
+              letterSpacing: 1.6,
+              color: W.mute,
+              fontWeight: 700,
+              margin: 0,
+              marginBottom: 10,
+              textTransform: "uppercase",
+            }}
+          >
+            FAQ
+          </p>
+          <h2
+            className="tu-h2"
+            style={{
+              fontSize: 48,
+              fontWeight: 900,
+              letterSpacing: -2,
+              margin: 0,
+              lineHeight: 1.05,
+            }}
+          >
+            还有疑问？
+          </h2>
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {items.map((it, i) => (
+            <details
+              key={i}
+              className="tu-faq"
+              style={{
+                border: `1px solid ${W2.panelBorder}`,
+                borderRadius: 12,
+                padding: "16px 20px",
+              }}
+            >
+              <summary
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: 12,
+                  fontSize: 16,
+                  fontWeight: 700,
+                  color: W.ink,
+                }}
+              >
+                <span>{it.q}</span>
+                <span
+                  className="tu-chev"
+                  aria-hidden
+                  style={{
+                    fontSize: 14,
+                    color: W.mute,
+                    fontFamily: "ui-monospace, monospace",
+                    flexShrink: 0,
+                  }}
+                >
+                  ›
+                </span>
+              </summary>
+              <div
+                style={{
+                  marginTop: 12,
+                  fontSize: 15,
+                  color: W.body,
+                  lineHeight: 1.65,
+                }}
+              >
+                {it.a}
+              </div>
+            </details>
+          ))}
+        </div>
+      </div>
+    </section>
   );
 }

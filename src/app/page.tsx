@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { readCurrentUser } from "@/lib/auth";
 import { isFirstRun, isMultiUserMode } from "@/lib/server-db";
 import { Landing } from "@/components/landing";
+import { SmoothScrollProvider } from "@/components/smooth-scroll-provider";
 
 // Public root. The landing page stays reachable for everyone —
 // signed-in users included — so people can revisit the pitch and the
@@ -20,9 +21,12 @@ export default async function Page() {
 
   const currentUser = await readCurrentUser();
   return (
-    <Landing
-      inviteRequired={true}
-      signedInAs={currentUser?.username ?? null}
-    />
+    <>
+      <SmoothScrollProvider />
+      <Landing
+        inviteRequired={true}
+        signedInAs={currentUser?.username ?? null}
+      />
+    </>
   );
 }
