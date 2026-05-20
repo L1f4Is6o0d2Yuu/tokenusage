@@ -70,8 +70,13 @@ const SAMPLE: SharePosterData = {
 
 export function Landing({
   inviteRequired,
+  signedInAs,
 }: {
   inviteRequired: boolean;
+  // When non-null, the visitor already has a session — the page still
+  // renders the marketing pitch, but every CTA points back to
+  // /dashboard instead of /signup, and the nav greets them by name.
+  signedInAs?: string | null;
 }) {
   return (
     <div
@@ -117,8 +122,8 @@ export function Landing({
           .tu-poster-frame { transform: rotate(0deg) !important; }
         }
       `}</style>
-      <NavBar />
-      <Hero inviteRequired={inviteRequired} />
+      <NavBar signedInAs={signedInAs} />
+      <Hero inviteRequired={inviteRequired} signedInAs={signedInAs} />
       <FeatureSection
         title="打开看板，谁在替你打字"
         tagline="点开就是答卷：哪些 token 干了正事，哪些纯属心血来潮。每张卡右上角带分享按钮，看哪个数据够拿，直接甩朋友圈。"
@@ -149,13 +154,13 @@ export function Landing({
         visual={<LeaderboardPreview />}
       />
       <Steps />
-      <CTABand inviteRequired={inviteRequired} />
+      <CTABand inviteRequired={inviteRequired} signedInAs={signedInAs} />
       <Footer />
     </div>
   );
 }
 
-function NavBar() {
+function NavBar({ signedInAs }: { signedInAs?: string | null }) {
   return (
     <header
       style={{
@@ -206,24 +211,49 @@ function NavBar() {
         >
           GitHub
         </a>
-        <Link
-          href="/login"
-          className="tu-btn tu-btn-dark"
-          style={{
-            ...buttonBase,
-            background: W.canvas,
-            color: W.ink,
-            border: `1px solid ${W.ink}`,
-          }}
-        >
-          登录
-        </Link>
+        {signedInAs ? (
+          <Link
+            href="/dashboard"
+            className="tu-btn tu-btn-dark tu-cta"
+            style={{
+              ...buttonBase,
+              background: W.ink,
+              color: W.primary,
+              border: `1px solid ${W.ink}`,
+            }}
+            title={`@${signedInAs}`}
+          >
+            回看板
+            <span className="tu-link-arrow" aria-hidden>
+              →
+            </span>
+          </Link>
+        ) : (
+          <Link
+            href="/login"
+            className="tu-btn tu-btn-dark"
+            style={{
+              ...buttonBase,
+              background: W.canvas,
+              color: W.ink,
+              border: `1px solid ${W.ink}`,
+            }}
+          >
+            登录
+          </Link>
+        )}
       </nav>
     </header>
   );
 }
 
-function Hero({ inviteRequired }: { inviteRequired: boolean }) {
+function Hero({
+  inviteRequired,
+  signedInAs,
+}: {
+  inviteRequired: boolean;
+  signedInAs?: string | null;
+}) {
   return (
     <section
       className="tu-hero"
@@ -270,7 +300,7 @@ function Hero({ inviteRequired }: { inviteRequired: boolean }) {
 
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
           <Link
-            href="/signup"
+            href={signedInAs ? "/dashboard" : "/signup"}
             className="tu-btn tu-btn-primary tu-cta"
             style={{
               ...buttonBase,
@@ -280,7 +310,11 @@ function Hero({ inviteRequired }: { inviteRequired: boolean }) {
               padding: "16px 26px",
             }}
           >
-            {inviteRequired ? "我有邀请码" : "开撸"}
+            {signedInAs
+              ? "回我的看板"
+              : inviteRequired
+                ? "我有邀请码"
+                : "开撸"}
             <span className="tu-link-arrow" aria-hidden>→</span>
           </Link>
           <a
@@ -294,7 +328,7 @@ function Hero({ inviteRequired }: { inviteRequired: boolean }) {
               padding: "16px 12px",
             }}
           >
-            先看长啥样
+            {signedInAs ? "再瞄一眼介绍" : "先看长啥样"}
             <span className="tu-link-arrow" aria-hidden>↓</span>
           </a>
         </div>
@@ -498,7 +532,13 @@ function Step({
   );
 }
 
-function CTABand({ inviteRequired }: { inviteRequired: boolean }) {
+function CTABand({
+  inviteRequired,
+  signedInAs,
+}: {
+  inviteRequired: boolean;
+  signedInAs?: string | null;
+}) {
   return (
     <section
       style={{
@@ -526,7 +566,7 @@ function CTABand({ inviteRequired }: { inviteRequired: boolean }) {
             lineHeight: 1,
           }}
         >
-          算一算自己什么段位？
+          {signedInAs ? "卷回去？" : "算一算自己什么段位？"}
         </h2>
         <p
           style={{
@@ -539,9 +579,11 @@ function CTABand({ inviteRequired }: { inviteRequired: boolean }) {
             lineHeight: 1.55,
           }}
         >
-          {inviteRequired
-            ? "邀请制。找熟人要个码，没熟人去 GitHub 蹭一个。"
-            : "免费。不要钱，不要信用卡，不要 token 钥匙。"}
+          {signedInAs
+            ? `@${signedInAs}，今天又烧了多少？看板就在一步之外。`
+            : inviteRequired
+              ? "邀请制。找熟人要个码，没熟人去 GitHub 蹭一个。"
+              : "免费。不要钱，不要信用卡，不要 token 钥匙。"}
         </p>
         <div
           style={{
@@ -553,7 +595,7 @@ function CTABand({ inviteRequired }: { inviteRequired: boolean }) {
           }}
         >
           <Link
-            href="/signup"
+            href={signedInAs ? "/dashboard" : "/signup"}
             className="tu-btn tu-btn-dark tu-cta"
             style={{
               ...buttonBase,
@@ -563,7 +605,8 @@ function CTABand({ inviteRequired }: { inviteRequired: boolean }) {
               padding: "16px 28px",
             }}
           >
-            开撸<span className="tu-link-arrow" aria-hidden>→</span>
+            {signedInAs ? "回看板" : "开撸"}
+            <span className="tu-link-arrow" aria-hidden>→</span>
           </Link>
           <a
             href="https://github.com/L1f4Is6o0d2Yuu/tokenusage"
