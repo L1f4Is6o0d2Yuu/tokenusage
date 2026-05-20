@@ -147,10 +147,10 @@ function FilterChip({
       type="button"
       onClick={onClick}
       className={
-        "rounded-full border px-2.5 py-1 text-xs font-medium transition-colors " +
+        "rounded-full border px-2.5 py-1 text-xs font-medium transition-[background-color,border-color,color,transform] duration-150 ease-out active:scale-[0.97] " +
         (selected
           ? "border-accent bg-accent/15 text-accent"
-          : "border-border-subtle bg-bg-panel text-fg-muted hover:border-border-strong hover:text-fg-default")
+          : "border-border-subtle bg-bg-panel text-fg-muted hover:-translate-y-px hover:border-border-strong hover:text-foreground")
       }
     >
       {label}

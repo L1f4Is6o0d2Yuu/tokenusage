@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Target, X } from "lucide-react";
 import { formatUsd } from "@/lib/format";
 
@@ -40,6 +40,17 @@ export function LeaderboardChallenge({
   labels,
 }: ChallengeProps) {
   const [open, setOpen] = useState(false);
+
+  // Esc closes the challenge modal. Listener attached only while
+  // open so background pages don't pay for an idle keydown handler.
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open]);
   const gap = Math.max(0, targetCost - meCost);
   // Pace to close the gap before month-end. Guard against division by
   // zero on the last day of the month.
@@ -64,11 +75,13 @@ export function LeaderboardChallenge({
 
       {open && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm tu-fade-in"
           onClick={() => setOpen(false)}
+          role="dialog"
+          aria-modal="true"
         >
           <div
-            className="relative w-full max-w-sm rounded-lg border border-border-subtle bg-bg-app p-6 shadow-2xl"
+            className="relative w-full max-w-sm rounded-lg border border-border-subtle bg-bg-app p-6 shadow-2xl tu-pop-in"
             onClick={(e) => e.stopPropagation()}
           >
             <button
