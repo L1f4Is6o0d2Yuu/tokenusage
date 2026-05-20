@@ -126,31 +126,31 @@ export function Landing({
       <Hero inviteRequired={inviteRequired} signedInAs={signedInAs} />
       <FeatureSection
         title="打开看板，谁在替你打字"
-        tagline="点开就是答卷：哪些 token 干了正事，哪些纯属心血来潮。每张卡右上角带分享按钮，看哪个数据够拿，直接甩朋友圈。"
+        tagline="本周烧了多少、模型把哪些活儿替你干了、哪些纯属手抽。每张卡右上角有分享按钮，挑个像样的数甩朋友圈。"
         visual={<KpiPreview />}
       />
       <FeatureSection
         title="钱是怎么烧没的"
-        tagline="哪天你失控了一目了然，第二天就能装作没看见。30 天日均曲线 + 突发尖刺标注，逃也逃不掉。"
+        tagline="30 天每日成本拉成曲线。哪天你失控了，曲线上一坨突起；第二天再装没看见也来不及。"
         visual={<TrendPreview />}
         reversed
         background={W.canvasSoft}
       />
       <FeatureSection
         title="月底大约多狠，先有个数"
-        tagline="按你最近 14 天的节奏推算月末账单，再跟上月同期一刀切。趋势不对劲，比账单到了再哭强。"
+        tagline="按最近 14 天的烧钱节奏估月底总账，再跟上月同期对一刀。势头不对，提前哭比账单到了再哭强。"
         visual={<ForecastPreview />}
       />
       <FeatureSection
         title="套餐还吃得起，还是该换 PAYG"
-        tagline="别再凭感觉续费了，那不叫节俭叫送钱。每月给你算一遍：套餐 vs 按用量，差多少一目了然。"
+        tagline="别再凭感觉续费了，那不叫节俭叫送钱。套餐 vs 按用量，每月给你摆张账单：差几倍、贵多少，自己掂量。"
         visual={<SubPaygPreview />}
         reversed
         background={W.canvasSoft}
       />
       <FeatureSection
         title="卷王 vs 冤大头"
-        tagline="谁是套餐之神，谁是 OpenAI 年度 VIP，朋友圈集体公开处刑。隐去昵称也行，反正排名不会让你藏。"
+        tagline="谁是套餐之神，谁是 OpenAI 年度 VIP，全员公开处刑。可以匿名上榜，但榜上还得有你。"
         visual={<LeaderboardPreview />}
       />
       <Steps />
@@ -580,7 +580,7 @@ function CTABand({
           }}
         >
           {signedInAs
-            ? `@${signedInAs}，今天又烧了多少？看板就在一步之外。`
+            ? `@${signedInAs}，今天又烧了多少？回看板算账去。`
             : inviteRequired
               ? "邀请制。找熟人要个码，没熟人去 GitHub 蹭一个。"
               : "免费。不要钱，不要信用卡，不要 token 钥匙。"}
