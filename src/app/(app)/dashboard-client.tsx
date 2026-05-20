@@ -14,6 +14,7 @@ import { ForecastCard } from "@/components/forecast-card";
 import { computeForecast } from "@/lib/forecast";
 import { Share2 } from "lucide-react";
 import { UsageTrend } from "@/components/usage-trend";
+import { UsageHeatmap } from "@/components/usage-heatmap";
 import { OnboardingCard } from "@/components/onboarding-card";
 import { AgentStatusBar } from "@/components/agent-status-bar";
 import { ModelPriceTooltip } from "@/components/model-price-tooltip";
@@ -359,6 +360,9 @@ export function DashboardClient({
                   empty: t.trend.empty,
                 }}
               />
+              <div className="mt-4">
+                <UsageHeatmap records={records} />
+              </div>
             </CardContent>
           </Card>
           <Card>
