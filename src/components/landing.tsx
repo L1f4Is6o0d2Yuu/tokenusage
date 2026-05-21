@@ -156,7 +156,7 @@ export function Landing({
         visual={<ForecastPreview />}
       />
       <FeatureSection
-        title="套餐还吃得起，还是该换 PAYG"
+        title="月费还在自动续，你真用够本了吗"
         tagline="别再凭感觉续费了，那不叫节俭叫送钱。套餐 vs 按用量，每月给你摆张账单：差几倍、贵多少，自己掂量。"
         visual={<SubPaygPreview />}
         reversed
