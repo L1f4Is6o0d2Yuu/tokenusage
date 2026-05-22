@@ -3,6 +3,7 @@ import { authenticateApiToken } from "@/lib/auth";
 import { openServerDb } from "@/lib/server-db";
 import { classifySqliteError, retryableErrorHeaders } from "@/lib/sqlite-errors";
 import { recordAudit } from "@/lib/audit";
+import { resolveUsageCost } from "@/lib/pricing";
 import { clearUploadInProgress, markUploaded } from "@/lib/sync-state";
 
 type IngestRecord = {
@@ -87,6 +88,20 @@ export async function POST(req: NextRequest): Promise<Response> {
       for (const r of items) {
         if (!r || typeof r.provider !== "string" || typeof r.externalId !== "string") continue;
         if (typeof r.startedAt !== "number") continue;
+        const tokens = {
+          input: r.inputTokens ?? 0,
+          output: r.outputTokens ?? 0,
+          cacheRead: r.cacheReadTokens ?? 0,
+          cacheWrite: r.cacheWriteTokens ?? 0,
+          reasoning: r.reasoningTokens ?? 0,
+        };
+        const resolvedCost = resolveUsageCost({
+          provider: r.provider,
+          model: r.model,
+          costUsd: r.costUsd,
+          costStatus: r.costStatus,
+          tokens,
+        });
         const before = db
           .prepare(
             `SELECT id FROM sessions_data WHERE user_id = ? AND provider = ? AND external_id = ?`
@@ -100,13 +115,13 @@ export async function POST(req: NextRequest): Promise<Response> {
           model: r.model ?? null,
           started_at: r.startedAt,
           ended_at: r.endedAt ?? null,
-          input_tokens: r.inputTokens ?? 0,
-          output_tokens: r.outputTokens ?? 0,
-          cache_read_tokens: r.cacheReadTokens ?? 0,
-          cache_write_tokens: r.cacheWriteTokens ?? 0,
-          reasoning_tokens: r.reasoningTokens ?? 0,
-          cost_usd: r.costUsd ?? null,
-          cost_status: r.costStatus ?? null,
+          input_tokens: tokens.input,
+          output_tokens: tokens.output,
+          cache_read_tokens: tokens.cacheRead,
+          cache_write_tokens: tokens.cacheWrite,
+          reasoning_tokens: tokens.reasoning,
+          cost_usd: resolvedCost.costUsd,
+          cost_status: resolvedCost.status,
           api_call_count: r.apiCallCount ?? 0,
           title: r.title ?? null,
           ingested_at: now,

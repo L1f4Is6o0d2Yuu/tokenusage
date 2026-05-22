@@ -37,3 +37,10 @@ test('chunked ingest marks sync completion for polling dashboard progress', () =
   assert.match(source, /markUploaded\(user\.id\)/);
   assert.match(source, /clearUploadInProgress\(user\.id\)/);
 });
+
+test('chunked ingest stores resolved Hermes costs instead of raw zero costs', () => {
+  const source = read('../src/app/api/ingest/route.ts');
+  assert.match(source, /resolveUsageCost\(/);
+  assert.match(source, /cost_usd: resolvedCost\.costUsd/);
+  assert.match(source, /cost_status: resolvedCost\.status/);
+});
