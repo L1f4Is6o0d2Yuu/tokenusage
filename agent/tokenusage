@@ -149,6 +149,33 @@ stop_service() {
   esac
 }
 
+
+clean_service_state() {
+  printf '[%s] cleaning old tokenusage service state...\n' "$(ts)"
+  case "$(uname -s)" in
+    Darwin)
+      launchctl bootout "gui/$(id -u)/com.tokenusage.agent" >/dev/null 2>&1 || true
+      [ -f "$PLIST_PATH" ] && launchctl unload "$PLIST_PATH" >/dev/null 2>&1 || true
+      launchctl remove com.tokenusage.agent >/dev/null 2>&1 || true
+      ;;
+    Linux)
+      systemctl --user stop tokenusage-agent >/dev/null 2>&1 || true
+      systemctl --user disable tokenusage-agent >/dev/null 2>&1 || true
+      ;;
+  esac
+  pkill -f 'tokenusage.*--loop' >/dev/null 2>&1 || true
+  rm -f "$PLIST_PATH" "$SYSTEMD_UNIT"
+}
+
+print_failure_context() {
+  printf '\n[tokenusage] self-check failed. Diagnostics:\n' >&2
+  cmd_doctor >&2 || true
+  if [ -f "$LOG_FILE" ]; then
+    printf '\n[tokenusage] recent upload log:\n' >&2
+    tail -n 120 "$LOG_FILE" >&2 || true
+  fi
+}
+
 # ---------- subcommands ----------
 
 cmd_start() {
@@ -166,25 +193,53 @@ cmd_start() {
   mkdir -p "$CONFIG_DIR"
   chmod 700 "$CONFIG_DIR"
 
+  # One command should fix stale daemons/config drift by default. Preserve an
+  # existing config when the user runs plain `tokenusage start`; overwrite it
+  # only when a fresh server+token is supplied by the installer/dashboard.
+  clean_service_state
+
   if [ -n "$server" ] && [ -n "$token" ]; then
     {
       printf 'SERVER="%s"\n' "$server"
       printf 'TOKEN="%s"\n' "$token"
-      # Optional override for the upload endpoint (typically a DNS-only
-      # sibling of $server like https://direct.example.com). Bypasses
-      # Cloudflare's 100 MB body cap when the regular server is proxied.
       [ -n "$upload_server" ] && printf 'UPLOAD_SERVER="%s"\n' "$upload_server"
     } > "$CONFIG_FILE"
     chmod 600 "$CONFIG_FILE"
   fi
 
   if [ ! -f "$CONFIG_FILE" ]; then
-    err "no config; run: tokenusage start --server URL --token TOKEN"
+    err "no config; run the dashboard install command once, then plain: tokenusage start"
+    exit 1
+  fi
+
+  # shellcheck disable=SC1090
+  . "$CONFIG_FILE"
+
+  printf '[%s] self-checking server/auth...\n' "$(ts)"
+  if ! curl -fsS --max-time 15 "$SERVER/api/health" >/dev/null 2>&1; then
+    err "server unreachable: $SERVER"
+    print_failure_context
+    exit 1
+  fi
+  if ! curl -fsS --max-time 20 "$SERVER/api/sync-wait" \
+      -H "Authorization: Bearer $TOKEN" \
+      -H "X-Agent-Version: $VERSION" >/dev/null 2>&1; then
+    err "auth/sync-wait check failed"
+    print_failure_context
     exit 1
   fi
 
   register_service
-  printf '\nFirst sync starting now. Visit your dashboard to see your data.\n'
+
+  printf '[%s] running immediate upload self-test...\n' "$(ts)"
+  : > "$LOG_FILE"
+  if ! (LOOP_ONCE=1 cmd_loop 2>&1 | tee -a "$LOG_FILE"); then
+    print_failure_context
+    exit 1
+  fi
+
+  printf '\n✓ tokenusage start complete: service installed, server reachable, upload self-test finished.\n'
+  printf '  Logs: tokenusage logs\n'
 }
 
 cmd_stop()      { stop_service; }
@@ -362,6 +417,7 @@ cmd_doctor() {
 upload() {
   local TMP SIZE
   TMP="$(mktemp -d -t tokenusage-XXXXXX)"
+  trap 'rm -rf "$TMP"' RETURN
 
   mkdir -p "$TMP/payload"
 
@@ -536,11 +592,13 @@ upload() {
       printf '%s' "$LAST_UPLOAD" > "$STATE_FILE"
       printf '[%s] upload OK (%s bytes, %s)\n' "$(ts)" "$SIZE" \
         "$([ "$INCREMENTAL" = "1" ] && echo "incremental" || echo "full")"
+      return 0
       ;;
     503)
       # Server is busy (disk full / locked). The outer loop retries every
       # 5 min anyway, so just log and move on — no exit, no state bump.
       printf '[%s] upload 503 (server busy) — will retry next cycle\n' "$(ts)"
+      return 1
       ;;
     413)
       # Body too large at the edge (likely Cloudflare's 100 MB cap).
@@ -551,9 +609,11 @@ upload() {
       LAST_UPLOAD=$(date +%s)
       printf '%s' "$LAST_UPLOAD" > "$STATE_FILE"
       printf '[%s] upload 413 — payload exceeds proxy limit. Set UPLOAD_SERVER in %s to a DNS-only origin endpoint (e.g. https://direct.your.domain).\n' "$(ts)" "$CONFIG_FILE"
+      return 1
       ;;
     *)
       printf '[%s] upload FAILED (HTTP %s)\n' "$(ts)" "$HTTP_CODE"
+      return 1
       ;;
   esac
 

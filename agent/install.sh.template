@@ -59,16 +59,4 @@ chmod +x "$HOME/.tokenusage/tokenusage"
 
 args=(start --server "$SERVER" --token "$TOKEN")
 [ -n "${UPLOAD_SERVER:-}" ] && args+=(--upload-server "$UPLOAD_SERVER")
-"$HOME/.tokenusage/tokenusage" "${args[@]}"
-
-# Run a foreground sync once as an immediate smoke test. The background service
-# remains installed for future dashboard-triggered syncs; this one-shot makes a
-# clean reinstall visibly fail in the terminal if auth/network/config is wrong.
-echo "[tokenusage] running immediate foreground sync smoke test..."
-"$HOME/.tokenusage/tokenusage" --loop-once || {
-  echo "[tokenusage] foreground sync failed. Recent log:" >&2
-  tail -n 80 "$HOME/.tokenusage/agent.log" 2>/dev/null >&2 || true
-  exit 1
-}
-
-echo "[tokenusage] clean reinstall complete."
+exec "$HOME/.tokenusage/tokenusage" "${args[@]}"
