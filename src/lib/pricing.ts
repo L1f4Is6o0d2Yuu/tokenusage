@@ -101,6 +101,20 @@ export function getPricing(model: string | null | undefined): ModelPricing | nul
   return null;
 }
 
+export type UsageCostInput = {
+  provider: string;
+  model: string | null | undefined;
+  costUsd: number | null | undefined;
+  costStatus: string | null | undefined;
+  tokens: {
+    input: number;
+    output: number;
+    cacheRead: number;
+    cacheWrite: number;
+    reasoning: number;
+  };
+};
+
 export function estimateCost(
   model: string | null | undefined,
   tokens: {
@@ -120,6 +134,31 @@ export function estimateCost(
     tokens.cacheWrite * (p.cacheWritePerToken ?? p.inputPerToken * 1.25) +
     tokens.reasoning * (p.reasoningPerToken ?? p.outputPerToken)
   );
+}
+
+export function resolveUsageCost(input: UsageCostInput): {
+  costUsd: number | null;
+  status: string | null;
+} {
+  const sourceCost = input.costUsd ?? null;
+  const sourceStatus = input.costStatus ?? null;
+  if (input.provider !== "hermes") {
+    return { costUsd: sourceCost, status: sourceStatus };
+  }
+
+  const hasTokens =
+    input.tokens.input +
+      input.tokens.output +
+      input.tokens.cacheRead +
+      input.tokens.cacheWrite +
+      input.tokens.reasoning >
+    0;
+  const shouldReprice = sourceCost == null || (sourceCost === 0 && hasTokens);
+  if (!shouldReprice) return { costUsd: sourceCost, status: sourceStatus };
+
+  const estimated = estimateCost(input.model, input.tokens);
+  if (estimated == null) return { costUsd: sourceCost, status: sourceStatus };
+  return { costUsd: estimated, status: "estimated" };
 }
 
 // ---- editor APIs (used by /prices server action) ----

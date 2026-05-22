@@ -3,6 +3,7 @@ import path from "node:path";
 import os from "node:os";
 import fs from "node:fs";
 import Database from "better-sqlite3";
+import { resolveUsageCost } from "@/lib/pricing";
 import type { ProviderAdapter, AdapterStatus, UsageRecord } from "@/lib/types";
 
 type SessionRow = {
@@ -37,7 +38,21 @@ function open(dbPath: string): Database.Database {
 }
 
 function rowToRecord(row: SessionRow): UsageRecord {
-  const cost = row.actual_cost_usd ?? row.estimated_cost_usd ?? null;
+  const sourceCost = row.actual_cost_usd ?? row.estimated_cost_usd ?? null;
+  const tokens = {
+    input: row.input_tokens ?? 0,
+    output: row.output_tokens ?? 0,
+    cacheRead: row.cache_read_tokens ?? 0,
+    cacheWrite: row.cache_write_tokens ?? 0,
+    reasoning: row.reasoning_tokens ?? 0,
+  };
+  const resolvedCost = resolveUsageCost({
+    provider: "hermes",
+    model: row.model,
+    costUsd: sourceCost,
+    costStatus: row.cost_status,
+    tokens,
+  });
   return {
     id: row.id,
     provider: "hermes",
@@ -46,13 +61,13 @@ function rowToRecord(row: SessionRow): UsageRecord {
     // hermes stores started_at/ended_at as REAL unix seconds — convert to ms
     startedAt: Math.round(row.started_at * 1000),
     endedAt: row.ended_at == null ? null : Math.round(row.ended_at * 1000),
-    inputTokens: row.input_tokens ?? 0,
-    outputTokens: row.output_tokens ?? 0,
-    cacheReadTokens: row.cache_read_tokens ?? 0,
-    cacheWriteTokens: row.cache_write_tokens ?? 0,
-    reasoningTokens: row.reasoning_tokens ?? 0,
-    costUsd: cost,
-    costStatus: row.cost_status,
+    inputTokens: tokens.input,
+    outputTokens: tokens.output,
+    cacheReadTokens: tokens.cacheRead,
+    cacheWriteTokens: tokens.cacheWrite,
+    reasoningTokens: tokens.reasoning,
+    costUsd: resolvedCost.costUsd,
+    costStatus: resolvedCost.status,
     apiCallCount: row.api_call_count ?? 0,
     title: row.title,
   };
