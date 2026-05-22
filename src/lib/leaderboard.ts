@@ -1,5 +1,6 @@
 import "server-only";
 import { openServerDb } from "./server-db";
+import { resolveUsageCost } from "./pricing";
 
 // Period buckets the leaderboard supports. Keeping the same vocabulary
 // as the dashboard (today / 7d / 30d / all) so users don't have to
@@ -79,20 +80,24 @@ export function loadLeaderboard(
           u.username              AS username,
           u.is_admin              AS isAdmin,
           u.show_on_leaderboard   AS showOnLeaderboard,
-          COALESCE(SUM(s.cost_usd), 0)
-            AS totalCost,
-          COALESCE(SUM(s.input_tokens + s.output_tokens
-                       + s.cache_read_tokens + s.cache_write_tokens), 0)
-            AS totalTokens,
-          COUNT(s.id)    AS sessionCount
+          u.created_at            AS userCreatedAt,
+          s.id                    AS sessionId,
+          s.provider              AS provider,
+          s.model                 AS model,
+          s.input_tokens          AS inputTokens,
+          s.output_tokens         AS outputTokens,
+          s.cache_read_tokens     AS cacheReadTokens,
+          s.cache_write_tokens    AS cacheWriteTokens,
+          s.reasoning_tokens      AS reasoningTokens,
+          s.cost_usd              AS costUsd,
+          s.cost_status           AS costStatus
         FROM users u
         LEFT JOIN sessions_data s
           ON s.user_id = u.id
          AND s.started_at >= ?
          AND s.started_at <= ?
         WHERE u.activated_at IS NOT NULL
-        GROUP BY u.id
-        ORDER BY totalCost DESC, u.created_at ASC
+        ORDER BY u.created_at ASC
         `
       )
       .all(from, to) as Array<{
@@ -100,25 +105,75 @@ export function loadLeaderboard(
         username: string;
         isAdmin: number;
         showOnLeaderboard: number;
-        totalCost: number;
-        totalTokens: number;
-        sessionCount: number;
+        userCreatedAt: number;
+        sessionId: number | null;
+        provider: string | null;
+        model: string | null;
+        inputTokens: number | null;
+        outputTokens: number | null;
+        cacheReadTokens: number | null;
+        cacheWriteTokens: number | null;
+        reasoningTokens: number | null;
+        costUsd: number | null;
+        costStatus: string | null;
       }>;
 
-    return rows.map((r, i) => {
-      const t = tierFor(r.totalCost);
-      return {
-        rank: i + 1,
-        userId: r.userId,
-        username: r.username,
-        isAdmin: r.isAdmin === 1,
-        showOnLeaderboard: r.showOnLeaderboard === 1,
-        totalCost: r.totalCost,
-        totalTokens: r.totalTokens,
-        sessionCount: r.sessionCount,
-        tierIdx: t.idx,
+    const byUser = new Map<
+      number,
+      Omit<LeaderboardRow, "rank" | "tierIdx"> & { userCreatedAt: number }
+    >();
+    for (const r of rows) {
+      let row = byUser.get(r.userId);
+      if (!row) {
+        row = {
+          userId: r.userId,
+          username: r.username,
+          isAdmin: r.isAdmin === 1,
+          showOnLeaderboard: r.showOnLeaderboard === 1,
+          totalCost: 0,
+          totalTokens: 0,
+          sessionCount: 0,
+          userCreatedAt: r.userCreatedAt,
+        };
+        byUser.set(r.userId, row);
+      }
+      if (r.sessionId == null || r.provider == null) continue;
+
+      const tokens = {
+        input: r.inputTokens ?? 0,
+        output: r.outputTokens ?? 0,
+        cacheRead: r.cacheReadTokens ?? 0,
+        cacheWrite: r.cacheWriteTokens ?? 0,
+        reasoning: r.reasoningTokens ?? 0,
       };
-    });
+      const resolvedCost = resolveUsageCost({
+        provider: r.provider,
+        model: r.model,
+        costUsd: r.costUsd,
+        costStatus: r.costStatus,
+        tokens,
+      });
+      row.totalCost += resolvedCost.costUsd ?? 0;
+      row.totalTokens += tokens.input + tokens.output + tokens.cacheRead + tokens.cacheWrite;
+      row.sessionCount += 1;
+    }
+
+    return Array.from(byUser.values())
+      .sort((a, b) => b.totalCost - a.totalCost || a.userCreatedAt - b.userCreatedAt)
+      .map((r, i) => {
+        const t = tierFor(r.totalCost);
+        return {
+          rank: i + 1,
+          userId: r.userId,
+          username: r.username,
+          isAdmin: r.isAdmin,
+          showOnLeaderboard: r.showOnLeaderboard,
+          totalCost: r.totalCost,
+          totalTokens: r.totalTokens,
+          sessionCount: r.sessionCount,
+          tierIdx: t.idx,
+        };
+      });
   } finally {
     db.close();
   }

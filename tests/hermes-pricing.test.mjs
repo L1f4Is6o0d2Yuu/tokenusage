@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 
 const pricing = await import('../src/lib/pricing.ts');
 
@@ -43,4 +44,10 @@ test('non-Hermes zero-cost sessions keep their source cost semantics', () => {
 
   assert.equal(resolved.status, 'estimated');
   assert.equal(resolved.costUsd, 0);
+});
+
+test('leaderboard totals use resolved costs instead of summing raw stored cost_usd', () => {
+  const source = readFileSync(new URL('../src/lib/leaderboard.ts', import.meta.url), 'utf8');
+  assert.match(source, /resolveUsageCost/);
+  assert.doesNotMatch(source, /SUM\(s\.cost_usd\)/);
 });
