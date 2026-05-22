@@ -71,9 +71,9 @@ export function Sidebar({
           with the central 'u' painted in the accent indigo. */}
       <div className="flex h-14 items-center px-4">
         <Link
-          href="/dashboard"
+          href="/"
           className="flex items-center gap-2.5 text-accent transition-opacity hover:opacity-90"
-          aria-label="tokenusage"
+          aria-label="tokenusage home"
         >
           <Logomark className="h-5 w-7 text-accent" />
           <Wordmark className="text-[15px]" />

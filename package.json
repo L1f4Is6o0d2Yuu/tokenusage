@@ -11,6 +11,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "test": "node --experimental-strip-types --test tests/*.test.mjs",
     "sample": "node scripts/generate-sample.mjs",
     "agent": "node agent/index.mjs",
     "refresh-prices": "node scripts/refresh-prices.mjs"

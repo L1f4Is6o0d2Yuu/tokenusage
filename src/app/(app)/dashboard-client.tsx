@@ -81,6 +81,7 @@ export function DashboardClient({
   showOnboarding,
   syncState,
   agentSeenAt,
+  settingsSaved,
 }: {
   records: UsageRecord[];
   rules: Rule[];
@@ -97,6 +98,7 @@ export function DashboardClient({
   showOnboarding: boolean;
   syncState: SyncState;
   agentSeenAt: number | null;
+  settingsSaved: boolean;
 }) {
   const [period, setPeriod] = useState<Period>(initialPeriod);
   const [customRange, setCustomRange] = useState<CustomRange | undefined>(
@@ -246,6 +248,15 @@ export function DashboardClient({
           fellBack={fellBackToSample}
           t={t.banner}
         />
+
+        {settingsSaved && (
+          <div
+            role="status"
+            className="tu-rise mb-4 rounded-md border border-success/30 bg-success/10 px-4 py-3 text-sm text-success"
+          >
+            {t.subs.saved}
+          </div>
+        )}
 
         {syncState && (
           <AgentStatusBar

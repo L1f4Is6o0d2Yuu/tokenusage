@@ -145,6 +145,22 @@ function nextBucketTime(ts: number, g: Granularity): number {
   return d.getTime();
 }
 
+export function runtimeProviderForRecord(r: UsageRecord): string {
+  if (r.provider !== "hermes") return r.provider;
+
+  const model = (r.model ?? "").toLowerCase();
+  if (model.startsWith("gpt-") || model.startsWith("o1") || model.startsWith("o3") || model.startsWith("o4")) {
+    return "codex via hermes";
+  }
+  if (model.startsWith("claude")) return "claude via hermes";
+  if (model.startsWith("gemini")) return "gemini via hermes";
+  if (model.startsWith("deepseek")) return "deepseek via hermes";
+  if (model.startsWith("mimo")) return "mimo via hermes";
+  if (model.startsWith("openrouter")) return "openrouter via hermes";
+
+  return "hermes";
+}
+
 // Slice a session into per-bucket fractions, keeping only buckets that
 // fall inside [windowStart, windowEnd]. Sum of returned fractions =
 // the portion of the session's lifetime that's actually visible in
@@ -244,11 +260,12 @@ export function aggregate(
     if (r.costUsd != null) totals.costUsd += r.costUsd * inWindowFraction;
     else if (totalTokens > 0) totals.costKnown = false;
 
-    const modelKey = `${r.provider}::${r.model ?? "unknown"}`;
+    const runtimeProvider = runtimeProviderForRecord(r);
+    const modelKey = `${runtimeProvider}::${r.model ?? "unknown"}`;
     let row = modelMap.get(modelKey);
     if (!row) {
       row = {
-        provider: r.provider,
+        provider: runtimeProvider,
         model: r.model ?? "unknown",
         records: 0,
         inputTokens: 0,

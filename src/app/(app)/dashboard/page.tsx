@@ -40,9 +40,9 @@ function parseCustomRange(
 export default async function Page({
   searchParams,
 }: {
-  searchParams: Promise<{ period?: string; from?: string; to?: string }>;
+  searchParams: Promise<{ period?: string; from?: string; to?: string; settings?: string }>;
 }) {
-  const { period: rawPeriod, from, to } = await searchParams;
+  const { period: rawPeriod, from, to, settings } = await searchParams;
   const initialPeriod = parsePeriod(rawPeriod);
   const initialCustomRange =
     initialPeriod === "custom" ? parseCustomRange(from, to) : undefined;
@@ -56,7 +56,8 @@ export default async function Page({
   if (
     isMultiUserMode() &&
     currentUser != null &&
-    countServerRecords(currentUser.id) === 0
+    countServerRecords(currentUser.id) === 0 &&
+    settings !== "saved"
   ) {
     redirect("/install");
   }
@@ -122,6 +123,7 @@ export default async function Page({
       showOnboarding={showOnboarding}
       syncState={syncState}
       agentSeenAt={agentSeenAt}
+      settingsSaved={settings === "saved"}
     />
   );
 }

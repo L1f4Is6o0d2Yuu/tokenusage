@@ -28,6 +28,6 @@ export async function saveSubscriptionsAction(formData: FormData): Promise<void>
   // them on to the dashboard once they're done picking. Otherwise
   // they came in to edit — keep them on the page with a saved badge.
   const fromWelcome = formData.get("welcome") === "1";
-  if (fromWelcome) redirect("/dashboard");
+  if (fromWelcome) redirect("/dashboard?settings=saved");
   redirect("/subscriptions?saved=1");
 }

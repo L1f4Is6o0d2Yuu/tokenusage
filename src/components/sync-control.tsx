@@ -31,6 +31,24 @@ const CREEP_TARGET_MS = 15 * 1000;   // time over which the bar creeps to 90%
 
 type Phase = "idle" | "syncing" | "done" | "timeout";
 
+function formatBytes(bytes: number): string {
+  if (bytes >= 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+  if (bytes >= 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${bytes} B`;
+}
+
+function formatRate(bytesPerSecond: number): string {
+  if (!Number.isFinite(bytesPerSecond) || bytesPerSecond <= 0) return "—/s";
+  return `${formatBytes(bytesPerSecond)}/s`;
+}
+
+function formatDuration(ms: number): string {
+  const sec = Math.max(0, Math.floor(ms / 1000));
+  if (sec < 60) return `${sec}s`;
+  const min = Math.floor(sec / 60);
+  return `${min}m ${String(sec % 60).padStart(2, "0")}s`;
+}
+
 export function SyncControl({
   lastSyncedAt,
   paused,
@@ -48,6 +66,8 @@ export function SyncControl({
 }) {
   const [phase, setPhase] = useState<Phase>("idle");
   const [progress, setProgress] = useState(0); // 0–100
+  const [uploadStartedAt, setUploadStartedAt] = useState<number | null>(null);
+  const [uploadTotalBytes, setUploadTotalBytes] = useState<number | null>(null);
   const [cooldownEnds, setCooldownEnds] = useState<number | null>(null);
   const [now, setNow] = useState(() => Date.now());
   const autoFired = useRef(false);
@@ -105,6 +125,8 @@ export function SyncControl({
     triggeredAtRef.current = startedAt;
     setPhase("syncing");
     setProgress(5);
+    setUploadStartedAt(null);
+    setUploadTotalBytes(null);
     setCooldownEnds(startedAt + COOLDOWN_MS);
 
     try {
@@ -138,7 +160,11 @@ export function SyncControl({
       const data = (await res.json()) as {
         syncRequestedAt: number | null;
         lastUploadedAt: number | null;
+        uploadStartedAt: number | null;
+        uploadTotalBytes: number | null;
       };
+      setUploadStartedAt(data.uploadStartedAt ?? null);
+      setUploadTotalBytes(data.uploadTotalBytes ?? null);
       const requested = data.syncRequestedAt ?? 0;
       const uploaded = data.lastUploadedAt ?? 0;
       // Done if the agent uploaded *after* our click. We compare against
@@ -171,6 +197,8 @@ export function SyncControl({
     const id = setTimeout(() => {
       setPhase("idle");
       setProgress(0);
+      setUploadStartedAt(null);
+      setUploadTotalBytes(null);
     }, 5000);
     return () => clearTimeout(id);
   }, [phase]);
@@ -198,6 +226,16 @@ export function SyncControl({
             ? `${cooldownLeftSec}s`
             : label;
 
+  const showTelemetry = phase === "syncing" || phase === "done" || phase === "timeout";
+  const elapsedMs = triggeredAtRef.current ? Math.max(0, now - triggeredAtRef.current) : 0;
+  const uploadElapsedMs = uploadStartedAt ? Math.max(1000, now - uploadStartedAt) : 0;
+  const bytesPerSecond = uploadTotalBytes && uploadStartedAt
+    ? uploadTotalBytes / Math.max(1, uploadElapsedMs / 1000)
+    : 0;
+  const telemetryLine = uploadTotalBytes
+    ? `${formatBytes(uploadTotalBytes)} · ${formatRate(bytesPerSecond)} · ${formatDuration(uploadElapsedMs)}`
+    : `${formatDuration(elapsedMs)} · waiting for agent`;
+
   return (
     <>
       {/* Top-of-page progress strip — visible while syncing or briefly
@@ -216,20 +254,47 @@ export function SyncControl({
           />
         </div>
       )}
-      <button
-        type="button"
-        onClick={trigger}
-        disabled={disabled}
-        title={buttonLabel}
-        className="inline-flex items-center gap-1.5 rounded-md border border-border-subtle bg-bg-panel px-3 py-1.5 text-xs font-medium text-fg-default transition-colors hover:border-accent hover:text-accent disabled:cursor-not-allowed disabled:opacity-60"
-      >
-        <Icon
-          className={`h-3.5 w-3.5 ${phase === "syncing" ? "animate-spin" : ""}`}
-          strokeWidth={2}
-          aria-hidden
-        />
-        {buttonLabel}
-      </button>
+      <div className="flex items-center gap-3">
+        <button
+          type="button"
+          onClick={trigger}
+          disabled={disabled}
+          title={buttonLabel}
+          className="inline-flex items-center gap-1.5 rounded-md border border-border-subtle bg-bg-panel px-3 py-1.5 text-xs font-medium text-fg-default transition-colors hover:border-accent hover:text-accent disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          <Icon
+            className={`h-3.5 w-3.5 ${phase === "syncing" ? "animate-spin" : ""}`}
+            strokeWidth={2}
+            aria-hidden
+          />
+          {buttonLabel}
+        </button>
+        {showTelemetry && (
+          <div className="min-w-[220px] rounded-md border border-border-subtle bg-bg-panel-2 px-3 py-2 text-[11px] shadow-sm">
+            <div className="mb-1 flex items-center justify-between gap-3">
+              <span className="font-medium text-fg-default">Sync progress</span>
+              <span className="font-mono tabular-nums text-accent">{Math.round(progress)}%</span>
+            </div>
+            <div
+              role="progressbar"
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={Math.round(progress)}
+              className="h-2.5 overflow-hidden rounded-full bg-bg-panel"
+            >
+              <div
+                className={`h-full rounded-full transition-[width] duration-500 ease-out ${
+                  phase === "timeout" ? "bg-red-500" : "bg-accent"
+                }`}
+                style={{ width: `${progress}%` }}
+              />
+            </div>
+            <div className="mt-1.5 truncate font-mono tabular-nums text-fg-muted">
+              {telemetryLine}
+            </div>
+          </div>
+        )}
+      </div>
     </>
   );
 }
