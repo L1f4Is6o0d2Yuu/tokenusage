@@ -2,6 +2,7 @@ import Link from "next/link";
 import {
   LayoutDashboard,
   KeyRound,
+  Package,
   DollarSign,
   Users,
   Info,
@@ -54,6 +55,7 @@ export function Sidebar({
     { href: "/dashboard", label: t.nav.dashboard, icon: LayoutDashboard },
     { href: "/leaderboard", label: t.nav.leaderboard, icon: Trophy },
     { href: "/subscriptions", label: t.nav.subscriptions, icon: Sword },
+    { href: "/install", label: t.nav.install, icon: Package },
     { href: "/models", label: t.nav.models, icon: Sparkles },
     { href: "/prices", label: t.nav.prices, icon: DollarSign },
   ];

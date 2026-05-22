@@ -313,6 +313,7 @@ export type Dictionary = {
     dashboard: string;
     leaderboard: string;
     subscriptions: string;
+    install: string;
     models: string;
     tokens: string;
     prices: string;

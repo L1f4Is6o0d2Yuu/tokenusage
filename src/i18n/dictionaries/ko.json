@@ -352,6 +352,7 @@
     "users": "사용자",
     "about": "소개",
     "subscriptions": "구독",
+    "install": "Agent 설치",
     "models": "모델"
   },
   "forgotPassword": {

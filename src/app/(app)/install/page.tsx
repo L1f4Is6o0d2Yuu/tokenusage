@@ -72,15 +72,16 @@ export default async function InstallPage() {
   if (!user) redirect("/login");
   if (!isMultiUserMode()) redirect("/dashboard");
 
-  // Already onboarded → straight to dashboard.
-  const sessionCount = countServerRecords(user.id);
-  if (sessionCount > 0) redirect("/dashboard");
+  // Users can always get a fresh self-healing install command from this
+  // page, even after they already have data. Do not redirect existing
+  // accounts away: this is the logged-in recovery入口 for broken agents.
 
   const locale = await readLocale();
   const dict = await getDictionary(locale);
   const t = dict.install;
   const ot = dict.onboarding;
 
+  const sessionCount = countServerRecords(user.id);
   const tokens = listTokens(user.id);
   const syncState = getUserSyncState(user.id);
   const lastAgentSeen = getLatestAgentSeenAt(user.id);

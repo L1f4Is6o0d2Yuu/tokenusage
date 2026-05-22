@@ -352,6 +352,7 @@
     "users": "ユーザー",
     "about": "概要",
     "subscriptions": "サブスク",
+    "install": "Agent をインストール",
     "models": "モデル"
   },
   "forgotPassword": {

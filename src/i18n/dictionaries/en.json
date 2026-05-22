@@ -352,6 +352,7 @@
     "users": "Users",
     "about": "About",
     "subscriptions": "Subscriptions",
+    "install": "Install Agent",
     "models": "Models"
   },
   "forgotPassword": {

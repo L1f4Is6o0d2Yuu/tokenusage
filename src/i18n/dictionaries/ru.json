@@ -352,6 +352,7 @@
     "users": "Пользователи",
     "about": "О сервисе",
     "subscriptions": "Подписки",
+    "install": "Установить Agent",
     "models": "Модели"
   },
   "forgotPassword": {

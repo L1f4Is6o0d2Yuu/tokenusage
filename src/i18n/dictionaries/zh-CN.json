@@ -352,6 +352,7 @@
     "users": "用户",
     "about": "关于",
     "subscriptions": "订阅套餐",
+    "install": "安装 Agent",
     "models": "模型"
   },
   "forgotPassword": {

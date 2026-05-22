@@ -41,10 +41,17 @@ test('sync completion uses server timestamps only so browser clock skew cannot p
   assert.doesNotMatch(source, /uploaded > startedAt/);
 });
 
-test('sidebar logo links to the public website home instead of the app dashboard', () => {
-  const source = read('../src/components/sidebar.tsx');
-  assert.match(source, /href="\/"/);
-  assert.match(source, /tokenusage home/);
+test('logged-in users have a persistent sidebar entry to regenerate the agent install command', () => {
+  const sidebar = read('../src/components/sidebar.tsx');
+  const installPage = read('../src/app/(app)/install/page.tsx');
+  const types = read('../src/i18n/types.ts');
+  const zh = read('../src/i18n/dictionaries/zh-CN.json');
+
+  assert.match(sidebar, /href: "\/install", label: t\.nav\.install/);
+  assert.match(types, /install: string/);
+  assert.match(zh, /"install": "安装 Agent"/);
+  assert.doesNotMatch(installPage, /sessionCount > 0\) redirect\("\/dashboard"\)/);
+  assert.match(installPage, /recovery入口/);
 });
 
 test('chunked ingest marks sync completion for polling dashboard progress', () => {
