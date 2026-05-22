@@ -19,11 +19,26 @@ test('welcome arsenal save redirects to dashboard with a success marker', () => 
 
 test('sync control renders inline percentage telemetry next to the sync button', () => {
   const source = read('../src/components/sync-control.tsx');
+  assert.match(source, /Math\.round\(progress\)\}\%/);
+  assert.match(source, /role="progressbar"/);
   assert.match(source, /aria-valuenow=\{Math\.round\(progress\)\}/);
-  assert.match(source, /Math\.round\(progress\)\}%/);
-  assert.match(source, /bytesPerSecond/);
-  assert.match(source, /uploadStartedAt/);
+  assert.match(source, /formatRate\(bytesPerSecond\)/);
   assert.match(source, /uploadTotalBytes/);
+});
+
+test('sync control does not auto-trigger or allow stuck progress when agent is offline', () => {
+  const control = read('../src/components/sync-control.tsx');
+  const statusBar = read('../src/components/agent-status-bar.tsx');
+  assert.match(control, /agentLive: boolean/);
+  assert.match(control, /!installed \|\| paused \|\| !agentLive/);
+  assert.match(control, /agent 离线/);
+  assert.match(statusBar, /agentLive=\{agentLive\}/);
+});
+
+test('sync completion uses server timestamps only so browser clock skew cannot pin progress at 90%', () => {
+  const source = read('../src/components/sync-control.tsx');
+  assert.match(source, /uploaded > 0 && uploaded >= requested/);
+  assert.doesNotMatch(source, /uploaded > startedAt/);
 });
 
 test('sidebar logo links to the public website home instead of the app dashboard', () => {

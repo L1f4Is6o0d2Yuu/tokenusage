@@ -53,6 +53,7 @@ export function SyncControl({
   lastSyncedAt,
   paused,
   installed,
+  agentLive,
   label,
   syncingLabel,
   doneLabel,
@@ -60,6 +61,7 @@ export function SyncControl({
   lastSyncedAt: number | null;
   paused: boolean;
   installed: boolean;
+  agentLive: boolean;
   label: string;       // "立即同步"
   syncingLabel: string; // "同步中"
   doneLabel: string;    // "已请求"
@@ -90,7 +92,7 @@ export function SyncControl({
   // a real second visit a minute later does re-sync.
   useEffect(() => {
     if (autoFired.current) return;
-    if (!installed || paused) return;
+    if (!installed || paused || !agentLive) return;
     const stale =
       lastSyncedAt == null || Date.now() - lastSyncedAt > AUTO_STALE_MS;
     if (!stale) return;
@@ -103,7 +105,7 @@ export function SyncControl({
     sessionStorage.setItem("tu-auto-synced-at", String(Date.now()));
     void trigger();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [installed, paused, lastSyncedAt]);
+  }, [installed, paused, agentLive, lastSyncedAt]);
 
   function clearTimers() {
     if (pollTimer.current) {
@@ -117,7 +119,7 @@ export function SyncControl({
   }
 
   async function trigger() {
-    if (phase === "syncing") return;
+    if (!installed || paused || !agentLive || phase === "syncing") return;
     const cooldownLeft = cooldownEnds ? cooldownEnds - Date.now() : 0;
     if (cooldownLeft > 0) return;
 
@@ -167,11 +169,11 @@ export function SyncControl({
       setUploadTotalBytes(data.uploadTotalBytes ?? null);
       const requested = data.syncRequestedAt ?? 0;
       const uploaded = data.lastUploadedAt ?? 0;
-      // Done if the agent uploaded *after* our click. We compare against
-      // startedAt (client time) rather than requested (server time) to
-      // dodge clock skew — the agent's upload necessarily happened after
-      // the user clicked, regardless of which clock we trust.
-      if (uploaded > 0 && uploaded >= requested && uploaded > startedAt - 2000) {
+      // Done once the server observes an upload satisfying this server-side
+      // sync request. Do not compare against the browser clock here: user
+      // machines can be minutes ahead/behind the server, which made the UI
+      // sit at 90% even after a successful upload.
+      if (uploaded > 0 && uploaded >= requested) {
         clearTimers();
         setProgress(100);
         setPhase("done");
@@ -209,14 +211,16 @@ export function SyncControl({
     ? Math.max(0, Math.ceil((cooldownEnds - now) / 1000))
     : 0;
   const disabled =
-    !installed || paused || phase === "syncing" || cooldownLeftSec > 0;
+    !installed || paused || !agentLive || phase === "syncing" || cooldownLeftSec > 0;
 
   let Icon = RefreshCw;
   if (phase === "done") Icon = Check;
   else if (phase === "timeout") Icon = AlertCircle;
 
   const buttonLabel =
-    phase === "syncing"
+    !agentLive
+      ? "agent 离线"
+      : phase === "syncing"
       ? syncingLabel
       : phase === "done"
         ? doneLabel

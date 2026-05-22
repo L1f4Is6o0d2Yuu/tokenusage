@@ -149,6 +149,7 @@ export function AgentStatusBar({
           lastSyncedAt={lastSyncedAt}
           paused={paused}
           installed={installed}
+          agentLive={agentLive}
           label={t.syncNow}
           syncingLabel={t.syncing}
           doneLabel={t.syncing}
