@@ -28,6 +28,29 @@ if ! command -v tar >/dev/null; then
   exit 1
 fi
 
+LABEL="com.tokenusage.agent"
+PLIST_PATH="$HOME/Library/LaunchAgents/${LABEL}.plist"
+SYSTEMD_UNIT="$HOME/.config/systemd/user/tokenusage-agent.service"
+
+# Hard reset first. This is intentionally more aggressive than `tokenusage start`:
+# if a stale launchd/systemd job, old Homebrew symlink, or half-written config is
+# wedged, we remove it before installing the fresh script and token.
+echo "[tokenusage] cleaning old agent/service state..."
+case "$(uname -s)" in
+  Darwin)
+    launchctl bootout "gui/$(id -u)/${LABEL}" >/dev/null 2>&1 || true
+    launchctl remove "${LABEL}" >/dev/null 2>&1 || true
+    [ -f "$PLIST_PATH" ] && launchctl unload "$PLIST_PATH" >/dev/null 2>&1 || true
+    ;;
+  Linux)
+    systemctl --user stop tokenusage-agent >/dev/null 2>&1 || true
+    systemctl --user disable tokenusage-agent >/dev/null 2>&1 || true
+    ;;
+esac
+pkill -f 'tokenusage.*--loop' >/dev/null 2>&1 || true
+rm -f "$PLIST_PATH" "$SYSTEMD_UNIT"
+rm -rf "$HOME/.tokenusage"
+
 mkdir -p "$HOME/.tokenusage"
 chmod 700 "$HOME/.tokenusage"
 
@@ -36,4 +59,16 @@ chmod +x "$HOME/.tokenusage/tokenusage"
 
 args=(start --server "$SERVER" --token "$TOKEN")
 [ -n "${UPLOAD_SERVER:-}" ] && args+=(--upload-server "$UPLOAD_SERVER")
-exec "$HOME/.tokenusage/tokenusage" "${args[@]}"
+"$HOME/.tokenusage/tokenusage" "${args[@]}"
+
+# Run a foreground sync once as an immediate smoke test. The background service
+# remains installed for future dashboard-triggered syncs; this one-shot makes a
+# clean reinstall visibly fail in the terminal if auth/network/config is wrong.
+echo "[tokenusage] running immediate foreground sync smoke test..."
+"$HOME/.tokenusage/tokenusage" --loop-once || {
+  echo "[tokenusage] foreground sync failed. Recent log:" >&2
+  tail -n 80 "$HOME/.tokenusage/agent.log" 2>/dev/null >&2 || true
+  exit 1
+}
+
+echo "[tokenusage] clean reinstall complete."

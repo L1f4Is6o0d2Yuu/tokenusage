@@ -14,6 +14,7 @@
 #   tokenusage sync                               # manual sync now (server flag)
 #   tokenusage report [today|7d|30d|all]          # print server aggregate as JSON
 #   tokenusage statusline                         # one-line for shell prompts (60s cache)
+#   tokenusage doctor                             # local config/network/service diagnostics
 #   tokenusage --loop                             # internal: long-poll + upload loop
 #   tokenusage version
 
@@ -105,8 +106,10 @@ register_service() {
   case "$(uname -s)" in
     Darwin)
       write_launchd_plist "$exe"
-      launchctl unload "$PLIST_PATH" 2>/dev/null || true
-      launchctl load "$PLIST_PATH"
+      launchctl bootout "gui/$(id -u)/com.tokenusage.agent" >/dev/null 2>&1 || true
+      [ -f "$PLIST_PATH" ] && launchctl unload "$PLIST_PATH" 2>/dev/null || true
+      launchctl bootstrap "gui/$(id -u)" "$PLIST_PATH" 2>/dev/null || launchctl load "$PLIST_PATH"
+      launchctl kickstart -k "gui/$(id -u)/com.tokenusage.agent" >/dev/null 2>&1 || true
       printf '✓ tokenusage agent registered (launchd)\n'
       printf '  Logs:    tail -f %s\n' "$LOG_FILE"
       printf '  Stop:    tokenusage stop\n'
@@ -132,7 +135,9 @@ register_service() {
 stop_service() {
   case "$(uname -s)" in
     Darwin)
+      launchctl bootout "gui/$(id -u)/com.tokenusage.agent" >/dev/null 2>&1 || true
       [ -f "$PLIST_PATH" ] && launchctl unload "$PLIST_PATH" 2>/dev/null || true
+      launchctl remove com.tokenusage.agent >/dev/null 2>&1 || true
       printf '✓ tokenusage agent stopped\n'
       ;;
     Linux)
@@ -224,7 +229,8 @@ cmd_sync() {
   # shellcheck disable=SC1090
   . "$CONFIG_FILE"
   curl -fsS -X POST "$SERVER/api/sync-now" \
-    -H "Authorization: Bearer $TOKEN" -H "X-Agent-Version: $VERSION" \
+    -H "Authorization: Bearer $TOKEN" \
+    -H "X-Agent-Version: $VERSION" \
     -o /dev/null && printf '✓ sync requested\n'
 }
 
@@ -282,7 +288,8 @@ cmd_report() {
   local PERIOD="${1:-today}"
   local PAYLOAD
   PAYLOAD=$(curl -fsS "$SERVER/api/export?period=$PERIOD&format=json" \
-    -H "Authorization: Bearer $TOKEN" -H "X-Agent-Version: $VERSION" 2>/dev/null) || {
+    -H "Authorization: Bearer $TOKEN" \
+    -H "X-Agent-Version: $VERSION" 2>/dev/null) || {
     err "report request failed (check server / token)"; exit 1;
   }
   if command -v jq >/dev/null 2>&1; then
@@ -298,8 +305,55 @@ cmd_report() {
       "top model:     \(.byModel[0].provider // "-")/\(.byModel[0].model // "-")"
     '
   else
-    # No jq — dump the raw JSON. Less pretty but works on bare boxes.
     printf '%s\n' "$PAYLOAD"
+  fi
+}
+
+cmd_doctor() {
+  printf 'tokenusage doctor\n'
+  printf 'version:      %s\n' "$VERSION"
+  printf 'script:       %s\n' "$(script_path)"
+  printf 'config:       %s\n' "$CONFIG_FILE"
+  if [ ! -f "$CONFIG_FILE" ]; then
+    printf 'configured:   no\n'
+    return 1
+  fi
+  # shellcheck disable=SC1090
+  . "$CONFIG_FILE"
+  printf 'configured:   yes\n'
+  printf 'server:       %s\n' "$SERVER"
+  if [ -n "${UPLOAD_SERVER:-}" ]; then
+    printf 'uploadServer: %s\n' "$UPLOAD_SERVER"
+  else
+    printf 'uploadServer: (same as server)\n'
+  fi
+  printf 'token:        %s\n' "$(printf '%s' "$TOKEN" | sed 's/\(....\).*\(....\)/\1…\2/')"
+  if [ "$(uname -s)" = "Darwin" ]; then
+    if launchctl print "gui/$(id -u)/com.tokenusage.agent" >/dev/null 2>&1; then
+      printf 'service:      loaded (launchd)\n'
+    else
+      printf 'service:      not loaded (launchd)\n'
+    fi
+  elif command -v systemctl >/dev/null 2>&1; then
+    systemctl --user is-active --quiet tokenusage-agent && printf 'service:      active (systemd)\n' || printf 'service:      not active (systemd)\n'
+  fi
+  printf 'network:      '
+  if curl -fsS --max-time 10 "$SERVER/api/health" >/dev/null 2>&1; then
+    printf 'server reachable\n'
+  else
+    printf 'server unreachable\n'
+  fi
+  printf 'auth:         '
+  if curl -fsS --max-time 15 "$SERVER/api/sync-wait" \
+    -H "Authorization: Bearer $TOKEN" \
+    -H "X-Agent-Version: $VERSION" >/dev/null 2>&1; then
+    printf 'ok\n'
+  else
+    printf 'failed\n'
+  fi
+  if [ -f "$LOG_FILE" ]; then
+    printf '\nlast log lines:\n'
+    tail -n 40 "$LOG_FILE"
   fi
 }
 
@@ -520,6 +574,11 @@ cmd_loop() {
 
   printf '[%s] tokenusage agent starting; server=%s\n' "$(ts)" "$SERVER"
 
+  if [ "${LOOP_ONCE:-0}" = "1" ]; then
+    upload
+    return
+  fi
+
   # Eager first upload unless we just uploaded (rapid restart loop guard).
   NOW=$(date +%s)
   if [ $((NOW - LAST_UPLOAD)) -gt 60 ]; then
@@ -576,7 +635,9 @@ case "${1:-help}" in
   sync)      shift; cmd_sync "$@" ;;
   report)    shift; cmd_report "$@" ;;
   statusline) shift; cmd_statusline "$@" ;;
+  doctor)    shift; cmd_doctor "$@" ;;
   --loop)    cmd_loop ;;
+  --loop-once) LOOP_ONCE=1 cmd_loop ;;
   version|--version|-v) cmd_version ;;
   help|--help|-h) usage ;;
   *) err "unknown command: $1"; usage; exit 1 ;;
