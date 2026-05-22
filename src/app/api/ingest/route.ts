@@ -3,6 +3,7 @@ import { authenticateApiToken } from "@/lib/auth";
 import { openServerDb } from "@/lib/server-db";
 import { classifySqliteError, retryableErrorHeaders } from "@/lib/sqlite-errors";
 import { recordAudit } from "@/lib/audit";
+import { clearUploadInProgress, markUploaded } from "@/lib/sync-state";
 
 type IngestRecord = {
   provider: string;
@@ -130,6 +131,9 @@ export async function POST(req: NextRequest): Promise<Response> {
   } finally {
     db.close();
   }
+
+  markUploaded(user.id);
+  clearUploadInProgress(user.id);
 
   recordAudit({
     userId: user.id,

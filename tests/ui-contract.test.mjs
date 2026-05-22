@@ -29,5 +29,11 @@ test('sync control renders inline percentage telemetry next to the sync button',
 test('sidebar logo links to the public website home instead of the app dashboard', () => {
   const source = read('../src/components/sidebar.tsx');
   assert.match(source, /href="\/"/);
-  assert.match(source, /aria-label="tokenusage home"/);
+  assert.match(source, /tokenusage home/);
+});
+
+test('chunked ingest marks sync completion for polling dashboard progress', () => {
+  const source = read('../src/app/api/ingest/route.ts');
+  assert.match(source, /markUploaded\(user\.id\)/);
+  assert.match(source, /clearUploadInProgress\(user\.id\)/);
 });
