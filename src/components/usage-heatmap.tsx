@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import type { CSSProperties } from "react";
 import type { UsageRecord } from "@/lib/types";
 import { formatUsd } from "@/lib/format";
 
@@ -73,6 +74,22 @@ const MONTHS = [
   "7月", "8月", "9月", "10月", "11月", "12月",
 ];
 const DOW = ["日", "一", "二", "三", "四", "五", "六"];
+
+const HEAT_OPACITY = [1, 0.22, 0.42, 0.68, 1] as const;
+
+function heatCellStyle(level: 0 | 1 | 2 | 3 | 4): CSSProperties {
+  return {
+    fill: level === 0 ? "var(--bg-panel-2)" : "var(--accent)",
+    opacity: HEAT_OPACITY[level],
+  };
+}
+
+function heatSwatchStyle(level: 0 | 1 | 2 | 3 | 4): CSSProperties {
+  return {
+    backgroundColor: level === 0 ? "var(--bg-panel-2)" : "var(--accent)",
+    opacity: HEAT_OPACITY[level],
+  };
+}
 
 export function UsageHeatmap({ records }: { records: UsageRecord[] }) {
   // Always 53 weeks back so the column count is stable across renders
@@ -218,6 +235,7 @@ export function UsageHeatmap({ records }: { records: UsageRecord[] }) {
                       height={CELL}
                       rx={2.5}
                       className={`heat-${lvl}`}
+                      style={heatCellStyle(lvl)}
                       onMouseEnter={() => {
                         setHover({
                           b: cell.b,
@@ -255,17 +273,11 @@ export function UsageHeatmap({ records }: { records: UsageRecord[] }) {
         )}
       </div>
 
-      {/* Intensity tones use color-mix against the design-token --accent
-       * so a theme/skin switch automatically restyles the heatmap.
-       * Defined globally (not styled-jsx scoped) so the cells in the
-       * legend pick them up too. */}
+      {/* Keep hover animation in CSS, but make the actual intensity color
+       * an inline SVG style. Some browsers/theme skins reject newer CSS color
+       * functions as SVG fill, which made active days render as if the heatmap
+       * had no intensity. */}
       <style>{`
-        .heat-0 { fill: var(--bg-panel-2); }
-        .dark .heat-0 { fill: color-mix(in oklch, var(--accent) 6%, transparent); }
-        .heat-1 { fill: color-mix(in oklch, var(--accent) 18%, transparent); }
-        .heat-2 { fill: color-mix(in oklch, var(--accent) 38%, transparent); }
-        .heat-3 { fill: color-mix(in oklch, var(--accent) 65%, transparent); }
-        .heat-4 { fill: var(--accent); }
         rect[class^="heat-"] {
           cursor: pointer;
           transition: filter 120ms ease-out, transform 120ms ease-out;
@@ -276,15 +288,6 @@ export function UsageHeatmap({ records }: { records: UsageRecord[] }) {
           filter: brightness(1.2);
           transform: scale(1.25);
         }
-        /* Legend swatches reuse the same classes via background-color since
-         * they're <span>, not <rect>. */
-        span[class^="heat-"] {
-          background-color: var(--bg-panel-2);
-        }
-        span.heat-1 { background-color: color-mix(in oklch, var(--accent) 18%, transparent); }
-        span.heat-2 { background-color: color-mix(in oklch, var(--accent) 38%, transparent); }
-        span.heat-3 { background-color: color-mix(in oklch, var(--accent) 65%, transparent); }
-        span.heat-4 { background-color: var(--accent); }
       `}</style>
     </div>
   );
@@ -303,6 +306,7 @@ function Legend() {
             height: 11,
             borderRadius: 2.5,
             display: "inline-block",
+            ...heatSwatchStyle(l as 0 | 1 | 2 | 3 | 4),
           }}
         />
       ))}

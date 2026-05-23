@@ -67,6 +67,14 @@ test('chunked ingest stores resolved Hermes costs instead of raw zero costs', ()
   assert.match(source, /cost_status: resolvedCost\.status/);
 });
 
+test('usage heatmap uses inline SVG fill and opacity so intensity survives browser color-mix quirks', () => {
+  const source = read('../src/components/usage-heatmap.tsx');
+  assert.match(source, /function heatCellStyle/);
+  assert.match(source, /fill: level === 0 \? "var\(--bg-panel-2\)" : "var\(--accent\)"/);
+  assert.match(source, /style=\{heatCellStyle\(lvl\)\}/);
+  assert.doesNotMatch(source, /color-mix\(in oklch/);
+});
+
 test('dashboard remains accessible after install even while uploaded records are still settling', () => {
   const source = read('../src/app/(app)/dashboard/page.tsx');
   assert.doesNotMatch(source, /redirect\("\/install"\)/);
