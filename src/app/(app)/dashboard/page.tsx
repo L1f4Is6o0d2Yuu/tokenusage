@@ -52,15 +52,11 @@ export default async function Page({
   // for marketing; only signed-in users get here.
   if (isMultiUserMode() && currentUser == null) redirect("/");
 
-  // Empty-state guard: zero sessions → /install (live status checklist).
-  if (
-    isMultiUserMode() &&
-    currentUser != null &&
-    countServerRecords(currentUser.id) === 0 &&
-    settings !== "saved"
-  ) {
-    redirect("/install");
-  }
+  // Keep /dashboard accessible even when the account has zero visible records.
+  // The dashboard already renders an onboarding/install card via showOnboarding;
+  // redirecting here traps users in /install while a new agent upload is still
+  // settling or when they intentionally want to inspect the empty dashboard.
+  // The persistent sidebar /install link remains the explicit recovery入口.
   // First proper visit hasn't been through the arsenal picker yet.
   if (
     isMultiUserMode() &&

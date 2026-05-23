@@ -67,6 +67,12 @@ test('chunked ingest stores resolved Hermes costs instead of raw zero costs', ()
   assert.match(source, /cost_status: resolvedCost\.status/);
 });
 
+test('dashboard remains accessible after install even while uploaded records are still settling', () => {
+  const source = read('../src/app/(app)/dashboard/page.tsx');
+  assert.doesNotMatch(source, /redirect\("\/install"\)/);
+  assert.match(source, /showOnboarding/);
+});
+
 test('agent start prefers resumable small-record ingest over monolithic tar upload', () => {
   const shell = read('../agent/tokenusage');
   const nodeAgent = read('../agent/index.mjs');
