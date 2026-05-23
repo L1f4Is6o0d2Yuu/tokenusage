@@ -73,6 +73,10 @@ test('agent start prefers resumable small-record ingest over monolithic tar uplo
   const install = read('../agent/install.sh.template');
 
   assert.match(shell, /agent-node\.mjs/);
+  assert.match(shell, /cmd_update\(\)/);
+  assert.match(shell, /api\/agent-script/);
+  assert.match(shell, /api\/agent-node-script/);
+  assert.match(shell, /exec "\$exe" start/);
   assert.match(shell, /TOKENUSAGE_SERVER="\$SERVER"/);
   assert.match(shell, /node "\$NODE_AGENT_FILE"/);
   assert.match(install, /api\/agent-node-script/);

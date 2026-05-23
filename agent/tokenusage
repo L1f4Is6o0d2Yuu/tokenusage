@@ -7,6 +7,7 @@
 # Usage:
 #   tokenusage start --server URL --token TOKEN   # first-time install + start
 #   tokenusage start                              # restart with saved config
+#   tokenusage update                             # download latest CLI + agent, then start
 #   tokenusage stop                               # stop the service (keeps config)
 #   tokenusage uninstall                          # remove service + config
 #   tokenusage status                             # show config + last-upload time
@@ -262,6 +263,47 @@ cmd_uninstall() {
   rm -f "$PLIST_PATH" "$SYSTEMD_UNIT"
   rm -rf "$CONFIG_DIR"
   printf '✓ tokenusage agent uninstalled. Config and logs removed.\n'
+}
+
+
+cmd_update() {
+  if [ ! -f "$CONFIG_FILE" ]; then
+    err "no config; run the dashboard install command once, then use: tokenusage update"
+    exit 1
+  fi
+  # shellcheck disable=SC1090
+  . "$CONFIG_FILE"
+  if [ -z "${SERVER:-}" ]; then
+    err "config missing SERVER; run the dashboard install command once"
+    exit 1
+  fi
+  if ! command -v curl >/dev/null 2>&1; then
+    err "curl not found"
+    exit 1
+  fi
+
+  local tmp exe
+  tmp="$(mktemp -d -t tokenusage-update-XXXXXX)"
+  trap 'rm -rf "$tmp"' RETURN
+  exe="$(script_path)"
+
+  printf '[%s] downloading latest tokenusage CLI from %s...\n' "$(ts)" "$SERVER"
+  curl -fsSL --max-time 30 "$SERVER/api/agent-script" -o "$tmp/tokenusage"
+  bash -n "$tmp/tokenusage"
+  chmod +x "$tmp/tokenusage"
+
+  printf '[%s] downloading latest resumable node agent...\n' "$(ts)"
+  if curl -fsSL --max-time 30 "$SERVER/api/agent-node-script" -o "$tmp/agent-node.mjs"; then
+    mkdir -p "$CONFIG_DIR"
+    mv "$tmp/agent-node.mjs" "$NODE_AGENT_FILE"
+    chmod 600 "$NODE_AGENT_FILE" 2>/dev/null || true
+  else
+    err "warning: could not download agent-node.mjs; start will retry automatically"
+  fi
+
+  mv "$tmp/tokenusage" "$exe"
+  printf '[%s] tokenusage updated; restarting with self-check...\n' "$(ts)"
+  exec "$exe" start
 }
 
 cmd_status() {
@@ -707,6 +749,7 @@ cmd_loop() {
 
 case "${1:-help}" in
   start)     shift; cmd_start "$@" ;;
+  update)    shift; cmd_update "$@" ;;
   stop)      shift; cmd_stop "$@" ;;
   uninstall) shift; cmd_uninstall "$@" ;;
   status)    shift; cmd_status "$@" ;;
