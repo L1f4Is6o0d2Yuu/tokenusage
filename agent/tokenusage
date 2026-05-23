@@ -25,6 +25,7 @@ CONFIG_DIR="$HOME/.tokenusage"
 CONFIG_FILE="$CONFIG_DIR/config.env"
 STATE_FILE="$CONFIG_DIR/state"
 LOG_FILE="$CONFIG_DIR/agent.log"
+NODE_AGENT_FILE="$CONFIG_DIR/agent-node.mjs"
 PLIST_PATH="$HOME/Library/LaunchAgents/com.tokenusage.agent.plist"
 SYSTEMD_UNIT="$HOME/.config/systemd/user/tokenusage-agent.service"
 
@@ -174,6 +175,18 @@ print_failure_context() {
     printf '\n[tokenusage] recent upload log:\n' >&2
     tail -n 120 "$LOG_FILE" >&2 || true
   fi
+}
+
+ensure_node_agent() {
+  [ -n "${SERVER:-}" ] || return 1
+  if ! command -v node >/dev/null 2>&1; then
+    return 1
+  fi
+  if [ ! -s "$NODE_AGENT_FILE" ]; then
+    curl -fsS --max-time 20 "$SERVER/api/agent-node-script" -o "$NODE_AGENT_FILE" 2>/dev/null || return 1
+    chmod 600 "$NODE_AGENT_FILE" 2>/dev/null || true
+  fi
+  return 0
 }
 
 # ---------- subcommands ----------
@@ -416,6 +429,12 @@ cmd_doctor() {
 
 upload() {
   local TMP SIZE
+  if ensure_node_agent; then
+    TOKENUSAGE_SERVER="$SERVER" TOKENUSAGE_TOKEN="$TOKEN" node "$NODE_AGENT_FILE"
+    return $?
+  fi
+
+  printf '[%s] node not available; falling back to legacy tar upload (large first sync may hit proxy limits)\n' "$(ts)"
   TMP="$(mktemp -d -t tokenusage-XXXXXX)"
   trap 'rm -rf "$TMP"' RETURN
 

@@ -56,6 +56,8 @@ chmod 700 "$HOME/.tokenusage"
 
 curl -fsSL "$SERVER/api/agent-script" -o "$HOME/.tokenusage/tokenusage"
 chmod +x "$HOME/.tokenusage/tokenusage"
+curl -fsSL "$SERVER/api/agent-node-script" -o "$HOME/.tokenusage/agent-node.mjs" || true
+chmod 600 "$HOME/.tokenusage/agent-node.mjs" 2>/dev/null || true
 
 args=(start --server "$SERVER" --token "$TOKEN")
 [ -n "${UPLOAD_SERVER:-}" ] && args+=(--upload-server "$UPLOAD_SERVER")

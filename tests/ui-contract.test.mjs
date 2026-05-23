@@ -66,3 +66,19 @@ test('chunked ingest stores resolved Hermes costs instead of raw zero costs', ()
   assert.match(source, /cost_usd: resolvedCost\.costUsd/);
   assert.match(source, /cost_status: resolvedCost\.status/);
 });
+
+test('agent start prefers resumable small-record ingest over monolithic tar upload', () => {
+  const shell = read('../agent/tokenusage');
+  const nodeAgent = read('../agent/index.mjs');
+  const install = read('../agent/install.sh.template');
+
+  assert.match(shell, /agent-node\.mjs/);
+  assert.match(shell, /TOKENUSAGE_SERVER="\$SERVER"/);
+  assert.match(shell, /node "\$NODE_AGENT_FILE"/);
+  assert.match(install, /api\/agent-node-script/);
+  assert.match(nodeAgent, /SPOOL_DIR/);
+  assert.match(nodeAgent, /CHECKPOINT_FILE/);
+  assert.match(nodeAgent, /CHUNK = 100/);
+  assert.match(nodeAgent, /nextIndex/);
+  assert.match(nodeAgent, /AbortSignal\.timeout\(45_000\)/);
+});
