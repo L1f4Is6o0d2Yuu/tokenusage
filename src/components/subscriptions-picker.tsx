@@ -51,6 +51,21 @@ export function SubscriptionsPicker({
   }, [plans]);
 
   const [filter, setFilter] = useState<string>("__all__");
+  const [selected, setSelected] = useState<Set<string>>(() => new Set(active));
+
+  const togglePlan = (id: string, checked: boolean) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (checked) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  };
+
+  const selectedIds = useMemo(
+    () => plans.map((p) => p.id).filter((id) => selected.has(id)),
+    [plans, selected]
+  );
 
   const filtered = useMemo(() => {
     if (filter === "__all__") return plans;
@@ -68,6 +83,9 @@ export function SubscriptionsPicker({
 
   return (
     <div className="space-y-5">
+      {selectedIds.map((id) => (
+        <input key={id} type="hidden" name="plan" value={id} />
+      ))}
       {/* Vendor filter chips. Sticky-ish so it stays visible while the
           user scrolls a long list. */}
       <div className="flex flex-wrap items-center gap-1.5">
@@ -93,7 +111,8 @@ export function SubscriptionsPicker({
         <PlanSection
           title={soloLabel}
           plans={soloPlans}
-          active={active}
+          selected={selected}
+          onToggle={togglePlan}
           payAsYouGoNote={payAsYouGoNote}
         />
       )}
@@ -101,7 +120,8 @@ export function SubscriptionsPicker({
         <PlanSection
           title={teamLabel}
           plans={teamPlans}
-          active={active}
+          selected={selected}
+          onToggle={togglePlan}
           payAsYouGoNote={payAsYouGoNote}
         />
       )}
@@ -161,12 +181,14 @@ function FilterChip({
 function PlanSection({
   title,
   plans,
-  active,
+  selected,
+  onToggle,
   payAsYouGoNote,
 }: {
   title: string;
   plans: PickerPlan[];
-  active: Set<string>;
+  selected: Set<string>;
+  onToggle: (id: string, checked: boolean) => void;
   payAsYouGoNote: string;
 }) {
   return (
@@ -179,7 +201,8 @@ function PlanSection({
           <PlanCard
             key={p.id}
             plan={p}
-            checked={active.has(p.id)}
+            checked={selected.has(p.id)}
+            onToggle={onToggle}
             payg={isPayAsYouGo(p)}
             paygNote={payAsYouGoNote}
           />
@@ -195,30 +218,29 @@ function PlanSection({
 function PlanCard({
   plan,
   checked,
+  onToggle,
   payg,
   paygNote,
 }: {
   plan: PickerPlan;
   checked: boolean;
+  onToggle: (id: string, checked: boolean) => void;
   payg: boolean;
   paygNote: string;
 }) {
-  const [on, setOn] = useState(checked);
   return (
     <label
       className={
         "group/p relative flex cursor-pointer flex-col gap-1.5 overflow-hidden rounded-lg border p-3 transition-all " +
-        (on
+        (checked
           ? "border-accent bg-accent/8 ring-1 ring-accent/30"
           : "border-border-subtle bg-bg-panel hover:border-border-strong hover:bg-bg-panel-2")
       }
     >
       <input
         type="checkbox"
-        name="plan"
-        value={plan.id}
-        defaultChecked={checked}
-        onChange={(e) => setOn(e.currentTarget.checked)}
+        checked={checked}
+        onChange={(e) => onToggle(plan.id, e.currentTarget.checked)}
         className="sr-only"
       />
       {/* Vendor accent stripe */}
@@ -235,12 +257,12 @@ function PlanCard({
         <span
           className={
             "flex h-4 w-4 shrink-0 items-center justify-center rounded-full border " +
-            (on
+            (checked
               ? "border-accent bg-accent text-accent-fg"
               : "border-border-strong bg-transparent")
           }
         >
-          {on && (
+          {checked && (
             <svg
               width="10"
               height="10"

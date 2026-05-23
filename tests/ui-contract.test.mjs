@@ -67,6 +67,18 @@ test('chunked ingest stores resolved Hermes costs instead of raw zero costs', ()
   assert.match(source, /cost_status: resolvedCost\.status/);
 });
 
+test('subscription picker keeps selections in parent state and submits hidden selected ids', () => {
+  const source = read('../src/components/subscriptions-picker.tsx');
+  assert.match(source, /const \[selected, setSelected\] = useState<Set<string>>/);
+  assert.match(source, /selectedIds\.map\(\(id\) => \(/);
+  assert.match(source, /type="hidden" name="plan" value=\{id\}/);
+  assert.match(source, /checked=\{selected\.has\(p\.id\)\}/);
+  assert.match(source, /onToggle=\{togglePlan\}/);
+  assert.match(source, /checked=\{checked\}/);
+  assert.doesNotMatch(source, /defaultChecked=\{checked\}/);
+  assert.doesNotMatch(source, /name="plan"\s*\n\s*checked=\{checked\}/);
+});
+
 test('usage heatmap uses inline SVG fill and opacity so intensity survives browser color-mix quirks', () => {
   const source = read('../src/components/usage-heatmap.tsx');
   assert.match(source, /function heatCellStyle/);
