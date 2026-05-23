@@ -23,3 +23,9 @@ export async function requireUser(): Promise<User | null> {
   }
   return user;
 }
+
+export async function requireAdmin(): Promise<User | null> {
+  const user = await requireUser();
+  if (user && !user.isAdmin) redirect("/dashboard");
+  return user;
+}

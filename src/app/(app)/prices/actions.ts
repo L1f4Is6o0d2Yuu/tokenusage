@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { requireAdmin } from "@/lib/auth-guard";
 import { writeOverride, deleteOverride, type Rule } from "@/lib/pricing";
 
 // Form input is $/M tokens (easier to read); we store per-token internally.
@@ -22,6 +23,7 @@ function requireNum(v: FormDataEntryValue | null): number | null {
 }
 
 export async function savePricesAction(formData: FormData): Promise<void> {
+  await requireAdmin();
   const rules: Rule[] = [];
   // FormData rule indices come from inputs named like rule[0].match etc.
   // We collect by scanning all keys that match the pattern.
@@ -54,6 +56,7 @@ export async function savePricesAction(formData: FormData): Promise<void> {
 }
 
 export async function resetPricesAction(): Promise<void> {
+  await requireAdmin();
   deleteOverride();
   revalidatePath("/");
   revalidatePath("/prices");

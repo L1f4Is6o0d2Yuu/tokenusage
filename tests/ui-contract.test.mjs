@@ -105,10 +105,37 @@ test('agent start prefers resumable small-record ingest over monolithic tar uplo
   assert.match(shell, /exec "\$exe" start/);
   assert.match(shell, /TOKENUSAGE_SERVER="\$SERVER"/);
   assert.match(shell, /node "\$NODE_AGENT_FILE"/);
+  assert.match(shell, /node agent failed.*falling back to legacy tar upload/s);
   assert.match(install, /api\/agent-node-script/);
-  assert.match(nodeAgent, /SPOOL_DIR/);
-  assert.match(nodeAgent, /CHECKPOINT_FILE/);
+  assert.match(nodeAgent, /const SPOOL_DIR =/);
+  assert.match(nodeAgent, /const RECORDS_FILE =/);
+  assert.match(nodeAgent, /const CHECKPOINT_FILE =/);
   assert.match(nodeAgent, /CHUNK = 100/);
   assert.match(nodeAgent, /nextIndex/);
   assert.match(nodeAgent, /AbortSignal\.timeout\(45_000\)/);
+  assert.match(nodeAgent, /collectSource\("codex", readCodex\)/);
+});
+
+test('upload and ingest failures are recorded in audit_log', () => {
+  const audit = read('../src/lib/audit.ts');
+  const upload = read('../src/app/api/upload/route.ts');
+  const ingest = read('../src/app/api/ingest/route.ts');
+
+  assert.match(audit, /\| "upload_failed"/);
+  assert.match(audit, /\| "ingest_failed"/);
+  assert.match(upload, /action: "upload_failed"/);
+  assert.match(upload, /reason:/);
+  assert.match(ingest, /action: "ingest_failed"/);
+  assert.match(ingest, /reason:/);
+});
+
+test('prices page and server actions are admin-only in multi-user mode', () => {
+  const guard = read('../src/lib/auth-guard.ts');
+  const page = read('../src/app/(app)/prices/page.tsx');
+  const actions = read('../src/app/(app)/prices/actions.ts');
+
+  assert.match(guard, /export async function requireAdmin/);
+  assert.match(page, /await requireAdmin\(\)/);
+  assert.match(actions, /await requireAdmin\(\)/);
+  assert.doesNotMatch(page, /await requireUser\(\)/);
 });

@@ -472,11 +472,14 @@ cmd_doctor() {
 upload() {
   local TMP SIZE
   if ensure_node_agent; then
-    TOKENUSAGE_SERVER="$SERVER" TOKENUSAGE_TOKEN="$TOKEN" node "$NODE_AGENT_FILE"
-    return $?
+    if TOKENUSAGE_SERVER="$SERVER" TOKENUSAGE_TOKEN="$TOKEN" node "$NODE_AGENT_FILE"; then
+      return 0
+    fi
+    printf '[%s] node agent failed; falling back to legacy tar upload (service will keep retrying next cycle if this also fails)\n' "$(ts)"
+  else
+    printf '[%s] node not available; falling back to legacy tar upload (large first sync may hit proxy limits)\n' "$(ts)"
   fi
 
-  printf '[%s] node not available; falling back to legacy tar upload (large first sync may hit proxy limits)\n' "$(ts)"
   TMP="$(mktemp -d -t tokenusage-XXXXXX)"
   trap 'rm -rf "$TMP"' RETURN
 

@@ -28,6 +28,10 @@ try {
   Database = null;
 }
 
+const SPOOL_DIR = path.join(os.homedir(), ".tokenusage", "spool");
+const RECORDS_FILE = path.join(SPOOL_DIR, "records.json");
+const CHECKPOINT_FILE = path.join(SPOOL_DIR, "checkpoint.json");
+
 // -------- config --------
 
 function parseArgs() {
@@ -96,18 +100,25 @@ async function readCodex() {
   const dir = process.env.TOKENUSAGE_CODEX_DIR || path.join(os.homedir(), ".codex");
   const sp = path.join(dir, "state_5.sqlite");
   if (!fs.existsSync(sp)) return [];
-  const db = new Database(sp, { readonly: true, fileMustExist: true });
-  let threads;
-  try {
-    threads = db
-      .prepare(
-        `SELECT id, model, model_provider, source, rollout_path,
+  const query = `SELECT id, model, model_provider, source, rollout_path,
                 created_at, updated_at, title, tokens_used
-         FROM threads WHERE tokens_used > 0 ORDER BY created_at DESC`
-      )
-      .all();
-  } finally {
-    db.close();
+         FROM threads WHERE tokens_used > 0 ORDER BY created_at DESC`;
+  let threads;
+  if (Database) {
+    const db = new Database(sp, { readonly: true, fileMustExist: true });
+    try {
+      threads = db.prepare(query).all();
+    } finally {
+      db.close();
+    }
+  } else {
+    try {
+      const out = execFileSync("sqlite3", ["-json", sp, query], { encoding: "utf8", maxBuffer: 256 * 1024 * 1024 });
+      threads = JSON.parse(out || "[]");
+    } catch (err) {
+      console.error(`[agent] sqlite3 unavailable/failed; skipping Codex local DB: ${err?.message ?? err}`);
+      return [];
+    }
   }
   const out = await Promise.all(
     threads.map(async (t) => {
@@ -243,6 +254,15 @@ function lastSegment(slug) {
   return parts[parts.length - 1] ?? slug;
 }
 
+async function collectSource(name, fn) {
+  try {
+    return await fn();
+  } catch (err) {
+    console.error(`[agent] ${name} reader failed; skipping this source: ${err?.message ?? err}`);
+    return [];
+  }
+}
+
 // -------- main --------
 
 async function main() {
@@ -257,9 +277,9 @@ async function main() {
   const started = Date.now();
   console.error("[agent] reading local sources…");
   const [hermes, codex, claudeCode] = await Promise.all([
-    Promise.resolve().then(readHermes),
-    readCodex(),
-    readClaudeCode(),
+    collectSource("hermes", readHermes),
+    collectSource("codex", readCodex),
+    collectSource("claude-code", readClaudeCode),
   ]);
   const records = [...hermes, ...codex, ...claudeCode];
   console.error(

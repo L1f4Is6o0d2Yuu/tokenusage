@@ -170,7 +170,22 @@ export async function POST(req: NextRequest): Promise<Response> {
   if (reportedVersion) recordAgentVersion(user.id, reportedVersion);
 
   const lengthHeader = req.headers.get("content-length");
+  const recordUploadFailed = (reason: string, meta: Record<string, unknown> = {}) =>
+    recordAudit({
+      userId: user.id,
+      action: "upload_failed",
+      ip: req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null,
+      userAgent: req.headers.get("user-agent"),
+      meta: {
+        reason,
+        bytes: lengthHeader ? Number(lengthHeader) : null,
+        agentVersion: reportedVersion ?? null,
+        ...meta,
+      },
+    });
+
   if (lengthHeader && Number(lengthHeader) > MAX_BYTES) {
+    recordUploadFailed("payload_too_large", { maxBytes: MAX_BYTES });
     return err(413, `payload too large (max ${MAX_BYTES} bytes)`);
   }
 
@@ -243,9 +258,12 @@ export async function POST(req: NextRequest): Promise<Response> {
         `[api/upload] retryable sqlite error (${retry.reason}):`,
         e instanceof Error ? e.message : e
       );
+      recordUploadFailed(`sqlite_${retry.reason}`, { retryAfter: retry.retryAfter });
       return err(503, `server busy: ${retry.reason}`, retryableErrorHeaders(retry));
     }
-    return err(500, e instanceof Error ? e.message : "upload failed");
+    const message = e instanceof Error ? e.message : "upload failed";
+    recordUploadFailed("exception", { message: message.slice(0, 500) });
+    return err(500, message);
   } finally {
     try {
       await fs.rm(tempDir, { recursive: true, force: true });

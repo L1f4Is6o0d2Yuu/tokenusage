@@ -12,7 +12,9 @@ export type AuditAction =
   | "invite_redeemed"
   | "password_reset"
   | "upload"
+  | "upload_failed"
   | "ingest"
+  | "ingest_failed"
   | "oauth_pending_created"
   | "user_activated";
 

@@ -44,14 +44,27 @@ export async function POST(req: NextRequest): Promise<Response> {
   const user = authenticateApiToken(auth.slice(7).trim());
   if (!user) return err(401, "invalid token");
 
+  const recordIngestFailed = (reason: string, meta: Record<string, unknown> = {}) =>
+    recordAudit({
+      userId: user.id,
+      action: "ingest_failed",
+      ip: req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null,
+      userAgent: req.headers.get("user-agent"),
+      meta: { reason, ...meta },
+    });
+
   let body: unknown;
   try {
     body = await req.json();
   } catch {
+    recordIngestFailed("invalid_json");
     return err(400, "body must be JSON");
   }
   const records = Array.isArray(body) ? body : Array.isArray((body as { records?: unknown[] })?.records) ? (body as { records: unknown[] }).records : null;
-  if (!records) return err(400, 'expected an array (or { "records": [...] })');
+  if (!records) {
+    recordIngestFailed("invalid_records_shape");
+    return err(400, 'expected an array (or { "records": [...] })');
+  }
 
   const db = openServerDb();
   let inserted = 0;
@@ -139,8 +152,16 @@ export async function POST(req: NextRequest): Promise<Response> {
           `[api/ingest] retryable sqlite error (${retry.reason}):`,
           e instanceof Error ? e.message : e
         );
+        recordIngestFailed(`sqlite_${retry.reason}`, {
+          submitted: Array.isArray(records) ? records.length : 0,
+          retryAfter: retry.retryAfter,
+        });
         return err(503, `server busy: ${retry.reason}`, retryableErrorHeaders(retry));
       }
+      recordIngestFailed("exception", {
+        submitted: Array.isArray(records) ? records.length : 0,
+        message: e instanceof Error ? e.message.slice(0, 500) : String(e).slice(0, 500),
+      });
       throw e;
     }
   } finally {
