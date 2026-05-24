@@ -152,9 +152,10 @@ test('sync timeout distinguishes offline agent from stalled upload and stays vis
   assert.doesNotMatch(source, /setTimeout\(\(\) => \{\s*setPhase\("idle"\)/s);
 });
 
-test('admin users table exposes agent health and stale uploads', () => {
+test('admin users table exposes agent health and per-user audit logs', () => {
   const auth = read('../src/lib/auth.ts');
   const page = read('../src/app/(app)/users/page.tsx');
+  const logPage = read('../src/app/(app)/users/[id]/log/page.tsx');
 
   assert.match(auth, /lastUploadedAt: number \| null/);
   assert.match(auth, /agentSeenAt: number \| null/);
@@ -165,4 +166,9 @@ test('admin users table exposes agent health and stale uploads', () => {
   assert.match(page, /v\{u\.agentVersion\}/);
   assert.match(page, /uploaded \{formatAgo\(u\.lastUploadedAt, now\)\}/);
   assert.match(page, /UPLOAD_STALE_MS/);
+  assert.match(page, /href=\{`\/users\/\$\{u\.id\}\/log`\}/);
+  assert.match(logPage, /await requireAdmin\(\)/);
+  assert.match(logPage, /readRecentAudit\(100, target\.id\)/);
+  assert.match(logPage, /Agent observability fields/);
+  assert.match(logPage, /Recent audit events/);
 });

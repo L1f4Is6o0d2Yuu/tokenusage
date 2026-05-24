@@ -311,6 +311,12 @@ export default async function UsersPage({
                       )}
                     </TableCell>
                     <TableCell className="space-x-2">
+                      <Link
+                        href={`/users/${u.id}/log`}
+                        className="text-xs text-accent hover:underline"
+                      >
+                        Logs
+                      </Link>
                       {u.isAdmin && <Badge variant="outline">{t.badgeAdmin}</Badge>}
                       {u.activatedAt == null && (
                         <>
