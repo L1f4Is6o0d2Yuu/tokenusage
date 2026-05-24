@@ -185,6 +185,26 @@ export default async function InstallPage() {
               <p className="text-muted-foreground">{ot.step2Body}</p>
             </div>
 
+            <div
+              id="troubleshoot"
+              className="scroll-mt-24 rounded-md border border-amber-500/30 bg-amber-500/5 p-4"
+            >
+              <div className="mb-2 text-sm font-medium text-fg-strong">
+                Agent offline? Try this recovery checklist.
+              </div>
+              <ol className="list-decimal space-y-2 pl-5 text-sm text-fg-muted">
+                <li>
+                  Reinstall or restart the background service with the fresh command above.
+                </li>
+                <li>
+                  If it is already installed, run <code className="font-mono text-fg-strong">tokenusage start</code> to reload launchd/systemd and run an immediate upload self-test.
+                </li>
+                <li>
+                  If it still stays offline, run <code className="font-mono text-fg-strong">tokenusage doctor</code> and check <code className="font-mono text-fg-strong">tokenusage logs</code> for the latest local error.
+                </li>
+              </ol>
+            </div>
+
             {/* Live upload progress block. Only renders while an upload
                 is mid-flight (agent pinged /api/upload-progress and
                 /api/upload hasn't cleared the row yet). Shows a real

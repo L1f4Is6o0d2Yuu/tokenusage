@@ -29,10 +29,16 @@ test('sync control renders inline percentage telemetry next to the sync button',
 test('sync control does not auto-trigger or allow stuck progress when agent is offline', () => {
   const control = read('../src/components/sync-control.tsx');
   const statusBar = read('../src/components/agent-status-bar.tsx');
+  const installPage = read('../src/app/(app)/install/page.tsx');
   assert.match(control, /agentLive: boolean/);
   assert.match(control, /!installed \|\| paused \|\| !agentLive/);
   assert.match(control, /agent 离线/);
   assert.match(statusBar, /agentLive=\{agentLive\}/);
+  assert.match(statusBar, /href="\/install#troubleshoot"/);
+  assert.match(statusBar, /修复 Agent/);
+  assert.match(installPage, /id="troubleshoot"/);
+  assert.match(installPage, /tokenusage doctor/);
+  assert.match(installPage, /tokenusage logs/);
 });
 
 test('sync completion uses server timestamps only so browser clock skew cannot pin progress at 90%', () => {
@@ -107,6 +113,11 @@ test('agent start prefers resumable small-record ingest over monolithic tar uplo
   assert.match(shell, /node "\$NODE_AGENT_FILE"/);
   assert.match(shell, /node agent failed.*falling back to legacy tar upload/s);
   assert.match(install, /api\/agent-node-script/);
+  assert.match(install, /registers the launchd \/ systemd service/);
+  assert.match(shell, /<key>KeepAlive<\/key><true\/>/);
+  assert.match(shell, /Restart=always/);
+  assert.match(shell, /launchctl kickstart -k/);
+  assert.match(shell, /systemctl --user enable --now tokenusage-agent/);
   assert.match(nodeAgent, /const SPOOL_DIR =/);
   assert.match(nodeAgent, /const RECORDS_FILE =/);
   assert.match(nodeAgent, /const CHECKPOINT_FILE =/);

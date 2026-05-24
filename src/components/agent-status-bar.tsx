@@ -122,6 +122,14 @@ export function AgentStatusBar({
         </span>
       </div>
       <div className="flex items-center gap-2">
+        {(!installed || (!paused && !agentLive)) && (
+          <a
+            href="/install#troubleshoot"
+            className="rounded-md border border-amber-600 bg-background px-3 py-1.5 text-xs font-medium text-amber-700 hover:bg-amber-50 dark:text-amber-300"
+          >
+            修复 Agent
+          </a>
+        )}
         {installed && (
           <button
             type="button"
