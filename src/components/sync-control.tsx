@@ -167,9 +167,18 @@ export function SyncControl({
       const data = (await res.json()) as {
         syncRequestedAt: number | null;
         lastUploadedAt: number | null;
+        paused: boolean;
+        agentSeenAt: number | null;
+        agentLive: boolean;
+        agentVersion: string | null;
         uploadStartedAt: number | null;
         uploadTotalBytes: number | null;
       };
+      if (data.paused || data.agentLive === false) {
+        clearTimers();
+        setPhase("timeout");
+        return;
+      }
       const nextUploadStartedAt = data.uploadStartedAt ?? null;
       const nextUploadTotalBytes = data.uploadTotalBytes ?? null;
       setUploadStartedAt(nextUploadStartedAt);

@@ -186,6 +186,23 @@ test('prices page and server actions are admin-only in multi-user mode', () => {
   assert.doesNotMatch(page, /await requireUser\(\)/);
 });
 
+test('sync-status returns canonical agent observability fields', () => {
+  const state = read('../src/lib/sync-state.ts');
+  const route = read('../src/app/api/sync-status/route.ts');
+  const control = read('../src/components/sync-control.tsx');
+
+  assert.match(state, /agentSeenAt: number \| null/);
+  assert.match(state, /agentLive: boolean/);
+  assert.match(state, /agentVersion: string \| null/);
+  assert.match(state, /MAX\(t\.last_used_at\)/);
+  assert.match(state, /u\.agent_version AS av/);
+  assert.match(route, /agentSeenAt: state\.agentSeenAt/);
+  assert.match(route, /agentLive: state\.agentLive/);
+  assert.match(route, /agentVersion: state\.agentVersion/);
+  assert.match(control, /agentLive: boolean/);
+  assert.match(control, /data\.paused \|\| data\.agentLive === false/);
+});
+
 test('sync timeout distinguishes offline agent from stalled upload and stays visible', () => {
   const source = read('../src/components/sync-control.tsx');
 

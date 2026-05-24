@@ -2,12 +2,16 @@ import "server-only";
 import { openServerDb } from "./server-db";
 
 const VALID_INTERVALS = new Set([60, 300, 600, 1800, 3600, 86400]);
+const AGENT_LIVE_THRESHOLD_MS = 90 * 1000;
 
 export type UserSyncState = {
   syncIntervalSeconds: number;
   syncRequestedAt: number | null;
   lastUploadedAt: number | null;
   paused: boolean;
+  agentSeenAt: number | null;
+  agentLive: boolean;
+  agentVersion: string | null;
   // Set by /api/upload-progress at the start of an upload, cleared by
   // /api/upload on completion. Lets the dashboard render a live
   // "uploading X MB · 1m 30s elapsed" indicator during the first sync
@@ -21,10 +25,12 @@ export function getUserSyncState(userId: number): UserSyncState {
   try {
     const row = db
       .prepare(
-        `SELECT sync_interval_seconds AS s, sync_requested_at AS r,
-                last_uploaded_at AS u, agent_paused AS p,
-                upload_started_at AS us, upload_total_bytes AS ub
-         FROM users WHERE id = ?`
+        `SELECT u.sync_interval_seconds AS s, u.sync_requested_at AS r,
+                u.last_uploaded_at AS u, u.agent_paused AS p,
+                u.upload_started_at AS us, u.upload_total_bytes AS ub,
+                u.agent_version AS av,
+                (SELECT MAX(t.last_used_at) FROM api_tokens t WHERE t.user_id = u.id) AS ase
+         FROM users u WHERE u.id = ?`
       )
       .get(userId) as
       | {
@@ -34,13 +40,19 @@ export function getUserSyncState(userId: number): UserSyncState {
           p: number | null;
           us: number | null;
           ub: number | null;
+          av: string | null;
+          ase: number | null;
         }
       | undefined;
+    const agentSeenAt = row?.ase ?? null;
     return {
       syncIntervalSeconds: row?.s ?? 300,
       syncRequestedAt: row?.r ?? null,
       lastUploadedAt: row?.u ?? null,
       paused: (row?.p ?? 0) === 1,
+      agentSeenAt,
+      agentLive: agentSeenAt != null && Date.now() - agentSeenAt <= AGENT_LIVE_THRESHOLD_MS,
+      agentVersion: row?.av ?? null,
       uploadStartedAt: row?.us ?? null,
       uploadTotalBytes: row?.ub ?? null,
     };
