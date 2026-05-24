@@ -36,7 +36,6 @@ export function AgentStatusBar({
   const [toggling, setToggling] = useState(false);
 
   useEffect(() => {
-    setNow(Date.now());
     const id = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(id);
   }, []);
@@ -152,7 +151,7 @@ export function AgentStatusBar({
           agentLive={agentLive}
           label={t.syncNow}
           syncingLabel={t.syncing}
-          doneLabel={t.syncing}
+          doneLabel="同步完成"
         />
       </div>
     </div>

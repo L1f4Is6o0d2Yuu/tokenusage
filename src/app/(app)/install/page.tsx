@@ -67,6 +67,10 @@ function estimateProgress(
   return { percent, etaSec };
 }
 
+function currentTimeMs(): number {
+  return Date.now();
+}
+
 export default async function InstallPage() {
   const user = await requireUser();
   if (!user) redirect("/login");
@@ -85,7 +89,7 @@ export default async function InstallPage() {
   const tokens = listTokens(user.id);
   const syncState = getUserSyncState(user.id);
   const lastAgentSeen = getLatestAgentSeenAt(user.id);
-  const now = Date.now();
+  const now = currentTimeMs();
 
   const stages: Record<Stage, { done: boolean; detail: string }> = {
     token: {

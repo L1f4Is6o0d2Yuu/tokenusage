@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect } from "react";
 
 // Top-level fallback. Triggered when a *layout* throws — the regular
@@ -20,7 +21,6 @@ export default function GlobalError({
     // Best-effort beacon. If our own logging is what blew up, this
     // catch makes sure the fallback itself doesn't crash.
     try {
-      // eslint-disable-next-line no-console
       console.error("tokenusage global-error:", error.message, error.digest);
     } catch {
       /* noop */
@@ -118,7 +118,7 @@ export default function GlobalError({
             >
               再试一次
             </button>
-            <a
+            <Link
               href="/"
               style={{
                 background: "transparent",
@@ -132,7 +132,7 @@ export default function GlobalError({
               }}
             >
               回首页
-            </a>
+            </Link>
             <a
               href="https://github.com/L1f4Is6o0d2Yuu/tokenusage/issues/new"
               target="_blank"

@@ -470,16 +470,22 @@ export function listUsers(): Array<{
   passwordResetAt: number | null;
   lastIp: string | null;
   lastIpAt: number | null;
+  agentSeenAt: number | null;
+  lastUploadedAt: number | null;
+  agentVersion: string | null;
 }> {
   const db = openServerDb();
   try {
     return db
       .prepare(
-        `SELECT id, username, email, is_admin AS isAdmin, created_at AS createdAt,
-                activated_at AS activatedAt,
-                password_reset_at AS passwordResetAt,
-                last_ip AS lastIp, last_ip_at AS lastIpAt
-         FROM users ORDER BY created_at ASC`
+        `SELECT u.id, u.username, u.email, u.is_admin AS isAdmin, u.created_at AS createdAt,
+                u.activated_at AS activatedAt,
+                u.password_reset_at AS passwordResetAt,
+                u.last_ip AS lastIp, u.last_ip_at AS lastIpAt,
+                u.last_uploaded_at AS lastUploadedAt,
+                u.agent_version AS agentVersion,
+                (SELECT MAX(t.last_used_at) FROM api_tokens t WHERE t.user_id = u.id) AS agentSeenAt
+         FROM users u ORDER BY u.created_at ASC`
       )
       .all()
       .map((r) => {
@@ -493,6 +499,9 @@ export function listUsers(): Array<{
           passwordResetAt: number | null;
           lastIp: string | null;
           lastIpAt: number | null;
+          agentSeenAt: number | null;
+          lastUploadedAt: number | null;
+          agentVersion: string | null;
         };
         return { ...row, isAdmin: row.isAdmin === 1 };
       });

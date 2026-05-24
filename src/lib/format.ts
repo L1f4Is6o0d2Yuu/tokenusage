@@ -11,8 +11,9 @@ export function formatTokens(n: number): string {
 
 export function formatUsd(
   n: number,
-  _opts: { precise?: boolean } = {}
+  opts: { precise?: boolean } = {}
 ): string {
+  void opts;
   // Sub-dollar amounts need more decimals or they round to nothing
   // (a $0.0091 model price → "$0.01" hides the actual cost). 4 is
   // the floor — enough for per-token pricing without going micro.

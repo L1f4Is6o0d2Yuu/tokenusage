@@ -125,7 +125,7 @@ function VendorSection({
 }: {
   vendor: string;
   models: OpenRouterModel[];
-  t: ReturnType<typeof tShape>;
+  t: ModelsDictionary;
 }) {
   return (
     <section>
@@ -148,7 +148,7 @@ function ModelCard({
   t,
 }: {
   model: OpenRouterModel;
-  t: ReturnType<typeof tShape>;
+  t: ModelsDictionary;
 }) {
   const input = perMillion(model.pricing?.prompt);
   const output = perMillion(model.pricing?.completion);
@@ -235,18 +235,14 @@ function fmtCtx(n: number): string {
   return String(n);
 }
 
-// Local helper for typing the `t` param without dragging the whole
-// dictionary import into helpers.
-function tShape() {
-  return {} as {
-    title: string;
-    subtitle: string;
-    otherVendors: string;
-    fetchError: string;
-    colInput: string;
-    colOutput: string;
-    colCacheRead: string;
-    colContext: string;
-    coveredBy: string;
-  };
-}
+type ModelsDictionary = {
+  title: string;
+  subtitle: string;
+  otherVendors: string;
+  fetchError: string;
+  colInput: string;
+  colOutput: string;
+  colCacheRead: string;
+  colContext: string;
+  coveredBy: string;
+};

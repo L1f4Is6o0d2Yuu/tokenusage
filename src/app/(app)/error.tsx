@@ -15,7 +15,6 @@ export default function AppError({
 }) {
   useEffect(() => {
     try {
-      // eslint-disable-next-line no-console
       console.error("tokenusage (app) error:", error.message, error.digest);
     } catch {
       /* noop */

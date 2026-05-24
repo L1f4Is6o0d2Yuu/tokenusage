@@ -84,7 +84,7 @@ export default async function Page({
 
   const { rules } = readActivePrices();
 
-  const mountSeed = Math.floor(Math.random() * 1_000_000_000);
+  const mountSeed = (currentUser?.id ?? 0) * 1_000_003 + records.length;
 
   const activePlanIds = currentUser ? listUserSubscriptions(currentUser.id) : [];
   const activePlans = activePlanIds

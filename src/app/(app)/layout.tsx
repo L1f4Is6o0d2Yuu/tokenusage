@@ -14,6 +14,10 @@ import { isSkin, SKIN_COOKIE, type Skin } from "@/lib/skin";
 // surfaced to the admin /users page.
 const IP_BACKFILL_TTL_MS = 60 * 60 * 1000; // 1 hour
 
+function currentTimeMs(): number {
+  return Date.now();
+}
+
 // Shared shell for all authenticated dashboard pages.
 //
 // We deliberately *don't* enforce auth here — individual pages already call
@@ -46,7 +50,7 @@ export default async function AppLayout({
   // render (~once per nav at most, throttled to the TTL above).
   if (
     user &&
-    (user.lastIpAt == null || Date.now() - (user.lastIpAt ?? 0) > IP_BACKFILL_TTL_MS)
+    (user.lastIpAt == null || currentTimeMs() - (user.lastIpAt ?? 0) > IP_BACKFILL_TTL_MS)
   ) {
     const h = await headers();
     const ip =

@@ -26,7 +26,8 @@ import { RefreshCw, Check, AlertCircle } from "lucide-react";
 const AUTO_STALE_MS = 90 * 1000;     // auto-sync if data is older than this
 const COOLDOWN_MS = 20 * 1000;       // re-click guard window
 const POLL_MS = 1000;                // how often to check sync-status
-const TIMEOUT_MS = 60 * 1000;        // give up if agent never finishes
+const WAIT_TIMEOUT_MS = 60 * 1000;   // no agent response after request
+const UPLOAD_STALL_TIMEOUT_MS = 10 * 60 * 1000; // upload started but stopped reporting
 const CREEP_TARGET_MS = 15 * 1000;   // time over which the bar creeps to 90%
 
 type Phase = "idle" | "syncing" | "done" | "timeout";
@@ -74,6 +75,8 @@ export function SyncControl({
   const [now, setNow] = useState(() => Date.now());
   const autoFired = useRef(false);
   const triggeredAtRef = useRef<number | null>(null);
+  const uploadStartedAtRef = useRef<number | null>(null);
+  const uploadTotalBytesRef = useRef<number | null>(null);
   const pollTimer = useRef<ReturnType<typeof setInterval> | null>(null);
   const reloadTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -129,6 +132,8 @@ export function SyncControl({
     setProgress(5);
     setUploadStartedAt(null);
     setUploadTotalBytes(null);
+    uploadStartedAtRef.current = null;
+    uploadTotalBytesRef.current = null;
     setCooldownEnds(startedAt + COOLDOWN_MS);
 
     try {
@@ -165,8 +170,12 @@ export function SyncControl({
         uploadStartedAt: number | null;
         uploadTotalBytes: number | null;
       };
-      setUploadStartedAt(data.uploadStartedAt ?? null);
-      setUploadTotalBytes(data.uploadTotalBytes ?? null);
+      const nextUploadStartedAt = data.uploadStartedAt ?? null;
+      const nextUploadTotalBytes = data.uploadTotalBytes ?? null;
+      setUploadStartedAt(nextUploadStartedAt);
+      setUploadTotalBytes(nextUploadTotalBytes);
+      uploadStartedAtRef.current = nextUploadStartedAt;
+      uploadTotalBytesRef.current = nextUploadTotalBytes;
       const requested = data.syncRequestedAt ?? 0;
       const uploaded = data.lastUploadedAt ?? 0;
       // Done once the server observes an upload satisfying this server-side
@@ -186,24 +195,27 @@ export function SyncControl({
       // Transient network errors — keep polling, the bar keeps creeping.
     }
 
-    if (elapsed > TIMEOUT_MS) {
+    const latestUploadStartedAt = uploadStartedAtRef.current;
+    const latestUploadTotalBytes = uploadTotalBytesRef.current;
+    const requestIsWaiting = latestUploadStartedAt == null && latestUploadTotalBytes == null;
+    const uploadIsStalled =
+      latestUploadStartedAt != null && Date.now() - latestUploadStartedAt > UPLOAD_STALL_TIMEOUT_MS;
+    if ((requestIsWaiting && elapsed > WAIT_TIMEOUT_MS) || uploadIsStalled) {
       clearTimers();
       setPhase("timeout");
-      // Hold the bar where it was so user sees we tried.
+      // Hold the error until the user explicitly retries or dismisses it.
     }
   }
 
-  // Reset to idle after timeout — user can click again.
-  useEffect(() => {
+  function dismissTimeout() {
     if (phase !== "timeout") return;
-    const id = setTimeout(() => {
-      setPhase("idle");
-      setProgress(0);
-      setUploadStartedAt(null);
-      setUploadTotalBytes(null);
-    }, 5000);
-    return () => clearTimeout(id);
-  }, [phase]);
+    setPhase("idle");
+    setProgress(0);
+    setUploadStartedAt(null);
+    setUploadTotalBytes(null);
+    uploadStartedAtRef.current = null;
+    uploadTotalBytesRef.current = null;
+  }
 
   useEffect(() => () => clearTimers(), []);
 
@@ -293,8 +305,17 @@ export function SyncControl({
                 style={{ width: `${progress}%` }}
               />
             </div>
-            <div className="mt-1.5 truncate font-mono tabular-nums text-fg-muted">
-              {telemetryLine}
+            <div className="mt-1.5 flex items-center justify-between gap-2 font-mono tabular-nums text-fg-muted">
+              <span className="truncate">{telemetryLine}</span>
+              {phase === "timeout" && (
+                <button
+                  type="button"
+                  onClick={dismissTimeout}
+                  className="shrink-0 text-[10px] font-medium text-red-400 hover:text-red-300"
+                >
+                  dismiss
+                </button>
+              )}
             </div>
           </div>
         )}

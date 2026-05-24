@@ -32,6 +32,24 @@ function formatDate(ms: number | null, locale: string): string {
   return new Date(ms).toLocaleString(locale);
 }
 
+function currentTimeMs(): number {
+  return Date.now();
+}
+
+function formatAgo(ms: number | null, now: number): string {
+  if (ms == null) return "—";
+  const sec = Math.max(0, Math.floor((now - ms) / 1000));
+  if (sec < 60) return `${sec}s ago`;
+  const min = Math.floor(sec / 60);
+  if (min < 60) return `${min}m ago`;
+  const hr = Math.floor(min / 60);
+  if (hr < 24) return `${hr}h ago`;
+  return `${Math.floor(hr / 24)}d ago`;
+}
+
+const AGENT_LIVE_THRESHOLD_MS = 90 * 1000;
+const UPLOAD_STALE_MS = 24 * 60 * 60 * 1000;
+
 export default async function UsersPage({
   searchParams,
 }: {
@@ -59,6 +77,7 @@ export default async function UsersPage({
       u.lastIp ? lookupGeo(u.lastIp) : Promise.resolve(null)
     )
   );
+  const now = currentTimeMs();
 
   return (
     <main className="mx-auto w-full max-w-4xl px-6 py-10">
@@ -142,7 +161,7 @@ export default async function UsersPage({
                 <TableBody>
                   {invites.map((inv) => {
                     const used = inv.usedAt != null;
-                    const expired = !used && inv.expiresAt < Date.now();
+                    const expired = !used && inv.expiresAt < now;
                     return (
                       <TableRow key={inv.id}>
                         <TableCell>
@@ -216,6 +235,7 @@ export default async function UsersPage({
                   <TableHead>{t.columnUsername}</TableHead>
                   <TableHead>{t.columnEmail}</TableHead>
                   <TableHead>{t.columnIp}</TableHead>
+                  <TableHead>Agent</TableHead>
                   <TableHead>{t.columnLocation}</TableHead>
                   <TableHead>{t.columnJoined}</TableHead>
                   <TableHead>{dict.adminReset.columnReset}</TableHead>
@@ -226,6 +246,9 @@ export default async function UsersPage({
                 {users.map((u, i) => {
                   const geo = geos[i];
                   const geoText = geo ? formatGeo(geo) : null;
+                  const agentLive = u.agentSeenAt != null && now - u.agentSeenAt <= AGENT_LIVE_THRESHOLD_MS;
+                  const uploadStale =
+                    u.lastUploadedAt == null || now - u.lastUploadedAt > UPLOAD_STALE_MS;
                   return (
                   <TableRow key={u.id}>
                     <TableCell className="font-medium">{u.username}</TableCell>
@@ -246,6 +269,24 @@ export default async function UsersPage({
                       ) : (
                         <span className="text-fg-faint">—</span>
                       )}
+                    </TableCell>
+                    <TableCell className="text-xs text-fg-muted">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-1.5">
+                          <Badge variant="outline" className={agentLive ? "text-emerald-500" : "text-amber-500"}>
+                            {agentLive ? "live" : "offline"}
+                          </Badge>
+                          {u.agentVersion && (
+                            <span className="font-mono text-[10px] text-fg-faint">v{u.agentVersion}</span>
+                          )}
+                        </div>
+                        <div className="font-mono tabular-nums text-fg-faint">
+                          seen {formatAgo(u.agentSeenAt, now)}
+                        </div>
+                        <div className={uploadStale ? "font-mono tabular-nums text-amber-500" : "font-mono tabular-nums text-fg-faint"}>
+                          uploaded {formatAgo(u.lastUploadedAt, now)}
+                        </div>
+                      </div>
                     </TableCell>
                     <TableCell className="text-xs text-fg-muted">
                       {geoText ?? <span className="text-fg-faint">—</span>}

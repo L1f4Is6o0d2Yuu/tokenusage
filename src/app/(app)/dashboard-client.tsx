@@ -174,9 +174,6 @@ export function DashboardClient({
   );
   const [liveNow, setLiveNow] = useState<number | null>(null);
   useEffect(() => {
-    setLiveNow(Date.now());
-    // Refresh every minute so the windows stay fresh while the dash
-    // is open — they're explicitly time-since-now totals.
     const id = setInterval(() => setLiveNow(Date.now()), 60_000);
     return () => clearInterval(id);
   }, []);

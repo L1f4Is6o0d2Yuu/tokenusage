@@ -84,7 +84,7 @@ export function useAggregate(
     if (!worker) {
       // No worker support — fall back to sync compute (will block, but
       // that's better than nothing).
-      setAsyncResult(computeSync(records, period, customRange));
+      queueMicrotask(() => setAsyncResult(computeSync(records, period, customRange)));
       return;
     }
     const id = ++nextId;
