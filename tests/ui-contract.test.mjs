@@ -174,7 +174,7 @@ test('sync timeout distinguishes offline agent from stalled upload and stays vis
   assert.doesNotMatch(source, /setTimeout\(\(\) => \{\s*setPhase\("idle"\)/s);
 });
 
-test('admin users table exposes agent health and per-user audit logs', () => {
+test('admin access console combines invites and members without blocking on geo lookup', () => {
   const auth = read('../src/lib/auth.ts');
   const page = read('../src/app/(app)/users/page.tsx');
   const logPage = read('../src/app/(app)/users/[id]/log/page.tsx');
@@ -183,6 +183,11 @@ test('admin users table exposes agent health and per-user audit logs', () => {
   assert.match(auth, /agentSeenAt: number \| null/);
   assert.match(auth, /agentVersion: string \| null/);
   assert.match(auth, /MAX\(t\.last_used_at\)/);
+  assert.match(page, /Access console/);
+  assert.match(page, /id="invites"/);
+  assert.match(page, /id="members"/);
+  assert.match(page, /const \[dict, users, invites\] = await Promise\.all/);
+  assert.doesNotMatch(page, /lookupGeo/);
   assert.match(page, /<TableHead>Agent<\/TableHead>/);
   assert.match(page, /agentLive \? "live" : "offline"/);
   assert.match(page, /v\{u\.agentVersion\}/);
