@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { loadRecords, countServerRecords } from "@/lib/adapters";
 import { type CustomRange, type Period } from "@/lib/types";
 import { readCurrentUser } from "@/lib/auth";
-import { getUserSyncState, getLatestAgentSeenAt } from "@/lib/sync-state";
+import { getUserSyncState } from "@/lib/sync-state";
 import { isMultiUserMode } from "@/lib/server-db";
 import { readActivePrices } from "@/lib/pricing";
 import {
@@ -79,8 +79,6 @@ export default async function Page({
     mode === "multi" && currentUser != null && countServerRecords(currentUser.id) === 0;
   const syncState =
     mode === "multi" && currentUser != null ? getUserSyncState(currentUser.id) : null;
-  const agentSeenAt =
-    mode === "multi" && currentUser != null ? getLatestAgentSeenAt(currentUser.id) : null;
 
   const { rules } = readActivePrices();
 
@@ -118,7 +116,6 @@ export default async function Page({
       t={t}
       showOnboarding={showOnboarding}
       syncState={syncState}
-      agentSeenAt={agentSeenAt}
       settingsSaved={settings === "saved"}
     />
   );

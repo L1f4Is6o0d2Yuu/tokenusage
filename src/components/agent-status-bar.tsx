@@ -5,8 +5,7 @@ import { cn } from "@/lib/utils";
 import { interp } from "@/i18n/interp";
 import type { Dictionary } from "@/i18n/types";
 import { SyncControl } from "@/components/sync-control";
-
-const AGENT_LIVE_THRESHOLD_MS = 90 * 1000;
+import { isAgentLiveAt } from "@/lib/agent-health";
 
 function ago(target: number, now: number): string {
   const sec = Math.max(0, Math.floor((now - target) / 1000));
@@ -21,12 +20,14 @@ function ago(target: number, now: number): string {
 export function AgentStatusBar({
   lastSyncedAt,
   agentSeenAt,
+  agentLive: initialAgentLive,
   intervalSeconds,
   paused,
   t,
 }: {
   lastSyncedAt: number | null;
   agentSeenAt: number | null;
+  agentLive: boolean;
   intervalSeconds: number;
   paused: boolean;
   t: Dictionary["agent"];
@@ -40,8 +41,7 @@ export function AgentStatusBar({
     return () => clearInterval(id);
   }, []);
 
-  const agentLive =
-    agentSeenAt != null && now != null && now - agentSeenAt < AGENT_LIVE_THRESHOLD_MS;
+  const agentLive = now == null ? initialAgentLive : isAgentLiveAt(agentSeenAt, now);
   const everSynced = lastSyncedAt != null;
   const installed = everSynced || agentSeenAt != null;
 

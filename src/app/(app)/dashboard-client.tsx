@@ -57,6 +57,9 @@ type SyncState = {
   lastUploadedAt: number | null;
   syncIntervalSeconds: number;
   paused: boolean;
+  agentSeenAt: number | null;
+  agentLive: boolean;
+  agentVersion: string | null;
 } | null;
 
 type BannerSource = {
@@ -80,7 +83,6 @@ export function DashboardClient({
   t,
   showOnboarding,
   syncState,
-  agentSeenAt,
   settingsSaved,
 }: {
   records: UsageRecord[];
@@ -97,7 +99,6 @@ export function DashboardClient({
   t: Dictionary;
   showOnboarding: boolean;
   syncState: SyncState;
-  agentSeenAt: number | null;
   settingsSaved: boolean;
 }) {
   const [period, setPeriod] = useState<Period>(initialPeriod);
@@ -258,7 +259,8 @@ export function DashboardClient({
         {syncState && (
           <AgentStatusBar
             lastSyncedAt={syncState.lastUploadedAt}
-            agentSeenAt={agentSeenAt}
+            agentSeenAt={syncState.agentSeenAt}
+            agentLive={syncState.agentLive}
             intervalSeconds={syncState.syncIntervalSeconds}
             paused={syncState.paused}
             t={t.agent}

@@ -1,8 +1,8 @@
 import "server-only";
 import { openServerDb } from "./server-db";
+import { isAgentLiveAt } from "./agent-health";
 
 const VALID_INTERVALS = new Set([60, 300, 600, 1800, 3600, 86400]);
-const AGENT_LIVE_THRESHOLD_MS = 90 * 1000;
 
 export type UserSyncState = {
   syncIntervalSeconds: number;
@@ -51,7 +51,7 @@ export function getUserSyncState(userId: number): UserSyncState {
       lastUploadedAt: row?.u ?? null,
       paused: (row?.p ?? 0) === 1,
       agentSeenAt,
-      agentLive: agentSeenAt != null && Date.now() - agentSeenAt <= AGENT_LIVE_THRESHOLD_MS,
+      agentLive: isAgentLiveAt(agentSeenAt, Date.now()),
       agentVersion: row?.av ?? null,
       uploadStartedAt: row?.us ?? null,
       uploadTotalBytes: row?.ub ?? null,

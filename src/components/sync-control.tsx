@@ -31,6 +31,7 @@ const UPLOAD_STALL_TIMEOUT_MS = 10 * 60 * 1000; // upload started but stopped re
 const CREEP_TARGET_MS = 15 * 1000;   // time over which the bar creeps to 90%
 
 type Phase = "idle" | "syncing" | "done" | "timeout";
+type SyncBlockReason = "offline" | "paused" | "stalled" | "waiting" | null;
 
 function formatBytes(bytes: number): string {
   if (bytes >= 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
@@ -71,6 +72,7 @@ export function SyncControl({
   const [progress, setProgress] = useState(0); // 0–100
   const [uploadStartedAt, setUploadStartedAt] = useState<number | null>(null);
   const [uploadTotalBytes, setUploadTotalBytes] = useState<number | null>(null);
+  const [blockReason, setBlockReason] = useState<SyncBlockReason>(null);
   const [cooldownEnds, setCooldownEnds] = useState<number | null>(null);
   const [now, setNow] = useState(() => Date.now());
   const autoFired = useRef(false);
@@ -132,6 +134,7 @@ export function SyncControl({
     setProgress(5);
     setUploadStartedAt(null);
     setUploadTotalBytes(null);
+    setBlockReason(null);
     uploadStartedAtRef.current = null;
     uploadTotalBytesRef.current = null;
     setCooldownEnds(startedAt + COOLDOWN_MS);
@@ -176,6 +179,7 @@ export function SyncControl({
       };
       if (data.paused || data.agentLive === false) {
         clearTimers();
+        setBlockReason(data.paused ? "paused" : "offline");
         setPhase("timeout");
         return;
       }
@@ -211,6 +215,7 @@ export function SyncControl({
       latestUploadStartedAt != null && Date.now() - latestUploadStartedAt > UPLOAD_STALL_TIMEOUT_MS;
     if ((requestIsWaiting && elapsed > WAIT_TIMEOUT_MS) || uploadIsStalled) {
       clearTimers();
+      setBlockReason(uploadIsStalled ? "stalled" : "waiting");
       setPhase("timeout");
       // Hold the error until the user explicitly retries or dismisses it.
     }
@@ -222,6 +227,7 @@ export function SyncControl({
     setProgress(0);
     setUploadStartedAt(null);
     setUploadTotalBytes(null);
+    setBlockReason(null);
     uploadStartedAtRef.current = null;
     uploadTotalBytesRef.current = null;
   }
@@ -239,14 +245,22 @@ export function SyncControl({
   else if (phase === "timeout") Icon = AlertCircle;
 
   const buttonLabel =
-    !agentLive
+    paused
+      ? "agent 已暂停"
+      : !agentLive
       ? "agent 离线"
       : phase === "syncing"
       ? syncingLabel
       : phase === "done"
         ? doneLabel
         : phase === "timeout"
-          ? "agent 未响应"
+          ? blockReason === "stalled"
+            ? "上传卡住"
+            : blockReason === "paused"
+              ? "agent 已暂停"
+              : blockReason === "offline"
+                ? "agent 离线"
+                : "agent 未响应"
           : cooldownLeftSec > 0
             ? `${cooldownLeftSec}s`
             : label;
@@ -260,6 +274,14 @@ export function SyncControl({
   const telemetryLine = uploadTotalBytes
     ? `${formatBytes(uploadTotalBytes)} · ${formatRate(bytesPerSecond)} · ${formatDuration(uploadElapsedMs)}`
     : `${formatDuration(elapsedMs)} · waiting for agent`;
+  const timeoutDetail =
+    blockReason === "paused"
+      ? "Agent 已暂停，恢复后再同步。"
+      : blockReason === "offline"
+        ? "Agent 离线，先运行修复流程。"
+        : blockReason === "stalled"
+          ? "上传已开始但长时间没有完成。"
+          : "Agent 暂未响应同步请求。";
 
   return (
     <>
@@ -317,15 +339,28 @@ export function SyncControl({
             <div className="mt-1.5 flex items-center justify-between gap-2 font-mono tabular-nums text-fg-muted">
               <span className="truncate">{telemetryLine}</span>
               {phase === "timeout" && (
-                <button
-                  type="button"
-                  onClick={dismissTimeout}
-                  className="shrink-0 text-[10px] font-medium text-red-400 hover:text-red-300"
-                >
-                  dismiss
-                </button>
+                <div className="flex shrink-0 items-center gap-2">
+                  {(blockReason === "offline" || blockReason === "waiting") && (
+                    <a
+                      href="/install#troubleshoot"
+                      className="text-[10px] font-medium text-amber-400 hover:text-amber-300"
+                    >
+                      repair
+                    </a>
+                  )}
+                  <button
+                    type="button"
+                    onClick={dismissTimeout}
+                    className="text-[10px] font-medium text-red-400 hover:text-red-300"
+                  >
+                    dismiss
+                  </button>
+                </div>
               )}
             </div>
+            {phase === "timeout" && (
+              <p className="mt-1 text-[10px] text-fg-muted">{timeoutDetail}</p>
+            )}
           </div>
         )}
       </div>

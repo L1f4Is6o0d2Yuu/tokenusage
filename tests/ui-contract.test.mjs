@@ -187,20 +187,49 @@ test('prices page and server actions are admin-only in multi-user mode', () => {
 });
 
 test('sync-status returns canonical agent observability fields', () => {
+  const helper = read('../src/lib/agent-health.ts');
   const state = read('../src/lib/sync-state.ts');
   const route = read('../src/app/api/sync-status/route.ts');
   const control = read('../src/components/sync-control.tsx');
+  const page = read('../src/app/(app)/dashboard/page.tsx');
+  const dashboard = read('../src/app/(app)/dashboard-client.tsx');
+  const statusBar = read('../src/components/agent-status-bar.tsx');
 
+  assert.match(helper, /AGENT_LIVE_THRESHOLD_MS = 90 \* 1000/);
+  assert.match(helper, /isAgentLiveAt/);
   assert.match(state, /agentSeenAt: number \| null/);
   assert.match(state, /agentLive: boolean/);
   assert.match(state, /agentVersion: string \| null/);
   assert.match(state, /MAX\(t\.last_used_at\)/);
   assert.match(state, /u\.agent_version AS av/);
+  assert.match(state, /isAgentLiveAt\(agentSeenAt, Date\.now\(\)\)/);
   assert.match(route, /agentSeenAt: state\.agentSeenAt/);
   assert.match(route, /agentLive: state\.agentLive/);
   assert.match(route, /agentVersion: state\.agentVersion/);
   assert.match(control, /agentLive: boolean/);
   assert.match(control, /data\.paused \|\| data\.agentLive === false/);
+  assert.doesNotMatch(page, /getLatestAgentSeenAt/);
+  assert.match(dashboard, /agentSeenAt: number \| null/);
+  assert.match(dashboard, /agentLive: boolean/);
+  assert.match(dashboard, /agentVersion: string \| null/);
+  assert.match(dashboard, /agentSeenAt=\{syncState\.agentSeenAt\}/);
+  assert.match(dashboard, /agentLive=\{syncState\.agentLive\}/);
+  assert.match(statusBar, /agentLive: initialAgentLive/);
+  assert.match(statusBar, /isAgentLiveAt\(agentSeenAt, now\)/);
+});
+
+test('sync control gives actionable paused offline and stalled states', () => {
+  const source = read('../src/components/sync-control.tsx');
+
+  assert.match(source, /type SyncBlockReason = "offline" \| "paused" \| "stalled" \| "waiting" \| null/);
+  assert.match(source, /setBlockReason\(data\.paused \? "paused" : "offline"\)/);
+  assert.match(source, /setBlockReason\(uploadIsStalled \? "stalled" : "waiting"\)/);
+  assert.match(source, /agent 已暂停/);
+  assert.match(source, /上传卡住/);
+  assert.match(source, /Agent 离线，先运行修复流程。/);
+  assert.match(source, /Agent 已暂停，恢复后再同步。/);
+  assert.match(source, /上传已开始但长时间没有完成。/);
+  assert.match(source, /href="\/install#troubleshoot"/);
 });
 
 test('sync timeout distinguishes offline agent from stalled upload and stays visible', () => {
