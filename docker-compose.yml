@@ -26,6 +26,11 @@ services:
       # Optional Google Sign-In; both must be set for the button to render.
       GOOGLE_OAUTH_CLIENT_ID: ${GOOGLE_OAUTH_CLIENT_ID:-}
       GOOGLE_OAUTH_CLIENT_SECRET: ${GOOGLE_OAUTH_CLIENT_SECRET:-}
+      # Optional Telegram business alerts. When both are set, upload_failed
+      # and ingest_failed audit events are pushed to this chat. Keep values in
+      # .env only; do not commit real bot tokens or chat IDs.
+      TG_BOT_TOKEN: ${TG_BOT_TOKEN:-}
+      TG_CHAT_ID: ${TG_CHAT_ID:-}
       # Surfaced to /install.sh + /api/sync-wait so the agent learns where
       # to POST tarballs without going through Cloudflare's 100 MB cap.
       TOKENUSAGE_DIRECT_DOMAIN: ${TOKENUSAGE_DIRECT_DOMAIN:-}

@@ -127,13 +127,24 @@ test('agent start prefers resumable small-record ingest over monolithic tar uplo
   assert.match(nodeAgent, /collectSource\("codex", readCodex\)/);
 });
 
-test('upload and ingest failures are recorded in audit_log', () => {
+test('upload and ingest failures are recorded in audit_log and forwarded to Telegram alerts', () => {
   const audit = read('../src/lib/audit.ts');
+  const alerts = read('../src/lib/ops-alerts.ts');
   const upload = read('../src/app/api/upload/route.ts');
   const ingest = read('../src/app/api/ingest/route.ts');
+  const compose = read('../docker-compose.yml');
 
   assert.match(audit, /\| "upload_failed"/);
   assert.match(audit, /\| "ingest_failed"/);
+  assert.match(audit, /notifyAuditAlert\(/);
+  assert.match(alerts, /new Set\(\["upload_failed", "ingest_failed"\]\)/);
+  assert.match(alerts, /process\.env\.TG_BOT_TOKEN/);
+  assert.match(alerts, /process\.env\.TG_CHAT_ID/);
+  assert.match(alerts, /sendMessage/);
+  assert.match(alerts, /JSON\.stringify\(safe\)/);
+  assert.doesNotMatch(alerts, /Authorization/i);
+  assert.match(compose, /TG_BOT_TOKEN: \$\{TG_BOT_TOKEN:-\}/);
+  assert.match(compose, /TG_CHAT_ID: \$\{TG_CHAT_ID:-\}/);
   assert.match(upload, /action: "upload_failed"/);
   assert.match(upload, /reason:/);
   assert.match(ingest, /action: "ingest_failed"/);

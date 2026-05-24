@@ -1,5 +1,6 @@
 import "server-only";
 import { openServerDb } from "./server-db";
+import { notifyAuditAlert } from "./ops-alerts";
 
 // Security-relevant actions we record to the audit_log table. Keep this
 // list tight — every entry expands the surface that ops/forensics has to
@@ -41,6 +42,11 @@ export function recordAudit(params: {
         params.meta ? JSON.stringify(params.meta) : null,
         Date.now()
       );
+      notifyAuditAlert({
+        action: params.action,
+        userId: params.userId,
+        meta: params.meta,
+      });
     } finally {
       db.close();
     }
