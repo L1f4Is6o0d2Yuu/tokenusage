@@ -17,9 +17,16 @@ function readVersion(): string {
 
 const VERSION = readVersion();
 
+function readBuildSha(): string {
+  return process.env.TOKENUSAGE_GIT_SHA || process.env.VERCEL_GIT_COMMIT_SHA || "unknown";
+}
+
+const BUILD_SHA = readBuildSha();
+
 type Health = {
   ok: boolean;
   version: string;
+  buildSha: string;
   mode: "single" | "multi";
   uptimeSeconds: number;
   db: {
@@ -37,6 +44,7 @@ export async function GET(): Promise<Response> {
   const health: Health = {
     ok: true,
     version: VERSION,
+    buildSha: BUILD_SHA,
     mode: multi ? "multi" : "single",
     uptimeSeconds: Math.round((Date.now() - STARTED_AT) / 1000),
     db: { reachable: false, path: dbPath },

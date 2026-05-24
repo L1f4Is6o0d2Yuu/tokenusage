@@ -151,6 +151,30 @@ test('upload and ingest failures are recorded in audit_log and forwarded to Tele
   assert.match(ingest, /reason:/);
 });
 
+test('health exposes deployment build sha without replacing package version', () => {
+  const route = read('../src/app/api/health/route.ts');
+  const dockerfile = read('../Dockerfile');
+  const compose = read('../docker-compose.yml');
+
+  assert.match(route, /buildSha: string/);
+  assert.match(route, /process\.env\.TOKENUSAGE_GIT_SHA/);
+  assert.match(route, /buildSha: BUILD_SHA/);
+  assert.match(dockerfile, /ARG TOKENUSAGE_GIT_SHA=unknown/);
+  assert.match(dockerfile, /ENV TOKENUSAGE_GIT_SHA=\$TOKENUSAGE_GIT_SHA/);
+  assert.match(compose, /TOKENUSAGE_GIT_SHA: \$\{TOKENUSAGE_GIT_SHA:-unknown\}/);
+});
+
+test('app route loading skeleton is generic and shimmer based', () => {
+  const loading = read('../src/app/(app)/loading.tsx');
+
+  assert.match(loading, /aria-busy="true"/);
+  assert.match(loading, /tu-shimmer/);
+  assert.match(loading, /max-w-6xl/);
+  assert.match(loading, /page-agnostic/);
+  assert.doesNotMatch(loading, /animate-pulse/);
+  assert.doesNotMatch(loading, /KPI grid/);
+});
+
 test('prices page and server actions are admin-only in multi-user mode', () => {
   const guard = read('../src/lib/auth-guard.ts');
   const page = read('../src/app/(app)/prices/page.tsx');

@@ -13,7 +13,10 @@
 
 services:
   app:
-    build: .
+    build:
+      context: .
+      args:
+        TOKENUSAGE_GIT_SHA: ${TOKENUSAGE_GIT_SHA:-unknown}
     image: tokenusage:latest
     restart: unless-stopped
     environment:
@@ -31,6 +34,7 @@ services:
       # .env only; do not commit real bot tokens or chat IDs.
       TG_BOT_TOKEN: ${TG_BOT_TOKEN:-}
       TG_CHAT_ID: ${TG_CHAT_ID:-}
+      TOKENUSAGE_GIT_SHA: ${TOKENUSAGE_GIT_SHA:-unknown}
       # Surfaced to /install.sh + /api/sync-wait so the agent learns where
       # to POST tarballs without going through Cloudflare's 100 MB cap.
       TOKENUSAGE_DIRECT_DOMAIN: ${TOKENUSAGE_DIRECT_DOMAIN:-}
