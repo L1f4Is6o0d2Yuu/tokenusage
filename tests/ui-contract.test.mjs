@@ -151,6 +151,30 @@ test('upload and ingest failures are recorded in audit_log and forwarded to Tele
   assert.match(ingest, /reason:/);
 });
 
+test('ops agent health report is dry-run first and safe for Telegram alerts', () => {
+  const script = read('../ops/agent-health-report.mjs');
+  const pkg = read('../package.json');
+  const dockerfile = read('../Dockerfile');
+
+  assert.match(pkg, /"ops:agent-health": "node ops\/agent-health-report\.mjs"/);
+  assert.match(dockerfile, /COPY --from=builder --chown=nextjs:nodejs \/app\/ops \.\/ops/);
+  assert.match(script, /const notify = flags\.has\("--notify"\)/);
+  assert.match(script, /TOKENUSAGE_AGENT_OFFLINE_HOURS/);
+  assert.match(script, /TOKENUSAGE_AGENT_STALE_UPLOAD_HOURS/);
+  assert.match(script, /TOKENUSAGE_MIN_AGENT_VERSION/);
+  assert.match(script, /agent_never_seen/);
+  assert.match(script, /agent_offline/);
+  assert.match(script, /upload_never_seen/);
+  assert.match(script, /upload_stale/);
+  assert.match(script, /agent_version_old/);
+  assert.match(script, /paused/);
+  assert.match(script, /process\.env\.TG_BOT_TOKEN/);
+  assert.match(script, /process\.env\.TG_CHAT_ID/);
+  assert.match(script, /MAX_TELEGRAM_LENGTH/);
+  assert.doesNotMatch(script, /Authorization/i);
+  assert.doesNotMatch(script, /token_hash/);
+});
+
 test('health exposes deployment build sha without replacing package version', () => {
   const route = read('../src/app/api/health/route.ts');
   const dockerfile = read('../Dockerfile');
