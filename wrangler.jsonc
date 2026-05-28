@@ -14,21 +14,18 @@
   "vars": {
     "TOKENUSAGE_RUNTIME": "cloudflare",
     "TOKENUSAGE_CLOUDFLARE": "1"
-  }
-
-  // Planned bindings for the next migration slices:
-  //
-  // "d1_databases": [
-  //   {
-  //     "binding": "TOKENUSAGE_DB",
-  //     "database_name": "tokenusage",
-  //     "database_id": "replace-after-wrangler-d1-create"
-  //   }
-  // ],
-  // "r2_buckets": [
-  //   {
-  //     "binding": "TOKENUSAGE_SHARES",
-  //     "bucket_name": "tokenusage-shares"
-  //   }
-  // ]
+  },
+  "d1_databases": [
+    {
+      "binding": "TOKENUSAGE_DB",
+      "database_name": "tokenusage",
+      "database_id": "00000000-0000-0000-0000-000000000000"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "TOKENUSAGE_SHARES",
+      "bucket_name": "tokenusage-shares"
+    }
+  ]
 }

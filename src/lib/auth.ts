@@ -2,6 +2,7 @@ import "server-only";
 import { cookies } from "next/headers";
 import crypto from "node:crypto";
 import { openServerDb } from "./server-db";
+import { hashToken } from "./token-hash";
 
 export const SESSION_COOKIE = "tokenusage-session";
 const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
@@ -46,10 +47,6 @@ export function verifyPassword(password: string, stored: string): boolean {
 }
 
 // ---- session tokens ----
-
-function hashToken(token: string): string {
-  return crypto.createHash("sha256").update(token).digest("hex");
-}
 
 export function createSession(userId: number): string {
   const token = crypto.randomBytes(32).toString("hex");
