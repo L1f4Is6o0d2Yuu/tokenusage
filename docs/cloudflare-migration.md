@@ -40,6 +40,10 @@ machines keep running the agent, and the agent pushes records to the Worker.
   - `cf:typegen`
 - `next.config.ts` disables standalone output only when
   `TOKENUSAGE_CLOUDFLARE=1`, preserving the Docker production build path.
+- `src/app/api/upload/route.ts` returns 410 in Cloudflare runtime and lazy-loads
+  the Node/tar implementation only for Docker/local server builds.
+- `migrations/0001_initial.sql` is the D1 staging schema mirrored from the
+  current `src/lib/server-db.ts` post-migration SQLite schema.
 
 ## Migration slices
 

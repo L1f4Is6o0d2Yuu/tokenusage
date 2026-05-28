@@ -10,6 +10,10 @@
   },
   "observability": {
     "enabled": true
+  },
+  "vars": {
+    "TOKENUSAGE_RUNTIME": "cloudflare",
+    "TOKENUSAGE_CLOUDFLARE": "1"
   }
 
   // Planned bindings for the next migration slices:

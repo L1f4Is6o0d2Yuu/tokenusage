@@ -130,7 +130,7 @@ test('agent start prefers resumable small-record ingest over monolithic tar uplo
 test('upload and ingest failures are recorded in audit_log and forwarded to Telegram alerts', () => {
   const audit = read('../src/lib/audit.ts');
   const alerts = read('../src/lib/ops-alerts.ts');
-  const upload = read('../src/app/api/upload/route.ts');
+  const upload = read('../src/app/api/upload/node-handler.ts');
   const ingest = read('../src/app/api/ingest/route.ts');
   const compose = read('../docker-compose.yml');
 
@@ -301,6 +301,10 @@ test('cloudflare migration branch has OpenNext preflight config and documents na
   const wrangler = read('../wrangler.jsonc');
   const openNext = read('../open-next.config.ts');
   const migration = read('../docs/cloudflare-migration.md');
+  const uploadRoute = read('../src/app/api/upload/route.ts');
+  const uploadNodeHandler = read('../src/app/api/upload/node-handler.ts');
+  const runtime = read('../src/lib/runtime.ts');
+  const d1Migration = read('../migrations/0001_initial.sql');
   const gitignore = read('../.gitignore');
   const eslintConfig = read('../eslint.config.mjs');
 
@@ -308,6 +312,7 @@ test('cloudflare migration branch has OpenNext preflight config and documents na
   assert.match(pkg, /"cf:preview": "TOKENUSAGE_CLOUDFLARE=1 opennextjs-cloudflare build && opennextjs-cloudflare preview"/);
   assert.match(wrangler, /"main": "\.open-next\/worker\.js"/);
   assert.match(wrangler, /"compatibility_flags": \["nodejs_compat"\]/);
+  assert.match(wrangler, /"TOKENUSAGE_RUNTIME": "cloudflare"/);
   assert.match(openNext, /defineCloudflareConfig\(\)/);
   assert.match(nextConfig, /const isCloudflareBuild = process\.env\.TOKENUSAGE_CLOUDFLARE === "1"/);
   assert.match(nextConfig, /process\.env\.TOKENUSAGE_DISABLE_STANDALONE === "1" \|\| isCloudflareBuild/);
@@ -315,9 +320,19 @@ test('cloudflare migration branch has OpenNext preflight config and documents na
   assert.match(migration, /Cloudflare R2/);
   assert.match(migration, /legacy tarball/);
   assert.match(migration, /without explicit approval/);
+  assert.match(uploadRoute, /isCloudflareRuntime\(\)/);
+  assert.match(uploadRoute, /status: 410/);
+  assert.match(uploadRoute, /api\/ingest agent path/);
+  assert.match(uploadRoute, /await import\("\.\/node-handler"\)/);
+  assert.match(uploadNodeHandler, /spawn\(\s*"tar"/s);
+  assert.match(runtime, /TOKENUSAGE_RUNTIME === "cloudflare"/);
+  assert.match(d1Migration, /CREATE TABLE IF NOT EXISTS users/);
+  assert.match(d1Migration, /CREATE TABLE IF NOT EXISTS sessions_data/);
+  assert.match(d1Migration, /CREATE TABLE IF NOT EXISTS audit_log/);
   assert.match(gitignore, /\/\.open-next\//);
   assert.match(gitignore, /\/\.wrangler\//);
   assert.match(eslintConfig, /"\.open-next\/\*\*"/);
   assert.match(eslintConfig, /"\.wrangler\/\*\*"/);
 });
+
 
