@@ -293,3 +293,31 @@ test('admin access console combines invites and members without blocking on geo 
   assert.match(logPage, /Agent observability fields/);
   assert.match(logPage, /Recent audit events/);
 });
+
+
+test('cloudflare migration branch has OpenNext preflight config and documents native blockers', () => {
+  const pkg = read('../package.json');
+  const nextConfig = read('../next.config.ts');
+  const wrangler = read('../wrangler.jsonc');
+  const openNext = read('../open-next.config.ts');
+  const migration = read('../docs/cloudflare-migration.md');
+  const gitignore = read('../.gitignore');
+  const eslintConfig = read('../eslint.config.mjs');
+
+  assert.match(pkg, /"cf:build": "TOKENUSAGE_CLOUDFLARE=1 opennextjs-cloudflare build"/);
+  assert.match(pkg, /"cf:preview": "TOKENUSAGE_CLOUDFLARE=1 opennextjs-cloudflare build && opennextjs-cloudflare preview"/);
+  assert.match(wrangler, /"main": "\.open-next\/worker\.js"/);
+  assert.match(wrangler, /"compatibility_flags": \["nodejs_compat"\]/);
+  assert.match(openNext, /defineCloudflareConfig\(\)/);
+  assert.match(nextConfig, /const isCloudflareBuild = process\.env\.TOKENUSAGE_CLOUDFLARE === "1"/);
+  assert.match(nextConfig, /process\.env\.TOKENUSAGE_DISABLE_STANDALONE === "1" \|\| isCloudflareBuild/);
+  assert.match(migration, /Cloudflare D1/);
+  assert.match(migration, /Cloudflare R2/);
+  assert.match(migration, /legacy tarball/);
+  assert.match(migration, /without explicit approval/);
+  assert.match(gitignore, /\/\.open-next\//);
+  assert.match(gitignore, /\/\.wrangler\//);
+  assert.match(eslintConfig, /"\.open-next\/\*\*"/);
+  assert.match(eslintConfig, /"\.wrangler\/\*\*"/);
+});
+
