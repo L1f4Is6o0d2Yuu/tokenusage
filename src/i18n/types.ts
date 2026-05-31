@@ -375,6 +375,10 @@ export type Dictionary = {
     diagnoseNoHeartbeat: string;
     diagnoseNoUpload: string;
     diagnoseEmptyUpload: string;
+    troubleshootTitle: string;
+    troubleshootStep1: string;
+    troubleshootStep2: string;
+    troubleshootStep3: string;
   };
   tokensPage: {
     title: string;

@@ -240,6 +240,10 @@
     "diagnoseNoHeartbeat": "Токен выдан, но агент не подключился. Убедитесь, что `tokenusage start` выполняется.",
     "diagnoseNoUpload": "Агент онлайн, но пока ничего не загрузил. Попробуйте `tokenusage sync`.",
     "diagnoseEmptyUpload": "Агент подключился, но локальных данных не нашёл. Проверьте `~/.claude/projects`, `~/.codex` или `~/.hermes/state.db`.",
+    "troubleshootTitle": "Агент офлайн? Попробуйте этот контрольный список восстановления.",
+    "troubleshootStep1": "Переустановите или перезапустите фоновую службу с помощью свежей команды выше.",
+    "troubleshootStep2": "Если уже установлен, запустите `tokenusage start`, чтобы перезагрузить launchd/systemd и выполнить немедленный тест загрузки.",
+    "troubleshootStep3": "Если по-прежнему офлайн, запустите `tokenusage doctor` и проверьте `tokenusage logs` на последнюю локальную ошибку.",
     "syncNow": "Синхронизировать",
     "syncing": "Синхронизация…"
   },

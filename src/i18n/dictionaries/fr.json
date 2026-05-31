@@ -240,6 +240,10 @@
     "diagnoseNoHeartbeat": "Jeton émis mais l'agent ne s'est pas encore connecté. Vérifiez que `tokenusage start` tourne.",
     "diagnoseNoUpload": "Agent en ligne mais n'a pas encore téléversé. Essayez `tokenusage sync` pour forcer un cycle.",
     "diagnoseEmptyUpload": "L'agent s'est connecté mais n'a trouvé aucune donnée locale. Vérifiez la présence de `~/.claude/projects`, `~/.codex` ou `~/.hermes/state.db`.",
+    "troubleshootTitle": "Agent hors ligne ? Essayez cette liste de récupération.",
+    "troubleshootStep1": "Réinstallez ou redémarrez le service en arrière-plan avec la commande fraîche ci-dessus.",
+    "troubleshootStep2": "S'il est déjà installé, exécutez `tokenusage start` pour recharger launchd/systemd et lancer un auto-test d'upload immédiat.",
+    "troubleshootStep3": "S'il reste hors ligne, exécutez `tokenusage doctor` et vérifiez `tokenusage logs` pour la dernière erreur locale.",
     "syncNow": "Synchroniser",
     "syncing": "Synchronisation…"
   },
