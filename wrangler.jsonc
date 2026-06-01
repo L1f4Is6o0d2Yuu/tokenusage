@@ -41,7 +41,7 @@
       "vars": {
         "TOKENUSAGE_RUNTIME": "cloudflare",
         "TOKENUSAGE_CLOUDFLARE": "1",
-        "TOKENUSAGE_PUBLIC_URL": "https://tokenusage-staging.ylws73.workers.dev"
+        "TOKENUSAGE_PUBLIC_URL": "https://cf-staging.tokenusage.online"
       },
       "d1_databases": [
         {
