@@ -13,6 +13,7 @@ import { getDictionary, readLocale } from "@/i18n";
 import { interp } from "@/i18n/interp";
 import { InstallAgentButton } from "@/components/install-agent-button";
 import { ForceSyncButton } from "@/components/force-sync-button";
+import { InstallAutoRefresh } from "@/components/install-auto-refresh";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 // Dedicated install / waiting-for-data page. The dashboard route
@@ -139,14 +140,11 @@ export default async function InstallPage() {
 
   return (
     <>
-      {/* No-JS auto-refresh — bumps the user along when the agent finally
-          reports in. The dashboard redirect at the top of this file
-          takes over the moment sessions > 0. Refresh faster while an
-          upload is in flight so the elapsed clock visibly advances. */}
-      <meta
-        httpEquiv="refresh"
-        content={uploadInProgress ? "2" : "8"}
-      />
+      {/* Client-side polling — refreshes RSC payload only and unmounts
+          on navigation, so the user can leave the page without being
+          yanked back. Faster cadence while an upload is in flight so
+          the elapsed clock visibly advances. */}
+      <InstallAutoRefresh intervalMs={uploadInProgress ? 2000 : 8000} />
 
       <header className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-border-subtle bg-bg-app/85 px-6 py-3 backdrop-blur">
         <div className="min-w-0">
@@ -190,18 +188,12 @@ export default async function InstallPage() {
               className="scroll-mt-24 rounded-md border border-amber-500/30 bg-amber-500/5 p-4"
             >
               <div className="mb-2 text-sm font-medium text-fg-strong">
-                Agent offline? Try this recovery checklist.
+                {ot.troubleshootTitle}
               </div>
               <ol className="list-decimal space-y-2 pl-5 text-sm text-fg-muted">
-                <li>
-                  Reinstall or restart the background service with the fresh command above.
-                </li>
-                <li>
-                  If it is already installed, run <code className="font-mono text-fg-strong">tokenusage start</code> to reload launchd/systemd and run an immediate upload self-test.
-                </li>
-                <li>
-                  If it still stays offline, run <code className="font-mono text-fg-strong">tokenusage doctor</code> and check <code className="font-mono text-fg-strong">tokenusage logs</code> for the latest local error.
-                </li>
+                <li>{ot.troubleshootStep1}</li>
+                <li>{ot.troubleshootStep2}</li>
+                <li>{ot.troubleshootStep3}</li>
               </ol>
             </div>
 

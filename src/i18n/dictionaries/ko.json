@@ -240,6 +240,10 @@
     "diagnoseNoHeartbeat": "토큰이 발급되었지만 에이전트가 아직 연결되지 않았습니다. `tokenusage start` 가 실행 중인지 확인하세요.",
     "diagnoseNoUpload": "에이전트는 온라인이지만 아직 업로드하지 않았습니다. `tokenusage sync` 로 강제 동기화.",
     "diagnoseEmptyUpload": "에이전트가 보고했지만 로컬 데이터를 찾지 못했습니다. `~/.claude/projects`, `~/.codex`, `~/.hermes/state.db` 중 하나가 존재하는지 확인하세요.",
+    "troubleshootTitle": "에이전트 오프라인? 다음 복구 체크리스트를 시도하세요.",
+    "troubleshootStep1": "위의 새 명령으로 백그라운드 서비스를 재설치하거나 재시작하세요.",
+    "troubleshootStep2": "이미 설치되어 있다면 `tokenusage start` 를 실행해 launchd/systemd 를 다시 로드하고 즉시 업로드 자체 테스트를 수행하세요.",
+    "troubleshootStep3": "여전히 오프라인이면 `tokenusage doctor` 를 실행하고 `tokenusage logs` 에서 최신 로컬 오류를 확인하세요.",
     "syncNow": "지금 동기화",
     "syncing": "동기화 중…"
   },

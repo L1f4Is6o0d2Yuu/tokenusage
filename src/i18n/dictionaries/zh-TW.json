@@ -240,6 +240,10 @@
     "diagnoseNoHeartbeat": "權杖已發，但 agent 還沒上線。確認終端裡 `tokenusage start` 正在執行。",
     "diagnoseNoUpload": "Agent 在線，但還沒傳過資料。試試 `tokenusage sync` 強制觸發一次。",
     "diagnoseEmptyUpload": "Agent 報到了但找不到本地資料。確認 `~/.claude/projects`、`~/.codex` 或 `~/.hermes/state.db` 任一存在。",
+    "troubleshootTitle": "Agent 離線了？照這份清單修復。",
+    "troubleshootStep1": "用上面新生成的命令重新安裝或重啟後台服務。",
+    "troubleshootStep2": "若已安裝，跑 `tokenusage start` 重新載入 launchd/systemd，並立刻做一次上傳自我檢測。",
+    "troubleshootStep3": "若仍離線，跑 `tokenusage doctor`，再看 `tokenusage logs` 裡最新的本地錯誤。",
     "syncNow": "立即同步",
     "syncing": "同步中…"
   },

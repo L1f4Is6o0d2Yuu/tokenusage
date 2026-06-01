@@ -240,6 +240,10 @@
     "diagnoseNoHeartbeat": "Token issued but the agent hasn't checked in yet. Make sure `tokenusage start` is running.",
     "diagnoseNoUpload": "Agent is online but hasn't uploaded yet. Try `tokenusage sync` to force a cycle.",
     "diagnoseEmptyUpload": "Agent reported in but found no local data. Verify `~/.claude/projects`, `~/.codex`, or `~/.hermes/state.db` exists on the machine.",
+    "troubleshootTitle": "Agent offline? Try this recovery checklist.",
+    "troubleshootStep1": "Reinstall or restart the background service with the fresh command above.",
+    "troubleshootStep2": "If it is already installed, run `tokenusage start` to reload launchd/systemd and run an immediate upload self-test.",
+    "troubleshootStep3": "If it still stays offline, run `tokenusage doctor` and check `tokenusage logs` for the latest local error.",
     "syncNow": "Sync now",
     "syncing": "Syncing…"
   },

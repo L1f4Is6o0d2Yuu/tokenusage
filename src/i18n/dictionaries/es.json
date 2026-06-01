@@ -240,6 +240,10 @@
     "diagnoseNoHeartbeat": "Token emitido pero el agente aún no se ha conectado. Verifica que `tokenusage start` esté ejecutándose.",
     "diagnoseNoUpload": "Agente en línea pero aún no ha subido. Intenta `tokenusage sync`.",
     "diagnoseEmptyUpload": "El agente se conectó pero no encontró datos locales. Verifica `~/.claude/projects`, `~/.codex` o `~/.hermes/state.db`.",
+    "troubleshootTitle": "¿Agente desconectado? Prueba esta lista de recuperación.",
+    "troubleshootStep1": "Reinstala o reinicia el servicio en segundo plano con el comando recién generado arriba.",
+    "troubleshootStep2": "Si ya está instalado, ejecuta `tokenusage start` para recargar launchd/systemd y hacer una prueba de subida inmediata.",
+    "troubleshootStep3": "Si sigue desconectado, ejecuta `tokenusage doctor` y revisa `tokenusage logs` para ver el último error local.",
     "syncNow": "Sincronizar",
     "syncing": "Sincronizando…"
   },

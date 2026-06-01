@@ -138,6 +138,7 @@ export function Landing({
       <NavBar signedInAs={signedInAs} />
       <Hero inviteRequired={inviteRequired} signedInAs={signedInAs} />
       <LogoStrip />
+      <ArrestSection inviteRequired={inviteRequired} signedInAs={signedInAs} />
       <FeatureSection
         title="打开看板，谁在替你打字"
         tagline="本周烧了多少、模型把哪些活儿替你干了、哪些纯属手抽。每张卡右上角有分享按钮，挑个像样的数甩朋友圈。"
@@ -1440,6 +1441,247 @@ function LogoStrip() {
           ))}
         </div>
       </div>
+    </section>
+  );
+}
+
+// Second-screen jab — explicit "AI 用量少 = 摸鱼" framing, dressed up
+// as a comedic charge sheet. Sits right after the LogoStrip so visitors
+// scrolling past the hero hit the tone of the product immediately.
+function ArrestSection({
+  inviteRequired,
+  signedInAs,
+}: {
+  inviteRequired: boolean;
+  signedInAs?: string | null;
+}) {
+  const charges: { code: string; title: string; body: string; verdict: string }[] = [
+    {
+      code: "罪名 No.1",
+      title: "AI 用量少 = 划水",
+      body: "日均 token 五位数都没破，prompt 每天就那两句。说自己在用 AI，更像 AI 偶尔来看看你。",
+      verdict: "建议立即上桌",
+    },
+    {
+      code: "罪名 No.2",
+      title: "Token 消耗低 = 摸鱼",
+      body: "工位灯亮着，dashboard 没动静。AI 厂商的服务器都没记住你 IP，工位的厂工怎么记得住你。",
+      verdict: "形迹可疑",
+    },
+    {
+      code: "罪名 No.3",
+      title: "月费续了，API 没动",
+      body: "包月扣得比谁都准，调用次数比谁都少。这不叫订阅，这叫给 AI 公司年终奖。",
+      verdict: "纯属送钱",
+    },
+  ];
+
+  const ctaHref = signedInAs ? "/dashboard" : "/signup";
+  const ctaLabel = signedInAs
+    ? "回看板自证清白 →"
+    : inviteRequired
+      ? "上传 token 自证清白 →"
+      : "上传 token 自证清白 →";
+
+  return (
+    <section
+      style={{
+        background: W.ink,
+        color: W.canvas,
+        padding: "120px 32px",
+        position: "relative",
+        overflow: "hidden",
+      }}
+    >
+      {/* Diagonal "证据袋" tape strip at the top */}
+      <div
+        aria-hidden
+        style={{
+          position: "absolute",
+          top: 18,
+          left: -40,
+          right: -40,
+          padding: "6px 0",
+          background: "#FFD23F",
+          color: W.ink,
+          fontFamily:
+            'ui-monospace, "SF Mono", Menlo, "Cascadia Code", monospace',
+          fontSize: 11,
+          fontWeight: 800,
+          letterSpacing: 6,
+          textTransform: "uppercase",
+          transform: "rotate(-1.4deg)",
+          textAlign: "center",
+          whiteSpace: "nowrap",
+          opacity: 0.95,
+        }}
+      >
+        EVIDENCE · 证据袋 · DO NOT CROSS · 证据袋 · EVIDENCE · 证据袋 · DO NOT CROSS
+      </div>
+
+      <div style={{ maxWidth: 1200, margin: "0 auto", position: "relative" }}>
+        <div
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 8,
+            padding: "6px 12px",
+            border: `1px solid ${W.primary}`,
+            borderRadius: 999,
+            fontSize: 11,
+            fontWeight: 700,
+            letterSpacing: 2,
+            textTransform: "uppercase",
+            color: W.primary,
+            marginBottom: 24,
+          }}
+        >
+          <span aria-hidden>🚨</span>
+          <span>token 警务通告</span>
+        </div>
+
+        <h2
+          className="tu-h2"
+          style={{
+            fontSize: 88,
+            fontWeight: 900,
+            letterSpacing: -3,
+            lineHeight: 0.98,
+            margin: 0,
+            color: W.canvas,
+          }}
+        >
+          逮捕！<span style={{ color: "#FF5F5F" }}>直接</span>逮捕！
+        </h2>
+
+        <p
+          style={{
+            marginTop: 22,
+            marginBottom: 0,
+            fontSize: 22,
+            lineHeight: 1.5,
+            color: "#CFD3CB",
+            maxWidth: 720,
+          }}
+        >
+          AI 用量少 = <span style={{ color: W.primary, fontWeight: 800 }}>划水</span>。
+          Token 消耗低 = <span style={{ color: W.primary, fontWeight: 800 }}>摸鱼</span>。
+          dashboard 不撒谎，月底也别想装没看见。
+        </p>
+
+        <div
+          className="tu-arrest-grid"
+          style={{
+            marginTop: 56,
+            display: "grid",
+            gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+            gap: 20,
+          }}
+        >
+          {charges.map((c) => (
+            <div
+              key={c.code}
+              style={{
+                background: "rgba(255,255,255,0.04)",
+                border: "1px solid rgba(255,255,255,0.12)",
+                borderRadius: 12,
+                padding: 24,
+                display: "flex",
+                flexDirection: "column",
+                gap: 12,
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  fontFamily:
+                    'ui-monospace, "SF Mono", Menlo, "Cascadia Code", monospace',
+                  fontSize: 11,
+                  color: "#FF8A8A",
+                  letterSpacing: 1.2,
+                }}
+              >
+                <span>{c.code}</span>
+                <span
+                  style={{
+                    padding: "2px 8px",
+                    border: "1px solid #FF5F5F",
+                    color: "#FF5F5F",
+                    borderRadius: 4,
+                    fontWeight: 800,
+                  }}
+                >
+                  {c.verdict}
+                </span>
+              </div>
+              <div
+                style={{
+                  fontSize: 22,
+                  fontWeight: 800,
+                  letterSpacing: -0.5,
+                  color: W.canvas,
+                }}
+              >
+                {c.title}
+              </div>
+              <div
+                style={{
+                  fontSize: 14,
+                  lineHeight: 1.65,
+                  color: "#B7BDB1",
+                }}
+              >
+                {c.body}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div
+          style={{
+            marginTop: 48,
+            display: "flex",
+            flexWrap: "wrap",
+            alignItems: "center",
+            gap: 16,
+          }}
+        >
+          <Link
+            href={ctaHref}
+            className="tu-btn tu-btn-primary tu-cta"
+            style={{
+              ...buttonBase,
+              background: W.primary,
+              color: W.ink,
+              fontSize: 17,
+              padding: "16px 26px",
+            }}
+          >
+            {ctaLabel}
+            <span className="tu-link-arrow" aria-hidden>
+              →
+            </span>
+          </Link>
+          <span
+            style={{
+              fontSize: 13,
+              color: "#878C82",
+              fontFamily:
+                'ui-monospace, "SF Mono", Menlo, "Cascadia Code", monospace',
+            }}
+          >
+            * 本指控仅适用于 token 数低于全公司中位数的同事
+          </span>
+        </div>
+      </div>
+
+      <style>{`
+        @media (max-width: 880px) {
+          .tu-arrest-grid { grid-template-columns: 1fr !important; }
+        }
+      `}</style>
     </section>
   );
 }

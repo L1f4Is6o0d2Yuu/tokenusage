@@ -240,6 +240,10 @@
     "diagnoseNoHeartbeat": "トークンは発行されましたがエージェントがまだ接続していません。`tokenusage start` が動作しているか確認してください。",
     "diagnoseNoUpload": "エージェントはオンラインですがまだアップロードしていません。`tokenusage sync` で強制サイクル。",
     "diagnoseEmptyUpload": "エージェントは接続しましたが、ローカルデータが見つかりません。`~/.claude/projects`、`~/.codex`、`~/.hermes/state.db` のいずれかが存在することを確認してください。",
+    "troubleshootTitle": "エージェントがオフライン？このリカバリ手順を試してください。",
+    "troubleshootStep1": "上の新しいコマンドでバックグラウンドサービスを再インストールまたは再起動してください。",
+    "troubleshootStep2": "すでにインストール済みなら、`tokenusage start` を実行して launchd/systemd をリロードし、即時アップロードで自己テストしてください。",
+    "troubleshootStep3": "それでもオフラインなら、`tokenusage doctor` を実行し、`tokenusage logs` で最新のローカルエラーを確認してください。",
     "syncNow": "今すぐ同期",
     "syncing": "同期中…"
   },

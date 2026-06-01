@@ -240,6 +240,10 @@
     "diagnoseNoHeartbeat": "Token ausgestellt, aber Agent hat sich noch nicht gemeldet. Stellen Sie sicher, dass `tokenusage start` läuft.",
     "diagnoseNoUpload": "Agent online, aber noch nichts hochgeladen. Versuchen Sie `tokenusage sync`.",
     "diagnoseEmptyUpload": "Agent meldete sich, fand aber keine lokalen Daten. Prüfen Sie `~/.claude/projects`, `~/.codex` oder `~/.hermes/state.db`.",
+    "troubleshootTitle": "Agent offline? Diese Wiederherstellungs-Checkliste durchgehen.",
+    "troubleshootStep1": "Hintergrunddienst mit dem oben neu generierten Befehl neu installieren oder neu starten.",
+    "troubleshootStep2": "Wenn bereits installiert, `tokenusage start` ausführen, um launchd/systemd neu zu laden und sofort einen Upload-Selbsttest zu starten.",
+    "troubleshootStep3": "Bleibt der Agent offline, `tokenusage doctor` ausführen und `tokenusage logs` auf den letzten lokalen Fehler prüfen.",
     "syncNow": "Jetzt synchronisieren",
     "syncing": "Synchronisiere…"
   },

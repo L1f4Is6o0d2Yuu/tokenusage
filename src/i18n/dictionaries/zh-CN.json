@@ -240,6 +240,10 @@
     "diagnoseNoHeartbeat": "令牌已发，但 agent 还没上线。确认终端里 `tokenusage start` 已经在跑。",
     "diagnoseNoUpload": "Agent 在线，但还没传过数据。试试 `tokenusage sync` 强制触发一次。",
     "diagnoseEmptyUpload": "Agent 报到了但没找到本地数据。确认机器上有 `~/.claude/projects`、`~/.codex` 或 `~/.hermes/state.db` 任一目录。",
+    "troubleshootTitle": "Agent 掉线了？按这个清单恢复。",
+    "troubleshootStep1": "用上面新生成的命令重装或重启后台服务。",
+    "troubleshootStep2": "如果已经装好了，跑 `tokenusage start` 重新加载 launchd/systemd，并立刻做一次上传自检。",
+    "troubleshootStep3": "还掉线就跑 `tokenusage doctor`，再看 `tokenusage logs` 里最新的本地报错。",
     "syncNow": "立即同步",
     "syncing": "同步中…"
   },

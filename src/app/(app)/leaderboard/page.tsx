@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { readCurrentUser } from "@/lib/auth";
 import { isMultiUserMode } from "@/lib/server-db";
@@ -14,6 +15,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { LeaderboardChallenge } from "@/components/leaderboard-challenge";
 import { LeaderboardTierConfetti } from "@/components/leaderboard-tier-confetti";
+import { LeaderboardRotateAfterMount } from "@/components/leaderboard-rotate-after-mount";
 import { toggleLeaderboardVisibility } from "./actions";
 
 const PERIODS: { key: LeaderboardPeriod; label: string }[] = [
@@ -63,6 +65,14 @@ export default async function LeaderboardPage({
       ? rawPeriod
       : "30d";
 
+  // Per-refresh rotation: the cookie is bumped after this render by a
+  // <LeaderboardRotateAfterMount/> client component, so the next visit
+  // sees a different taunt/praise per row (guaranteed distinct for 5
+  // consecutive refreshes — see pickFlavor in lib/leaderboard).
+  const cookieStore = await cookies();
+  const rotation =
+    Number.parseInt(cookieStore.get("lb-rot")?.value ?? "0", 10) || 0;
+
   const rows = loadLeaderboard(period);
   const myRow = rows.find((r) => r.userId === me.id);
   const myRank = myRow?.rank ?? null;
@@ -82,6 +92,7 @@ export default async function LeaderboardPage({
 
   return (
     <main className="mx-auto w-full max-w-4xl px-6 py-10">
+      <LeaderboardRotateAfterMount />
       {myRow && (
         <LeaderboardTierConfetti currentTierIdx={myRow.tierIdx} />
       )}
@@ -165,40 +176,39 @@ export default async function LeaderboardPage({
             const isMe = row.userId === me.id;
             const display = displayNameFor(row, me.id);
             return (
-              <Card
-                key={row.userId}
-                className={
-                  isMe
-                    ? "relative border-accent panel-hover"
-                    : "panel-hover"
-                }
-              >
-                <CardHeader className="pb-2">
-                  <div className="flex items-baseline justify-between">
-                    <span className="text-2xl">{rankMedal(row.rank)}</span>
-                    <span className="text-[11px] text-fg-muted">
-                      {tier.emoji} {tier.label}
-                    </span>
-                  </div>
-                  <CardTitle className="text-2xl font-semibold tabular-nums tracking-tight">
-                    {formatUsd(row.totalCost, { precise: true })}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="pt-0 text-xs text-fg-muted">
-                  <div className="truncate font-mono">
-                    {display}{" "}
-                    <span className="text-fg-faint">#{row.userId}</span>
-                  </div>
-                  <div className="mt-1 text-fg-faint">
-                    {formatTokens(row.totalTokens)} tokens · {row.sessionCount} sessions
-                  </div>
-                  {isMe && (
-                    <span className="absolute -right-1 -top-2 rounded bg-accent px-2 py-0.5 text-[10px] font-bold text-bg-app">
-                      你 →
-                    </span>
-                  )}
-                </CardContent>
-              </Card>
+              <div key={row.userId} className="relative">
+                <Card
+                  className={isMe ? "border-accent panel-hover" : "panel-hover"}
+                >
+                  <CardHeader className="pb-2">
+                    <div className="flex items-baseline justify-between">
+                      <span className="text-2xl">{rankMedal(row.rank)}</span>
+                      <span className="text-[11px] text-fg-muted">
+                        {tier.emoji} {tier.label}
+                      </span>
+                    </div>
+                    <CardTitle className="text-2xl font-semibold tabular-nums tracking-tight">
+                      {formatUsd(row.totalCost, { precise: true })}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="pt-0 text-xs text-fg-muted">
+                    <div className="truncate font-mono">
+                      {display}{" "}
+                      <span className="text-fg-faint">#{row.userId}</span>
+                    </div>
+                    <div className="mt-1 text-fg-faint">
+                      {formatTokens(row.totalTokens)} tokens · {row.sessionCount} sessions
+                    </div>
+                  </CardContent>
+                </Card>
+                {isMe && (
+                  // Sibling of Card (not child) so the card's overflow-hidden
+                  // doesn't clip the half that sticks above the top edge.
+                  <span className="absolute -top-2 right-2 z-10 whitespace-nowrap rounded bg-accent px-2 py-0.5 text-[10px] font-bold text-bg-app shadow-sm">
+                    你 →
+                  </span>
+                )}
+              </div>
             );
           })}
         </section>
@@ -215,7 +225,7 @@ export default async function LeaderboardPage({
               {rows.map((row) => {
                 const tier = LEADERBOARD_TIERS[row.tierIdx];
                 const isMe = row.userId === me.id;
-                const flavor = rowFlavor(row, totalRows, period);
+                const flavor = rowFlavor(row, totalRows, period, rotation);
                 const flavorColor =
                   flavor.mood === "praise"
                     ? "text-success"
