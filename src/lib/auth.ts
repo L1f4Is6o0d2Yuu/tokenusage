@@ -225,7 +225,11 @@ export function createPendingOauthUser(input: {
   }
 }
 
-export function activateUser(userId: number): void {
+export async function activateUser(userId: number): Promise<void> {
+  if (isCloudflareRuntime()) {
+    const { activateUserD1 } = await import("./cloudflare-auth");
+    return activateUserD1(userId);
+  }
   const db = openServerDb();
   try {
     db.prepare(`UPDATE users SET activated_at = ? WHERE id = ? AND activated_at IS NULL`).run(
@@ -351,10 +355,14 @@ function generateInviteCode(db: ReturnType<typeof openServerDb>): string {
   throw new Error("invite code space exhausted — revoke expired invites and retry");
 }
 
-export function createInvite(adminUserId: number, note: string | null): {
+export async function createInvite(adminUserId: number, note: string | null): Promise<{
   id: number;
   plaintext: string;
-} {
+}> {
+  if (isCloudflareRuntime()) {
+    const { createInviteD1 } = await import("./cloudflare-auth");
+    return createInviteD1(adminUserId, note);
+  }
   const db = openServerDb();
   try {
     const code = generateInviteCode(db);
@@ -371,7 +379,11 @@ export function createInvite(adminUserId: number, note: string | null): {
   }
 }
 
-export function listInvites(): InviteRow[] {
+export async function listInvites(): Promise<InviteRow[]> {
+  if (isCloudflareRuntime()) {
+    const { listInvitesD1 } = await import("./cloudflare-auth");
+    return listInvitesD1();
+  }
   const db = openServerDb();
   try {
     return db
@@ -386,7 +398,11 @@ export function listInvites(): InviteRow[] {
   }
 }
 
-export function revokeInvite(id: number): void {
+export async function revokeInvite(id: number): Promise<void> {
+  if (isCloudflareRuntime()) {
+    const { revokeInviteD1 } = await import("./cloudflare-auth");
+    return revokeInviteD1(id);
+  }
   const db = openServerDb();
   try {
     db.prepare(`DELETE FROM invite_tokens WHERE id = ? AND used_at IS NULL`).run(id);
@@ -398,7 +414,11 @@ export function revokeInvite(id: number): void {
 // Admin edits the human-readable note on an invite. We allow this even
 // after the invite is redeemed — the note is purely descriptive, useful
 // for "who did I give this to?" bookkeeping.
-export function updateInviteNote(id: number, note: string | null): void {
+export async function updateInviteNote(id: number, note: string | null): Promise<void> {
+  if (isCloudflareRuntime()) {
+    const { updateInviteNoteD1 } = await import("./cloudflare-auth");
+    return updateInviteNoteD1(id, note);
+  }
   const db = openServerDb();
   try {
     db.prepare(`UPDATE invite_tokens SET note = ? WHERE id = ?`).run(note, id);
@@ -489,7 +509,7 @@ export function redeemInvite(
   }
 }
 
-export function listUsers(): Array<{
+export async function listUsers(): Promise<Array<{
   id: number;
   username: string;
   email: string | null;
@@ -502,7 +522,11 @@ export function listUsers(): Array<{
   agentSeenAt: number | null;
   lastUploadedAt: number | null;
   agentVersion: string | null;
-}> {
+}>> {
+  if (isCloudflareRuntime()) {
+    const { listUsersD1 } = await import("./cloudflare-auth");
+    return listUsersD1();
+  }
   const db = openServerDb();
   try {
     return db
@@ -715,7 +739,11 @@ export async function authenticateApiToken(plaintext: string): Promise<User | nu
 // Admin flips the flag. We don't invalidate the user's current sessions —
 // they can still log in with their old password until they reset. (The
 // flag is permission to reset, not a forced logout.)
-export function flagPasswordReset(userId: number): void {
+export async function flagPasswordReset(userId: number): Promise<void> {
+  if (isCloudflareRuntime()) {
+    const { flagPasswordResetD1 } = await import("./cloudflare-auth");
+    return flagPasswordResetD1(userId);
+  }
   const db = openServerDb();
   try {
     db.prepare(`UPDATE users SET password_reset_at = ? WHERE id = ?`).run(

@@ -274,3 +274,137 @@ export async function readAgentVersionD1(userId: number): Promise<string | null>
     .first<{ v: string | null }>();
   return row?.v ?? null;
 }
+
+// ---- admin: users + invites ----
+
+const INVITE_TTL_MS = 14 * 24 * 60 * 60 * 1000;
+
+export type AdminUserRowD1 = {
+  id: number;
+  username: string;
+  email: string | null;
+  isAdmin: boolean;
+  createdAt: number;
+  activatedAt: number | null;
+  passwordResetAt: number | null;
+  lastIp: string | null;
+  lastIpAt: number | null;
+  agentSeenAt: number | null;
+  lastUploadedAt: number | null;
+  agentVersion: string | null;
+};
+
+export async function listUsersD1(): Promise<AdminUserRowD1[]> {
+  const db = await getTokenusageD1();
+  const result = await db
+    .prepare(
+      `SELECT u.id, u.username, u.email, u.is_admin AS isAdmin, u.created_at AS createdAt,
+              u.activated_at AS activatedAt,
+              u.password_reset_at AS passwordResetAt,
+              u.last_ip AS lastIp, u.last_ip_at AS lastIpAt,
+              u.last_uploaded_at AS lastUploadedAt,
+              u.agent_version AS agentVersion,
+              (SELECT MAX(t.last_used_at) FROM api_tokens t WHERE t.user_id = u.id) AS agentSeenAt
+       FROM users u ORDER BY u.created_at ASC`
+    )
+    .all<{
+      id: number;
+      username: string;
+      email: string | null;
+      isAdmin: number;
+      createdAt: number;
+      activatedAt: number | null;
+      passwordResetAt: number | null;
+      lastIp: string | null;
+      lastIpAt: number | null;
+      agentSeenAt: number | null;
+      lastUploadedAt: number | null;
+      agentVersion: string | null;
+    }>();
+  return (result.results ?? []).map((r) => ({ ...r, isAdmin: r.isAdmin === 1 }));
+}
+
+export type InviteRowD1 = {
+  id: number;
+  code: string | null;
+  createdAt: number;
+  expiresAt: number;
+  usedAt: number | null;
+  note: string | null;
+};
+
+export async function listInvitesD1(): Promise<InviteRowD1[]> {
+  const db = await getTokenusageD1();
+  const result = await db
+    .prepare(
+      `SELECT id, code, created_at AS createdAt, expires_at AS expiresAt,
+              used_at AS usedAt, note
+       FROM invite_tokens ORDER BY created_at DESC`
+    )
+    .all<InviteRowD1>();
+  return result.results ?? [];
+}
+
+async function generateInviteCodeD1(): Promise<string> {
+  const db = await getTokenusageD1();
+  for (let i = 0; i < 50; i++) {
+    const n = crypto.randomInt(0, 10000).toString().padStart(4, "0");
+    const code = `TU${n}`;
+    const row = await db
+      .prepare(`SELECT 1 AS hit FROM invite_tokens WHERE code = ? LIMIT 1`)
+      .bind(code)
+      .first<{ hit: number }>();
+    if (!row) return code;
+  }
+  throw new Error("invite code space exhausted — revoke expired invites and retry");
+}
+
+export async function createInviteD1(
+  adminUserId: number,
+  note: string | null
+): Promise<{ id: number; plaintext: string }> {
+  const code = await generateInviteCodeD1();
+  const now = Date.now();
+  const db = await getTokenusageD1();
+  const result = await db
+    .prepare(
+      `INSERT INTO invite_tokens (token_hash, code, created_by, created_at, expires_at, note)
+       VALUES (?, ?, ?, ?, ?, ?)`
+    )
+    .bind(hashToken(code), code, adminUserId, now, now + INVITE_TTL_MS, note)
+    .run();
+  const meta = result.meta as { last_row_id?: number } | undefined;
+  return { id: Number(meta?.last_row_id ?? 0), plaintext: code };
+}
+
+export async function revokeInviteD1(id: number): Promise<void> {
+  const db = await getTokenusageD1();
+  await db
+    .prepare(`DELETE FROM invite_tokens WHERE id = ? AND used_at IS NULL`)
+    .bind(id)
+    .run();
+}
+
+export async function updateInviteNoteD1(id: number, note: string | null): Promise<void> {
+  const db = await getTokenusageD1();
+  await db
+    .prepare(`UPDATE invite_tokens SET note = ? WHERE id = ?`)
+    .bind(note, id)
+    .run();
+}
+
+export async function flagPasswordResetD1(userId: number): Promise<void> {
+  const db = await getTokenusageD1();
+  await db
+    .prepare(`UPDATE users SET password_reset_at = ? WHERE id = ?`)
+    .bind(Date.now(), userId)
+    .run();
+}
+
+export async function activateUserD1(userId: number): Promise<void> {
+  const db = await getTokenusageD1();
+  await db
+    .prepare(`UPDATE users SET activated_at = ? WHERE id = ? AND activated_at IS NULL`)
+    .bind(Date.now(), userId)
+    .run();
+}

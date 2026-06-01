@@ -380,7 +380,13 @@ export function DashboardClient({
                 {granularity === "hour" && (
                   <>
                     {" · "}
-                    {interp(t.trend.tzHint, { tz: localTzLabel() })}
+                    {/* suppressHydrationWarning: localTzLabel() resolves
+                        to the host timezone — UTC under Workers SSR vs the
+                        user's TZ under React hydration — guaranteed text
+                        mismatch that's purely cosmetic. */}
+                    <span suppressHydrationWarning>
+                      {interp(t.trend.tzHint, { tz: localTzLabel() })}
+                    </span>
                   </>
                 )}
               </CardDescription>
@@ -829,6 +835,10 @@ function RecentSessions({
           r.cacheWriteTokens +
           r.reasoningTokens;
         const href = `/sessions/${encodeURIComponent(r.id)}`;
+        // toLocaleString resolves in the host timezone (UTC under Workers
+        // SSR vs the user's TZ in the browser) — guaranteed text mismatch.
+        // The element below wraps it in suppressHydrationWarning so React
+        // accepts the client value silently.
         const when = new Date(r.startedAt).toLocaleString(locale, {
           month: "short",
           day: "numeric",
@@ -868,7 +878,10 @@ function RecentSessions({
                   "?"
                 )}
               </span>
-              <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
+              <span
+                className="shrink-0 text-xs text-muted-foreground tabular-nums"
+                suppressHydrationWarning
+              >
                 {when}
               </span>
               <span className="w-20 shrink-0 text-right text-sm tabular-nums">

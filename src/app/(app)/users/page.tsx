@@ -67,8 +67,8 @@ export default async function UsersPage({
   ]);
   const [dict, users, invites] = await Promise.all([
     getDictionary(locale),
-    Promise.resolve(listUsers()),
-    Promise.resolve(listInvites()),
+    listUsers(),
+    listInvites(),
   ]);
   const t = dict.usersPage;
   const now = currentTimeMs();

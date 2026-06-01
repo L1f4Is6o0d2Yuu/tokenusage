@@ -74,7 +74,13 @@ export function SyncControl({
   const [uploadTotalBytes, setUploadTotalBytes] = useState<number | null>(null);
   const [blockReason, setBlockReason] = useState<SyncBlockReason>(null);
   const [cooldownEnds, setCooldownEnds] = useState<number | null>(null);
-  const [now, setNow] = useState(() => Date.now());
+  // Initialize to 0 (not Date.now()) so the SSR and client first paint
+  // produce identical HTML — Date.now() on the server vs the client are
+  // unavoidably different and trigger React hydration error #418. The
+  // useEffect interval below bumps `now` after mount; until then any
+  // `now`-derived UI is gated on other state (cooldownEnds /
+  // triggeredAtRef / uploadStartedAt) which is null at first paint.
+  const [now, setNow] = useState(0);
   const autoFired = useRef(false);
   const triggeredAtRef = useRef<number | null>(null);
   const uploadStartedAtRef = useRef<number | null>(null);
@@ -82,8 +88,10 @@ export function SyncControl({
   const pollTimer = useRef<ReturnType<typeof setInterval> | null>(null);
   const reloadTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // 1Hz tick so the cooldown countdown re-renders.
+  // 1Hz tick so the cooldown countdown re-renders. Seed `now` once on
+  // mount (so the first useEffect bump is non-zero) then update on tick.
   useEffect(() => {
+    setNow(Date.now());
     const id = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(id);
   }, []);
