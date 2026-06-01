@@ -1,9 +1,21 @@
 import "server-only";
 import crypto from "node:crypto";
 import { cookies } from "next/headers";
-import { SESSION_COOKIE, type User } from "./auth";
+import {
+  SESSION_COOKIE,
+  hashPassword,
+  verifyPassword,
+  type CreateUserInput,
+  type User,
+} from "./auth";
 import { getTokenusageD1, type TokenusageD1Database } from "./cloudflare-bindings";
 import { hashToken } from "./token-hash";
+
+// 30 days — must stay in lockstep with SESSION_TTL_MS in src/lib/auth.ts.
+// Imported via the same module would be cleaner, but auth.ts pulls in
+// node:fs through server-db; keeping this constant local trades a tiny
+// duplication for a clean module boundary.
+const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 
 export async function readCurrentUserD1(): Promise<User | null> {
   const c = await cookies();
@@ -104,4 +116,125 @@ export async function recordUserIpD1(userId: number, ip: string): Promise<void> 
     .prepare(`UPDATE users SET last_ip = ?, last_ip_at = ? WHERE id = ?`)
     .bind(ip, Date.now(), userId)
     .run();
+}
+
+// ---- login / signup write paths ----
+//
+// hashPassword + verifyPassword are runtime-portable (node:crypto works
+// under both `nodejs_compat` and native Node), so we re-use them as-is.
+// Only the DB layer differs.
+
+export async function createSessionD1(userId: number): Promise<string> {
+  const token = crypto.randomBytes(32).toString("hex");
+  const now = Date.now();
+  const db = await getTokenusageD1();
+  await db
+    .prepare(
+      `INSERT INTO auth_sessions (token_hash, user_id, created_at, expires_at)
+       VALUES (?, ?, ?, ?)`
+    )
+    .bind(hashToken(token), userId, now, now + SESSION_TTL_MS)
+    .run();
+  return token;
+}
+
+export async function destroySessionD1(token: string): Promise<void> {
+  const db = await getTokenusageD1();
+  await db
+    .prepare(`DELETE FROM auth_sessions WHERE token_hash = ?`)
+    .bind(hashToken(token))
+    .run();
+}
+
+export async function findUserByEmailD1(email: string): Promise<User | null> {
+  const db = await getTokenusageD1();
+  const row = await db
+    .prepare(
+      `SELECT id, username, email, is_admin, activated_at
+       FROM users WHERE lower(email) = lower(?) LIMIT 1`
+    )
+    .bind(email)
+    .first<{
+      id: number;
+      username: string;
+      email: string | null;
+      is_admin: number;
+      activated_at: number | null;
+    }>();
+  if (!row) return null;
+  return {
+    id: row.id,
+    username: row.username,
+    email: row.email,
+    isAdmin: row.is_admin === 1,
+    activatedAt: row.activated_at,
+  };
+}
+
+export async function authenticateD1(
+  identifier: string,
+  password: string
+): Promise<User | null> {
+  const db = await getTokenusageD1();
+  const row = await db
+    .prepare(
+      `SELECT id, username, email, is_admin, password_hash, activated_at
+       FROM users WHERE username = ? OR email = ? LIMIT 1`
+    )
+    .bind(identifier, identifier)
+    .first<{
+      id: number;
+      username: string;
+      email: string | null;
+      is_admin: number;
+      password_hash: string;
+      activated_at: number | null;
+    }>();
+  if (!row) return null;
+  if (!verifyPassword(password, row.password_hash)) return null;
+  return {
+    id: row.id,
+    username: row.username,
+    email: row.email,
+    isAdmin: row.is_admin === 1,
+    activatedAt: row.activated_at,
+  };
+}
+
+export async function createUserD1(input: CreateUserInput): Promise<User> {
+  const now = Date.now();
+  const db = await getTokenusageD1();
+  const result = await db
+    .prepare(
+      `INSERT INTO users (username, email, password_hash, is_admin, created_at, activated_at)
+       VALUES (?, ?, ?, ?, ?, ?)`
+    )
+    .bind(
+      input.username,
+      input.email ?? null,
+      hashPassword(input.password),
+      input.isAdmin ? 1 : 0,
+      now,
+      now
+    )
+    .run();
+  const meta = result.meta as { last_row_id?: number } | undefined;
+  return {
+    id: Number(meta?.last_row_id ?? 0),
+    username: input.username,
+    email: input.email ?? null,
+    isAdmin: !!input.isAdmin,
+    activatedAt: now,
+  };
+}
+
+// First-run gate equivalent: do we need to bootstrap an admin? Mirrors
+// `isFirstRun` from server-db.ts but D1-backed. Used by the signup
+// route to decide whether the first user gets is_admin=1.
+export async function isFirstRunD1(): Promise<boolean> {
+  const db = await getTokenusageD1();
+  const row = await db
+    .prepare(`SELECT COUNT(*) AS n FROM users`)
+    .first<{ n: number }>();
+  return (row?.n ?? 0) === 0;
 }

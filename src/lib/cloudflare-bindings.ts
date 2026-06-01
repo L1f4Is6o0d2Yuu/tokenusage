@@ -10,6 +10,9 @@ type D1PreparedStatement = {
 
 export type TokenusageD1Database = {
   prepare(query: string): D1PreparedStatement;
+  batch(
+    statements: D1PreparedStatement[]
+  ): Promise<Array<{ meta?: { last_row_id?: number; changes?: number } }>>;
 };
 
 export type TokenusageR2Bucket = {

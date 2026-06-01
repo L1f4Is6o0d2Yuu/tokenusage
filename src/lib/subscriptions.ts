@@ -293,7 +293,7 @@ export const PLAN_CATALOG: PlanDef[] = [
   },
 ];
 
-const PLAN_BY_ID = new Map(PLAN_CATALOG.map((p) => [p.id, p]));
+export const PLAN_BY_ID = new Map(PLAN_CATALOG.map((p) => [p.id, p]));
 
 export function getPlan(id: string): PlanDef | undefined {
   return PLAN_BY_ID.get(id as PlanId);

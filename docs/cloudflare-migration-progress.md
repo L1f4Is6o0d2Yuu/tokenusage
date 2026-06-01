@@ -40,23 +40,26 @@ handlers call).
 | -------------------------- | ------ | ----- |
 | `lib/agent-health.ts`      | ready  | Pure function, no DB. |
 | `lib/public-url.ts`        | ready  | Env + headers. |
-| `lib/pricing.ts`           | ready  | Pure (price tables in code). |
+| `lib/pricing.ts`           | ready  | Bundles `data/prices.default.json` via ESM import; fs override is Node-only and gated by `isCloudflareRuntime()`. |
 | `lib/runtime.ts`           | ready  | Discriminator. |
 | `lib/token-hash.ts`        | ready  | crypto only. |
-| `lib/cloudflare-bindings.ts` | ready | D1 binding accessor. |
-| `lib/cloudflare-auth.ts`   | partial | Has `readCurrentUser`, `authenticateApiToken`, `createApiToken`, `recordUserIp`. Missing: createSession, destroySession, authenticate, hashPassword (portable, just lift), createUser, signup helpers, invites, password reset, listTokens, revokeApiToken. |
+| `lib/cloudflare-bindings.ts` | ready | D1 binding accessor (now includes `batch()`). |
+| `lib/cloudflare-auth.ts`   | partial | Has `readCurrentUser`, `authenticateApiToken`, `createApiToken`, `recordUserIp`, **`createSession`**, **`destroySession`**, **`findUserByEmail`**, **`authenticate`**, **`createUser`**, **`isFirstRun`**. Missing: createPendingOauthUser, activateUser, invites (5), password reset (3), listTokens, revokeApiToken, listUsers, readAgentVersion. |
 | `lib/cloudflare-sync-state.ts` | partial | Has `getUserSyncState`, `recordUploadStarting`, `clearUploadInProgress`, `recordAgentVersion`. Missing: requestSync, setAgentPaused, setSyncInterval, markUploaded, getLatestAgentSeenAt. |
 | `lib/cloudflare-shares.ts` | partial | Used by `/api/share/save` + `/api/shares/[slug]`. |
+| `lib/cloudflare-adapters.ts` | **ready** | `loadServerRecordsD1` + `countServerRecordsD1`. Unblocks the dashboard data read path. |
+| `lib/cloudflare-subscriptions.ts` | **ready** | `hasFinishedSubscriptionsSetupD1`, `listUserSubscriptionsD1`, `setUserSubscriptionsD1`. PLAN_CATALOG re-used from Node module. |
+| `lib/cloudflare-leaderboard.ts` | **ready** | `loadLeaderboardD1` + `setShowOnLeaderboardD1`. Pure helpers (`tierFor`, `pickFlavor`, `rowFlavor`) stay in the shared module. |
 | `lib/auth.ts`              | sqlite-only | 28 exports. Used by Node handlers — keep until Node deploy retires. |
 | `lib/sync-state.ts`        | sqlite-only | Same. |
 | `lib/sync-events.ts`       | sqlite-only | Node EventEmitter — no CF equivalent yet. CF route skips long-poll. |
 | `lib/shares.ts`            | sqlite-only | Node disk-backed PNG storage. |
 | `lib/server-db.ts`         | sqlite-only | better-sqlite3 entrypoint. Stays Node-only. |
-| `lib/subscriptions.ts`     | sqlite-only | Dashboard read path. Needs `cloudflare-subscriptions.ts`. |
-| `lib/leaderboard.ts`       | sqlite-only | Leaderboard page. Needs `cloudflare-leaderboard.ts`. |
+| `lib/subscriptions.ts`     | sqlite-only | Node side. Catalog `PLAN_BY_ID` is now exported so the CF mirror reuses it. |
+| `lib/leaderboard.ts`       | sqlite-only | Node side. Pure helpers (tier, flavor pools, hash) are reused by CF mirror. |
 | `lib/audit.ts`             | sqlite-only | Audit writes. Needs `cloudflare-audit.ts`. |
 | `lib/geoip.ts`             | sqlite-only | Geo cache table. May be droppable on CF (use Workers cf.* hints). |
-| `lib/adapters/server.ts`   | sqlite-only | Multi-user records loader. Needs D1 mirror — biggest unblocker for `/dashboard`. |
+| `lib/adapters/server.ts`   | sqlite-only | Node side. CF replacement landed as `cloudflare-adapters.ts`. |
 | `lib/adapters/codex.ts`    | sqlite-only | Single-user local filesystem path — N/A on CF. |
 | `lib/adapters/hermes.ts`   | sqlite-only | Same. |
 | `lib/adapters/sample.ts`   | sqlite-only | Same. |
@@ -66,15 +69,15 @@ handlers call).
 | Page                       | Status | Blocked on |
 | -------------------------- | ------ | ---------- |
 | `/` (landing)              | ready  | None. |
-| `/login`, `/signup`        | TODO   | Auth writes in `lib/auth.ts`. |
-| `/dashboard`               | TODO   | `lib/adapters`, `lib/subscriptions`, `lib/sync-state`. |
+| `/login`, `/signup`        | TODO   | CF helpers exist (`createSession`, `authenticate`, `createUser`, `isFirstRun`); still need to runtime-dispatch the page server actions in `(auth)/*/actions.ts`. |
+| `/dashboard`               | TODO   | CF helpers exist (`adapters`, `subscriptions`, `sync-state`); the page imports them statically from Node modules — needs a thin runtime-aware loader. |
 | `/install`                 | TODO   | `lib/sync-state` + `lib/auth.lookupInvite`. |
-| `/leaderboard`             | TODO   | `lib/leaderboard`. |
-| `/subscriptions`           | TODO   | `lib/subscriptions`. |
+| `/leaderboard`             | TODO   | CF helper `loadLeaderboardD1` exists; page wiring TBD. |
+| `/subscriptions`           | TODO   | CF helpers ready; page wiring TBD. |
 | `/tokens`                  | TODO   | `lib/auth.listTokens`. |
 | `/users`                   | TODO   | `lib/auth.listUsers`, `lib/auth.invites`. |
 | `/pending`                 | TODO   | `lib/auth.readCurrentUser` works; verify no other DB call. |
-| `/models`, `/prices`, `/about` | ready  | Read pricing or static. |
+| `/models`, `/prices`, `/about` | ready  | Read pricing or static. `/prices` editor APIs throw a clear error on CF runtime. |
 
 ## Infra not yet provisioned
 

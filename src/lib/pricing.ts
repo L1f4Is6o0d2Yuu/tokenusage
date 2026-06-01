@@ -1,11 +1,14 @@
 // Loads the model price table once at module init. Default rules ship with
-// the repo at data/prices.default.json. Users can drop a `data/prices.json`
-// next to it to override (gitignored). Both files use the same schema.
+// the repo at data/prices.default.json and are bundled into the build via a
+// JSON import so the module works in both Node (Docker) and Workers (CF)
+// runtimes. In Node we additionally check for `data/prices.json` as a
+// hot-reloadable override; in Workers fs isn't available, so overrides are
+// a no-op there.
 //
 // Estimates, not invoices.
 
-import path from "node:path";
-import fs from "node:fs";
+import { isCloudflareRuntime } from "./runtime";
+import defaultPriceFile from "../../data/prices.default.json";
 
 export type ModelPricing = {
   inputPerToken: number;
@@ -31,11 +34,11 @@ export type PriceFile = {
 
 type CompiledRule = { regex: RegExp; price: ModelPricing };
 
-const DATA_DIR = path.join(process.cwd(), "data");
-const OVERRIDE_PATH = path.join(DATA_DIR, "prices.json");
-const DEFAULT_PATH = path.join(DATA_DIR, "prices.default.json");
+// Both the typed shape we want and what `resolveJsonModule` gives us
+// happen to align here; the cast keeps the rest of the file simple.
+const BUNDLED_DEFAULTS = defaultPriceFile as unknown as PriceFile;
 
-let cached: { compiled: CompiledRule[]; sourcePath: string; mtime: number } | null = null;
+let cached: { compiled: CompiledRule[]; sourceKey: string; mtime: number } | null = null;
 
 function compile(rules: Rule[]): CompiledRule[] {
   return rules.map((r) => ({
@@ -50,46 +53,48 @@ function compile(rules: Rule[]): CompiledRule[] {
   }));
 }
 
-function readFileSafe(p: string): { file: PriceFile | null; mtime: number } {
-  if (!fs.existsSync(p)) return { file: null, mtime: 0 };
+type ResolvedSource = { file: PriceFile; sourceKey: string; mtime: number };
+
+// Node-only override reader. Lives in its own function so the import of
+// `node:fs` / `node:path` is reachable only from the Node code path —
+// Workers builds tree-shake out of the worker bundle.
+function readNodeOverride(): ResolvedSource | null {
+  if (isCloudflareRuntime()) return null;
+  // Dynamic require pattern keeps the static analyzer from pulling fs into
+  // the Worker bundle even when the runtime check would have skipped it.
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const fs = require("node:fs") as typeof import("node:fs");
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const path = require("node:path") as typeof import("node:path");
+  const overridePath = path.join(process.cwd(), "data", "prices.json");
+  if (!fs.existsSync(overridePath)) return null;
   try {
-    const stat = fs.statSync(p);
-    const raw = fs.readFileSync(p, "utf8");
-    return { file: JSON.parse(raw) as PriceFile, mtime: stat.mtimeMs };
+    const stat = fs.statSync(overridePath);
+    const raw = fs.readFileSync(overridePath, "utf8");
+    return {
+      file: JSON.parse(raw) as PriceFile,
+      sourceKey: overridePath,
+      mtime: stat.mtimeMs,
+    };
   } catch {
-    return { file: null, mtime: 0 };
+    return null;
   }
 }
 
 function ensureLoaded(): CompiledRule[] {
-  // Try override first; fall back to default. Re-read whenever the active
-  // file's mtime changes so edits via the editor take effect on next request
-  // without a server restart.
-  const override = readFileSafe(OVERRIDE_PATH);
-  const target = override.file
-    ? { file: override.file, mtime: override.mtime, sourcePath: OVERRIDE_PATH }
-    : (() => {
-        const def = readFileSafe(DEFAULT_PATH);
-        return { file: def.file, mtime: def.mtime, sourcePath: DEFAULT_PATH };
-      })();
+  const override = readNodeOverride();
+  const target: ResolvedSource = override ?? {
+    file: BUNDLED_DEFAULTS,
+    sourceKey: "<bundled-defaults>",
+    mtime: 0,
+  };
 
-  if (!target.file) {
-    if (process.env.NODE_ENV !== "production") {
-      console.warn("[pricing] no price file found, all costs will be null");
-    }
-    return [];
-  }
-
-  if (
-    cached &&
-    cached.sourcePath === target.sourcePath &&
-    cached.mtime === target.mtime
-  ) {
+  if (cached && cached.sourceKey === target.sourceKey && cached.mtime === target.mtime) {
     return cached.compiled;
   }
 
   const compiled = compile(target.file.rules);
-  cached = { compiled, sourcePath: target.sourcePath, mtime: target.mtime };
+  cached = { compiled, sourceKey: target.sourceKey, mtime: target.mtime };
   return compiled;
 }
 
@@ -162,38 +167,73 @@ export function resolveUsageCost(input: UsageCostInput): {
 }
 
 // ---- editor APIs (used by /prices server action) ----
+//
+// In CF runtime there's no writable disk, so the editor is read-only:
+// readActivePrices returns the bundled defaults, and write/delete throw
+// the same "unsupported on this runtime" message so the /prices page
+// can surface a clear notice without a 500.
+
+const CF_EDITOR_NOT_SUPPORTED =
+  "Price overrides are not supported on the Cloudflare runtime — edit data/prices.default.json and redeploy.";
 
 export function readActivePrices(): {
   rules: Rule[];
   source: "override" | "default" | "missing";
   sourcePath: string;
 } {
-  const override = readFileSafe(OVERRIDE_PATH);
-  if (override.file) {
+  if (isCloudflareRuntime()) {
     return {
-      rules: override.file.rules,
-      source: "override",
-      sourcePath: OVERRIDE_PATH,
+      rules: BUNDLED_DEFAULTS.rules,
+      source: "default",
+      sourcePath: "<bundled-defaults>",
     };
   }
-  const def = readFileSafe(DEFAULT_PATH);
-  if (def.file) {
-    return { rules: def.file.rules, source: "default", sourcePath: DEFAULT_PATH };
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const fs = require("node:fs") as typeof import("node:fs");
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const path = require("node:path") as typeof import("node:path");
+  const DATA_DIR = path.join(process.cwd(), "data");
+  const OVERRIDE_PATH = path.join(DATA_DIR, "prices.json");
+  const DEFAULT_PATH = path.join(DATA_DIR, "prices.default.json");
+  if (fs.existsSync(OVERRIDE_PATH)) {
+    try {
+      const raw = fs.readFileSync(OVERRIDE_PATH, "utf8");
+      const file = JSON.parse(raw) as PriceFile;
+      return { rules: file.rules, source: "override", sourcePath: OVERRIDE_PATH };
+    } catch {
+      // fall through to defaults
+    }
   }
-  return { rules: [], source: "missing", sourcePath: DEFAULT_PATH };
+  return {
+    rules: BUNDLED_DEFAULTS.rules,
+    source: "default",
+    sourcePath: DEFAULT_PATH,
+  };
 }
 
 export function writeOverride(rules: Rule[]): void {
+  if (isCloudflareRuntime()) throw new Error(CF_EDITOR_NOT_SUPPORTED);
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const fs = require("node:fs") as typeof import("node:fs");
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const path = require("node:path") as typeof import("node:path");
+  const DATA_DIR = path.join(process.cwd(), "data");
+  const OVERRIDE_PATH = path.join(DATA_DIR, "prices.json");
   if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
   const payload: PriceFile = { version: 1, rules };
-  // Write atomically via temp file + rename so a partial write can't corrupt
-  // the active price file.
   const tmp = OVERRIDE_PATH + ".tmp";
   fs.writeFileSync(tmp, JSON.stringify(payload, null, 2) + "\n", "utf8");
   fs.renameSync(tmp, OVERRIDE_PATH);
 }
 
 export function deleteOverride(): boolean {
+  if (isCloudflareRuntime()) throw new Error(CF_EDITOR_NOT_SUPPORTED);
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const fs = require("node:fs") as typeof import("node:fs");
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const path = require("node:path") as typeof import("node:path");
+  const DATA_DIR = path.join(process.cwd(), "data");
+  const OVERRIDE_PATH = path.join(DATA_DIR, "prices.json");
   if (!fs.existsSync(OVERRIDE_PATH)) return false;
   fs.unlinkSync(OVERRIDE_PATH);
   return true;
