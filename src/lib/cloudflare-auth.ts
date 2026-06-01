@@ -1,4 +1,5 @@
 import "server-only";
+import crypto from "node:crypto";
 import { cookies } from "next/headers";
 import { SESSION_COOKIE, type User } from "./auth";
 import { getTokenusageD1, type TokenusageD1Database } from "./cloudflare-bindings";
@@ -72,4 +73,35 @@ export async function authenticateApiTokenD1(
     isAdmin: row.is_admin === 1,
     activatedAt: row.activated_at,
   };
+}
+
+// D1 mirror of `createApiToken` from src/lib/auth.ts. Same plaintext
+// format (`tu_` + 24 random bytes hex) so existing agents and the
+// `tokenusage_secret` env contract stay valid across runtimes.
+export async function createApiTokenD1(
+  userId: number,
+  name: string
+): Promise<{ id: number; plaintext: string }> {
+  const plaintext = "tu_" + crypto.randomBytes(24).toString("hex");
+  const db = await getTokenusageD1();
+  const result = await db
+    .prepare(
+      `INSERT INTO api_tokens (user_id, name, token_hash, created_at)
+       VALUES (?, ?, ?, ?)`
+    )
+    .bind(userId, name, hashToken(plaintext), Date.now())
+    .run();
+  // D1's meta.last_row_id is the AUTOINCREMENT id of the row we just
+  // inserted. Match the Node side's number type for the public shape.
+  const meta = result.meta as { last_row_id?: number } | undefined;
+  return { id: Number(meta?.last_row_id ?? 0), plaintext };
+}
+
+export async function recordUserIpD1(userId: number, ip: string): Promise<void> {
+  if (!ip) return;
+  const db = await getTokenusageD1();
+  await db
+    .prepare(`UPDATE users SET last_ip = ?, last_ip_at = ? WHERE id = ?`)
+    .bind(ip, Date.now(), userId)
+    .run();
 }
