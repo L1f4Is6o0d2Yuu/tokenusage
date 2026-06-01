@@ -10,7 +10,7 @@ export async function createTokenAction(formData: FormData): Promise<void> {
   const user = await readCurrentUser();
   if (!user) redirect("/login");
   const name = String(formData.get("name") ?? "").trim() || "agent";
-  const { plaintext } = createApiToken(user.id, name);
+  const { plaintext } = await createApiToken(user.id, name);
   revalidatePath("/tokens");
   redirect(`/tokens?new=${encodeURIComponent(plaintext)}`);
 }
@@ -20,7 +20,7 @@ export async function revokeTokenAction(formData: FormData): Promise<void> {
   if (!user) redirect("/login");
   const id = Number(formData.get("id"));
   if (!Number.isFinite(id)) return;
-  revokeApiToken(user.id, id);
+  await revokeApiToken(user.id, id);
   revalidatePath("/tokens");
 }
 
@@ -29,7 +29,7 @@ export async function setSyncIntervalAction(formData: FormData): Promise<void> {
   if (!user) redirect("/login");
   const seconds = Number(formData.get("interval"));
   try {
-    setSyncInterval(user.id, seconds);
+    await setSyncInterval(user.id, seconds);
   } catch {
     // ignore invalid value silently — server-side validation rejected it.
   }

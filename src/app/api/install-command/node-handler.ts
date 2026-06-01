@@ -10,7 +10,7 @@ export async function POST(): Promise<Response> {
     });
   }
   const stamp = new Date().toISOString().slice(0, 16).replace("T", " ");
-  const { plaintext } = createApiToken(user.id, `agent ${stamp}`);
+  const { plaintext } = await createApiToken(user.id, `agent ${stamp}`);
   const publicUrl = await getPublicUrl();
 
   const brewCommand =

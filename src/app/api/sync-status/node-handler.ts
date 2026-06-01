@@ -9,7 +9,7 @@ export async function GET(): Promise<Response> {
       headers: { "content-type": "application/json" },
     });
   }
-  const state = getUserSyncState(user.id);
+  const state = await getUserSyncState(user.id);
   return Response.json({
     ok: true,
     syncRequestedAt: state.syncRequestedAt,

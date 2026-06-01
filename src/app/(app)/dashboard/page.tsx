@@ -61,7 +61,7 @@ export default async function Page({
   if (
     isMultiUserMode() &&
     currentUser != null &&
-    !hasFinishedSubscriptionsSetup(currentUser.id)
+    !(await hasFinishedSubscriptionsSetup(currentUser.id))
   ) {
     redirect("/subscriptions?welcome=1");
   }
@@ -76,15 +76,21 @@ export default async function Page({
   const { records, sources, fellBackToSample, mode } = await loadRecords();
 
   const showOnboarding =
-    mode === "multi" && currentUser != null && countServerRecords(currentUser.id) === 0;
+    mode === "multi" &&
+    currentUser != null &&
+    (await countServerRecords(currentUser.id)) === 0;
   const syncState =
-    mode === "multi" && currentUser != null ? getUserSyncState(currentUser.id) : null;
+    mode === "multi" && currentUser != null
+      ? await getUserSyncState(currentUser.id)
+      : null;
 
   const { rules } = readActivePrices();
 
   const mountSeed = (currentUser?.id ?? 0) * 1_000_003 + records.length;
 
-  const activePlanIds = currentUser ? listUserSubscriptions(currentUser.id) : [];
+  const activePlanIds = currentUser
+    ? await listUserSubscriptions(currentUser.id)
+    : [];
   const activePlans = activePlanIds
     .map((id) => PLAN_CATALOG.find((p) => p.id === id))
     .filter((p): p is (typeof PLAN_CATALOG)[number] => p != null)

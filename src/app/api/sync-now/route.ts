@@ -14,7 +14,7 @@ export async function POST(): Promise<Response> {
       headers: { "content-type": "application/json" },
     });
   }
-  requestSync(user.id);
+  await requestSync(user.id);
   notifySync(user.id);
   return Response.json({ ok: true });
 }

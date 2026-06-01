@@ -62,7 +62,7 @@ export async function GET(
   const granularity = pickGranularity(scoped, period);
   const agg = aggregate(scoped, granularity, window);
 
-  const activePlanIds = listUserSubscriptions(user.id);
+  const activePlanIds = await listUserSubscriptions(user.id);
   const activePlans = activePlanIds
     .map((id) => PLAN_CATALOG.find((p) => p.id === id))
     .filter((p): p is (typeof PLAN_CATALOG)[number] => p != null)

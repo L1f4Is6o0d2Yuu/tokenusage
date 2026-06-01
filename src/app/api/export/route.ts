@@ -44,14 +44,14 @@ export async function GET(req: NextRequest) {
   const auth = req.headers.get("authorization") ?? "";
   let records;
   if (auth.toLowerCase().startsWith("bearer ")) {
-    const user = authenticateApiToken(auth.slice(7).trim());
+    const user = await authenticateApiToken(auth.slice(7).trim());
     if (!user) {
       return new Response(JSON.stringify({ ok: false, message: "invalid token" }), {
         status: 401,
         headers: { "content-type": "application/json" },
       });
     }
-    records = loadServerRecords(user.id);
+    records = await loadServerRecords(user.id);
   } else {
     ({ records } = await loadRecords());
   }

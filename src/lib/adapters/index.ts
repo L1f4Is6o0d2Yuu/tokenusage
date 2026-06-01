@@ -29,7 +29,7 @@ export async function loadRecords(): Promise<LoadResult> {
     if (!user) {
       return { records: [], sources: [], fellBackToSample: false, mode: "multi" };
     }
-    const records = loadServerRecords(user.id);
+    const records = await loadServerRecords(user.id);
     const count = records.length;
     return {
       records,

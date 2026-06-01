@@ -50,16 +50,16 @@ handlers call).
 | `lib/cloudflare-adapters.ts` | **ready** | `loadServerRecordsD1` + `countServerRecordsD1`. Unblocks the dashboard data read path. |
 | `lib/cloudflare-subscriptions.ts` | **ready** | `hasFinishedSubscriptionsSetupD1`, `listUserSubscriptionsD1`, `setUserSubscriptionsD1`. PLAN_CATALOG re-used from Node module. |
 | `lib/cloudflare-leaderboard.ts` | **ready** | `loadLeaderboardD1` + `setShowOnLeaderboardD1`. Pure helpers (`tierFor`, `pickFlavor`, `rowFlavor`) stay in the shared module. |
-| `lib/auth.ts`              | sqlite-only | 28 exports. Used by Node handlers — keep until Node deploy retires. |
-| `lib/sync-state.ts`        | sqlite-only | Same. |
+| `lib/auth.ts`              | **dispatch** | Public API stays the same shape; sync→async where needed; each function dispatches to `cloudflare-auth.ts` on the CF runtime. Still sqlite-only internals: invites (5), password reset (3), createPendingOauthUser, activateUser, listUsers, readAgentVersion. |
+| `lib/sync-state.ts`        | **dispatch** | All 8 functions are now async + dispatch to `cloudflare-sync-state.ts`. |
 | `lib/sync-events.ts`       | sqlite-only | Node EventEmitter — no CF equivalent yet. CF route skips long-poll. |
 | `lib/shares.ts`            | sqlite-only | Node disk-backed PNG storage. |
-| `lib/server-db.ts`         | sqlite-only | better-sqlite3 entrypoint. Stays Node-only. |
-| `lib/subscriptions.ts`     | sqlite-only | Node side. Catalog `PLAN_BY_ID` is now exported so the CF mirror reuses it. |
-| `lib/leaderboard.ts`       | sqlite-only | Node side. Pure helpers (tier, flavor pools, hash) are reused by CF mirror. |
-| `lib/audit.ts`             | sqlite-only | Audit writes. Needs `cloudflare-audit.ts`. |
+| `lib/server-db.ts`         | **dispatch** | `isMultiUserMode()` short-circuits to `true` on CF (no fs check). `isFirstRun()` async + dispatch. `openServerDb()` remains Node-only. |
+| `lib/subscriptions.ts`     | **dispatch** | All 4 DB functions async + dispatch. Catalog `PLAN_BY_ID` exported for CF re-use. |
+| `lib/leaderboard.ts`       | **dispatch** | `loadLeaderboard` + `setShowOnLeaderboard` async + dispatch. Pure helpers shared. |
+| `lib/audit.ts`             | **dispatch** | CF path logs the event via `console.warn` (visible in `wrangler tail`) and still fires `notifyAuditAlert`; D1 audit table is a TODO. |
 | `lib/geoip.ts`             | sqlite-only | Geo cache table. May be droppable on CF (use Workers cf.* hints). |
-| `lib/adapters/server.ts`   | sqlite-only | Node side. CF replacement landed as `cloudflare-adapters.ts`. |
+| `lib/adapters/server.ts`   | **dispatch** | Both functions async + dispatch to `cloudflare-adapters.ts`. |
 | `lib/adapters/codex.ts`    | sqlite-only | Single-user local filesystem path — N/A on CF. |
 | `lib/adapters/hermes.ts`   | sqlite-only | Same. |
 | `lib/adapters/sample.ts`   | sqlite-only | Same. |
@@ -69,13 +69,13 @@ handlers call).
 | Page                       | Status | Blocked on |
 | -------------------------- | ------ | ---------- |
 | `/` (landing)              | ready  | None. |
-| `/login`, `/signup`        | TODO   | CF helpers exist (`createSession`, `authenticate`, `createUser`, `isFirstRun`); still need to runtime-dispatch the page server actions in `(auth)/*/actions.ts`. |
-| `/dashboard`               | TODO   | CF helpers exist (`adapters`, `subscriptions`, `sync-state`); the page imports them statically from Node modules — needs a thin runtime-aware loader. |
-| `/install`                 | TODO   | `lib/sync-state` + `lib/auth.lookupInvite`. |
-| `/leaderboard`             | TODO   | CF helper `loadLeaderboardD1` exists; page wiring TBD. |
-| `/subscriptions`           | TODO   | CF helpers ready; page wiring TBD. |
-| `/tokens`                  | TODO   | `lib/auth.listTokens`. |
-| `/users`                   | TODO   | `lib/auth.listUsers`, `lib/auth.invites`. |
+| `/login`, `/signup`        | **wired** | `auth-actions.ts` now `await`s every DB call. Login/first-run-signup work in both runtimes. Invite redemption + password reset still go through Node-only paths inside `auth.ts`. |
+| `/dashboard`               | **wired** | Page awaits `countServerRecords`, `getUserSyncState`, `listUserSubscriptions`, `hasFinishedSubscriptionsSetup`. Renders identically under either runtime. |
+| `/install`                 | **wired** | Page awaits the four DB reads. `<InstallAutoRefresh/>` (client) is runtime-neutral. |
+| `/leaderboard`             | **wired** | Page awaits `loadLeaderboard`; `setShowOnLeaderboard` action awaited. Flavor rotation cookie unchanged. |
+| `/subscriptions`           | **wired** | Page awaits `listUserSubscriptions`; action awaits `setUserSubscriptions`. |
+| `/tokens`                  | **wired** | Page awaits `listTokens` + `getUserSyncState`; actions await `createApiToken`, `revokeApiToken`, `setSyncInterval`. |
+| `/users`                   | TODO   | `lib/auth.listUsers`, invites — still sqlite-only. |
 | `/pending`                 | TODO   | `lib/auth.readCurrentUser` works; verify no other DB call. |
 | `/models`, `/prices`, `/about` | ready  | Read pricing or static. `/prices` editor APIs throw a clear error on CF runtime. |
 

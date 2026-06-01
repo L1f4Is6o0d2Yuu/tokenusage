@@ -1,6 +1,7 @@
 import "server-only";
 import { openServerDb } from "./server-db";
 import { isAgentLiveAt } from "./agent-health";
+import { isCloudflareRuntime } from "./runtime";
 
 const VALID_INTERVALS = new Set([60, 300, 600, 1800, 3600, 86400]);
 
@@ -20,7 +21,11 @@ export type UserSyncState = {
   uploadTotalBytes: number | null;
 };
 
-export function getUserSyncState(userId: number): UserSyncState {
+export async function getUserSyncState(userId: number): Promise<UserSyncState> {
+  if (isCloudflareRuntime()) {
+    const { getUserSyncStateD1 } = await import("./cloudflare-sync-state");
+    return getUserSyncStateD1(userId);
+  }
   const db = openServerDb();
   try {
     const row = db
@@ -63,7 +68,11 @@ export function getUserSyncState(userId: number): UserSyncState {
 
 // Called by /api/upload-progress before the agent begins the body POST.
 // `totalBytes` is the size of the tarball the agent's about to push.
-export function recordUploadStarting(userId: number, totalBytes: number): void {
+export async function recordUploadStarting(userId: number, totalBytes: number): Promise<void> {
+  if (isCloudflareRuntime()) {
+    const { recordUploadStartingD1 } = await import("./cloudflare-sync-state");
+    return recordUploadStartingD1(userId, totalBytes);
+  }
   const db = openServerDb();
   try {
     db.prepare(
@@ -77,7 +86,11 @@ export function recordUploadStarting(userId: number, totalBytes: number): void {
 // Called by /api/upload once a tarball is fully ingested. We also
 // clear on failure paths so a 413/500 doesn't leave a phantom
 // "uploading…" indicator for the next 24 hours.
-export function clearUploadInProgress(userId: number): void {
+export async function clearUploadInProgress(userId: number): Promise<void> {
+  if (isCloudflareRuntime()) {
+    const { clearUploadInProgressD1 } = await import("./cloudflare-sync-state");
+    return clearUploadInProgressD1(userId);
+  }
   const db = openServerDb();
   try {
     db.prepare(
@@ -88,7 +101,11 @@ export function clearUploadInProgress(userId: number): void {
   }
 }
 
-export function setAgentPaused(userId: number, paused: boolean): void {
+export async function setAgentPaused(userId: number, paused: boolean): Promise<void> {
+  if (isCloudflareRuntime()) {
+    const { setAgentPausedD1 } = await import("./cloudflare-sync-state");
+    return setAgentPausedD1(userId, paused);
+  }
   const db = openServerDb();
   try {
     db.prepare(`UPDATE users SET agent_paused = ? WHERE id = ?`).run(
@@ -100,7 +117,11 @@ export function setAgentPaused(userId: number, paused: boolean): void {
   }
 }
 
-export function requestSync(userId: number): void {
+export async function requestSync(userId: number): Promise<void> {
+  if (isCloudflareRuntime()) {
+    const { requestSyncD1 } = await import("./cloudflare-sync-state");
+    return requestSyncD1(userId);
+  }
   const db = openServerDb();
   try {
     db.prepare(`UPDATE users SET sync_requested_at = ? WHERE id = ?`).run(
@@ -112,7 +133,11 @@ export function requestSync(userId: number): void {
   }
 }
 
-export function setSyncInterval(userId: number, seconds: number): void {
+export async function setSyncInterval(userId: number, seconds: number): Promise<void> {
+  if (isCloudflareRuntime()) {
+    const { setSyncIntervalD1 } = await import("./cloudflare-sync-state");
+    return setSyncIntervalD1(userId, seconds);
+  }
   if (!VALID_INTERVALS.has(seconds)) {
     throw new Error(`invalid sync interval: ${seconds}`);
   }
@@ -126,7 +151,11 @@ export function setSyncInterval(userId: number, seconds: number): void {
   }
 }
 
-export function markUploaded(userId: number): void {
+export async function markUploaded(userId: number): Promise<void> {
+  if (isCloudflareRuntime()) {
+    const { markUploadedD1 } = await import("./cloudflare-sync-state");
+    return markUploadedD1(userId);
+  }
   const db = openServerDb();
   try {
     db.prepare(`UPDATE users SET last_uploaded_at = ? WHERE id = ?`).run(
@@ -138,7 +167,11 @@ export function markUploaded(userId: number): void {
   }
 }
 
-export function getLatestAgentSeenAt(userId: number): number | null {
+export async function getLatestAgentSeenAt(userId: number): Promise<number | null> {
+  if (isCloudflareRuntime()) {
+    const { getLatestAgentSeenAtD1 } = await import("./cloudflare-sync-state");
+    return getLatestAgentSeenAtD1(userId);
+  }
   const db = openServerDb();
   try {
     const row = db

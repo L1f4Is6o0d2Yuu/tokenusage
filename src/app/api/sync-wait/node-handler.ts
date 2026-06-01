@@ -28,13 +28,13 @@ function err(status: number, message: string): Response {
 export async function GET(req: NextRequest): Promise<Response> {
   const auth = req.headers.get("authorization") ?? "";
   if (!auth.toLowerCase().startsWith("bearer ")) return err(401, "missing bearer token");
-  const user = authenticateApiToken(auth.slice(7).trim());
+  const user = await authenticateApiToken(auth.slice(7).trim());
   if (!user) return err(401, "invalid token");
 
   const reportedVersion = req.headers.get("x-agent-version");
-  if (reportedVersion) recordAgentVersion(user.id, reportedVersion);
+  if (reportedVersion) await recordAgentVersion(user.id, reportedVersion);
 
-  const state = getUserSyncState(user.id);
+  const state = await getUserSyncState(user.id);
   const userIntervalMs = state.syncIntervalSeconds * 1000;
   const holdMs = Math.min(userIntervalMs, MAX_HOLD_MS);
   const uploadServer = getUploadServer();
@@ -53,7 +53,7 @@ export async function GET(req: NextRequest): Promise<Response> {
   }
 
   const triggered = await waitSync(user.id, holdMs);
-  const after = getUserSyncState(user.id);
+  const after = await getUserSyncState(user.id);
   return Response.json({
     sync: triggered && !after.paused,
     paused: after.paused,

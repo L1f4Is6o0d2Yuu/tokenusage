@@ -1,6 +1,7 @@
 import "server-only";
 import { openServerDb } from "./server-db";
 import { resolveUsageCost } from "./pricing";
+import { isCloudflareRuntime } from "./runtime";
 
 // Period buckets the leaderboard supports. Keeping the same vocabulary
 // as the dashboard (today / 7d / 30d / all) so users don't have to
@@ -62,10 +63,14 @@ function periodWindow(period: LeaderboardPeriod, now: Date): { from: number; to:
   return { from: to - days * 24 * 60 * 60 * 1000, to };
 }
 
-export function loadLeaderboard(
+export async function loadLeaderboard(
   period: LeaderboardPeriod,
   now: Date = new Date()
-): LeaderboardRow[] {
+): Promise<LeaderboardRow[]> {
+  if (isCloudflareRuntime()) {
+    const { loadLeaderboardD1 } = await import("./cloudflare-leaderboard");
+    return loadLeaderboardD1(period, now);
+  }
   const { from, to } = periodWindow(period, now);
   const db = openServerDb();
   try {
@@ -732,7 +737,11 @@ function hash(s: string): number {
 // Flip a user's "show me on the leaderboard" preference. Called from a
 // server action triggered by the toggle on /leaderboard. We don't gate
 // on isAdmin — it's the user's own row to manage.
-export function setShowOnLeaderboard(userId: number, show: boolean): void {
+export async function setShowOnLeaderboard(userId: number, show: boolean): Promise<void> {
+  if (isCloudflareRuntime()) {
+    const { setShowOnLeaderboardD1 } = await import("./cloudflare-leaderboard");
+    return setShowOnLeaderboardD1(userId, show);
+  }
   const db = openServerDb();
   try {
     db.prepare(

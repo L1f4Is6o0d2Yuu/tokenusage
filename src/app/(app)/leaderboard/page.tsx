@@ -73,7 +73,7 @@ export default async function LeaderboardPage({
   const rotation =
     Number.parseInt(cookieStore.get("lb-rot")?.value ?? "0", 10) || 0;
 
-  const rows = loadLeaderboard(period);
+  const rows = await loadLeaderboard(period);
   const myRow = rows.find((r) => r.userId === me.id);
   const myRank = myRow?.rank ?? null;
   const totalRows = rows.length;

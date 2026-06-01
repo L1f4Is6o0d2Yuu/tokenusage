@@ -7,7 +7,7 @@ export async function POST(req: NextRequest): Promise<Response> {
   if (!auth.toLowerCase().startsWith("bearer ")) {
     return Response.json({ ok: false, message: "missing bearer token" }, { status: 401 });
   }
-  const user = authenticateApiToken(auth.slice(7).trim());
+  const user = await authenticateApiToken(auth.slice(7).trim());
   if (!user) {
     return Response.json({ ok: false, message: "invalid token" }, { status: 401 });
   }
@@ -26,6 +26,6 @@ export async function POST(req: NextRequest): Promise<Response> {
     );
   }
 
-  recordUploadStarting(user.id, Math.floor(total));
+  await recordUploadStarting(user.id, Math.floor(total));
   return Response.json({ ok: true });
 }

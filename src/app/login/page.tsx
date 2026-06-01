@@ -20,7 +20,7 @@ export default async function LoginPage({
   searchParams: Promise<{ error?: string }>;
 }) {
   if (!isMultiUserMode()) redirect("/");
-  if (isFirstRun()) redirect("/signup");
+  if (await isFirstRun()) redirect("/signup");
   const user = await readCurrentUser();
   if (user) redirect("/");
   const t = (await getDictionary()).authForms;

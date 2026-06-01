@@ -238,3 +238,30 @@ export async function isFirstRunD1(): Promise<boolean> {
     .first<{ n: number }>();
   return (row?.n ?? 0) === 0;
 }
+
+export type ApiTokenRowD1 = {
+  id: number;
+  name: string;
+  createdAt: number;
+  lastUsedAt: number | null;
+};
+
+export async function listTokensD1(userId: number): Promise<ApiTokenRowD1[]> {
+  const db = await getTokenusageD1();
+  const result = await db
+    .prepare(
+      `SELECT id, name, created_at AS createdAt, last_used_at AS lastUsedAt
+       FROM api_tokens WHERE user_id = ? ORDER BY created_at DESC`
+    )
+    .bind(userId)
+    .all<ApiTokenRowD1>();
+  return result.results ?? [];
+}
+
+export async function revokeApiTokenD1(userId: number, id: number): Promise<void> {
+  const db = await getTokenusageD1();
+  await db
+    .prepare(`DELETE FROM api_tokens WHERE id = ? AND user_id = ?`)
+    .bind(id, userId)
+    .run();
+}

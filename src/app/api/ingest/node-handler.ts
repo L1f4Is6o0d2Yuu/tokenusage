@@ -41,7 +41,7 @@ export async function POST(req: NextRequest): Promise<Response> {
   if (!auth.toLowerCase().startsWith("bearer ")) {
     return err(401, "missing bearer token");
   }
-  const user = authenticateApiToken(auth.slice(7).trim());
+  const user = await authenticateApiToken(auth.slice(7).trim());
   if (!user) return err(401, "invalid token");
 
   const recordIngestFailed = (reason: string, meta: Record<string, unknown> = {}) =>

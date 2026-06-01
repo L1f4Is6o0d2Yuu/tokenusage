@@ -86,10 +86,10 @@ export default async function InstallPage() {
   const t = dict.install;
   const ot = dict.onboarding;
 
-  const sessionCount = countServerRecords(user.id);
-  const tokens = listTokens(user.id);
-  const syncState = getUserSyncState(user.id);
-  const lastAgentSeen = getLatestAgentSeenAt(user.id);
+  const sessionCount = await countServerRecords(user.id);
+  const tokens = await listTokens(user.id);
+  const syncState = await getUserSyncState(user.id);
+  const lastAgentSeen = await getLatestAgentSeenAt(user.id);
   const now = currentTimeMs();
 
   const stages: Record<Stage, { done: boolean; detail: string }> = {

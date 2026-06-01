@@ -30,7 +30,7 @@ export default async function SubscriptionsPage({
   const { saved, welcome } = await searchParams;
   const isWelcome = welcome === "1";
 
-  const active = new Set(listUserSubscriptions(user.id));
+  const active = new Set(await listUserSubscriptions(user.id));
 
   return (
     <>

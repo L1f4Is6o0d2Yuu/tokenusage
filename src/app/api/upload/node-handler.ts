@@ -163,11 +163,11 @@ function upsertRecords(
 export async function POST(req: NextRequest): Promise<Response> {
   const auth = req.headers.get("authorization") ?? "";
   if (!auth.toLowerCase().startsWith("bearer ")) return err(401, "missing bearer token");
-  const user = authenticateApiToken(auth.slice(7).trim());
+  const user = await authenticateApiToken(auth.slice(7).trim());
   if (!user) return err(401, "invalid token");
 
   const reportedVersion = req.headers.get("x-agent-version");
-  if (reportedVersion) recordAgentVersion(user.id, reportedVersion);
+  if (reportedVersion) await recordAgentVersion(user.id, reportedVersion);
 
   const lengthHeader = req.headers.get("content-length");
   const recordUploadFailed = (reason: string, meta: Record<string, unknown> = {}) =>
@@ -217,8 +217,8 @@ export async function POST(req: NextRequest): Promise<Response> {
 
     const all = [...hermesRecs, ...codexRecs, ...claudeRecs];
     const { inserted, updated } = upsertRecords(user.id, all);
-    markUploaded(user.id);
-    clearUploadInProgress(user.id);
+    await markUploaded(user.id);
+    await clearUploadInProgress(user.id);
 
     recordAudit({
       userId: user.id,
@@ -251,7 +251,7 @@ export async function POST(req: NextRequest): Promise<Response> {
   } catch (e) {
     // Failed uploads should not leave a stale "uploading…" indicator
     // sitting on the dashboard for the next 24 hours.
-    clearUploadInProgress(user.id);
+    await clearUploadInProgress(user.id);
     const retry = classifySqliteError(e);
     if (retry) {
       console.error(

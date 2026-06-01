@@ -77,3 +77,49 @@ export async function recordAgentVersionD1(
     .bind(version, userId)
     .run();
 }
+
+export async function getLatestAgentSeenAtD1(userId: number): Promise<number | null> {
+  const db = await getTokenusageD1();
+  const row = await db
+    .prepare(`SELECT MAX(last_used_at) AS t FROM api_tokens WHERE user_id = ?`)
+    .bind(userId)
+    .first<{ t: number | null }>();
+  return row?.t ?? null;
+}
+
+export async function setAgentPausedD1(userId: number, paused: boolean): Promise<void> {
+  const db = await getTokenusageD1();
+  await db
+    .prepare(`UPDATE users SET agent_paused = ? WHERE id = ?`)
+    .bind(paused ? 1 : 0, userId)
+    .run();
+}
+
+export async function requestSyncD1(userId: number): Promise<void> {
+  const db = await getTokenusageD1();
+  await db
+    .prepare(`UPDATE users SET sync_requested_at = ? WHERE id = ?`)
+    .bind(Date.now(), userId)
+    .run();
+}
+
+const VALID_INTERVALS = new Set([60, 300, 600, 1800, 3600, 86400]);
+
+export async function setSyncIntervalD1(userId: number, seconds: number): Promise<void> {
+  if (!VALID_INTERVALS.has(seconds)) {
+    throw new Error(`invalid sync interval: ${seconds}`);
+  }
+  const db = await getTokenusageD1();
+  await db
+    .prepare(`UPDATE users SET sync_interval_seconds = ? WHERE id = ?`)
+    .bind(seconds, userId)
+    .run();
+}
+
+export async function markUploadedD1(userId: number): Promise<void> {
+  const db = await getTokenusageD1();
+  await db
+    .prepare(`UPDATE users SET last_uploaded_at = ? WHERE id = ?`)
+    .bind(Date.now(), userId)
+    .run();
+}
