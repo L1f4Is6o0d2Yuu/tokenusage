@@ -559,7 +559,11 @@ export async function recordAgentVersion(userId: number, version: string): Promi
   }
 }
 
-export function readAgentVersion(userId: number): string | null {
+export async function readAgentVersion(userId: number): Promise<string | null> {
+  if (isCloudflareRuntime()) {
+    const { readAgentVersionD1 } = await import("./cloudflare-auth");
+    return readAgentVersionD1(userId);
+  }
   const db = openServerDb();
   try {
     const row = db

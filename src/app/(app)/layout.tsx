@@ -55,7 +55,7 @@ export default async function AppLayout({
     const h = await headers();
     const ip =
       (h.get("x-forwarded-for")?.split(",")[0] ?? h.get("x-real-ip") ?? "").trim();
-    if (ip) recordUserIp(user.id, ip);
+    if (ip) await recordUserIp(user.id, ip);
   }
 
   // In multi-user mode, an unauthed visitor at / hits the public
@@ -68,11 +68,13 @@ export default async function AppLayout({
     return <>{children}</>;
   }
 
+  const agentVersion = user ? await readAgentVersion(user.id) : null;
+
   return (
     <div className="flex min-h-dvh">
       <Sidebar
         user={user ? { username: user.username, isAdmin: user.isAdmin } : null}
-        agentVersion={user ? readAgentVersion(user.id) : null}
+        agentVersion={agentVersion}
         theme={theme}
         skin={skin}
         locale={locale}

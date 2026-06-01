@@ -265,3 +265,12 @@ export async function revokeApiTokenD1(userId: number, id: number): Promise<void
     .bind(id, userId)
     .run();
 }
+
+export async function readAgentVersionD1(userId: number): Promise<string | null> {
+  const db = await getTokenusageD1();
+  const row = await db
+    .prepare(`SELECT agent_version AS v FROM users WHERE id = ?`)
+    .bind(userId)
+    .first<{ v: string | null }>();
+  return row?.v ?? null;
+}
