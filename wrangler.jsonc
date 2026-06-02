@@ -49,16 +49,13 @@
           "database_name": "tokenusage-staging",
           "database_id": "2a008c21-c52f-4cdf-ac2a-9ec7f5edfe12"
         }
+      ],
+      "r2_buckets": [
+        {
+          "binding": "TOKENUSAGE_SHARES",
+          "bucket_name": "tokenusage-shares-staging"
+        }
       ]
-      // r2_buckets is intentionally absent: R2 needs a one-time
-      // dashboard subscription with a credit card (free tier, but the
-      // activation flow demands a payment method). The share-poster
-      // routes will return 500 until R2 is enabled and this binding
-      // is added back as:
-      //   "r2_buckets": [
-      //     { "binding": "TOKENUSAGE_SHARES",
-      //       "bucket_name": "tokenusage-shares-staging" }
-      //   ]
     }
   }
 }
