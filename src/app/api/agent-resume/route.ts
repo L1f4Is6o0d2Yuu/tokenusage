@@ -12,7 +12,7 @@ export async function POST(): Promise<Response> {
       headers: { "content-type": "application/json" },
     });
   }
-  setAgentPaused(user.id, false);
+  await setAgentPaused(user.id, false);
   notifySync(user.id);
   return Response.json({ ok: true, paused: false });
 }

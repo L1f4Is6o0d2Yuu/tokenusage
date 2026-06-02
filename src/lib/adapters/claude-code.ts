@@ -7,10 +7,14 @@ import readline from "node:readline";
 import type { ProviderAdapter, AdapterStatus, UsageRecord } from "@/lib/types";
 import { estimateCost } from "@/lib/pricing";
 
-const DEFAULT_DIR = path.join(os.homedir(), ".claude", "projects");
-
+// Defer os.homedir() — Workers' nodejs_compat throws "operation not
+// permitted" at module init. Single-user adapters never get invoked on
+// the CF runtime, so the lazy call stays Node-only in practice.
 function resolveDir(): string {
-  return process.env.TOKENUSAGE_CLAUDE_DIR || DEFAULT_DIR;
+  return (
+    process.env.TOKENUSAGE_CLAUDE_DIR ||
+    path.join(os.homedir(), ".claude", "projects")
+  );
 }
 
 // `~/.claude/projects/<slug>/<sessionId>.jsonl`. Slug encodes the project's

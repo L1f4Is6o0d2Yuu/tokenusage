@@ -2,6 +2,7 @@ import "server-only";
 import path from "node:path";
 import fs from "node:fs";
 import Database from "better-sqlite3";
+import { isCloudflareRuntime } from "./runtime";
 
 const DEFAULT_PATH = path.join(process.cwd(), "data", "server.db");
 
@@ -12,7 +13,13 @@ export function serverDbPath(): string {
 // True iff the server-mode DB exists and has at least one user. We use this to
 // decide whether the dashboard runs in single-user (read local files directly)
 // or multi-user (auth required, data comes from agents) mode.
+//
+// Stays sync so the many call sites (`if (isMultiUserMode()) ...`) don't
+// have to be rewired. On the Cloudflare runtime there is no fs and no
+// single-user mode — the Worker only serves the central multi-user
+// flavour, so we short-circuit to true before touching better-sqlite3.
 export function isMultiUserMode(): boolean {
+  if (isCloudflareRuntime()) return true;
   const p = serverDbPath();
   if (!fs.existsSync(p)) return false;
   try {
@@ -299,7 +306,11 @@ export function openServerDb(): Database.Database {
 }
 
 // True iff users table exists AND is empty — first-run signup flow.
-export function isFirstRun(): boolean {
+export async function isFirstRun(): Promise<boolean> {
+  if (isCloudflareRuntime()) {
+    const { isFirstRunD1 } = await import("./cloudflare-auth");
+    return isFirstRunD1();
+  }
   const p = serverDbPath();
   if (!fs.existsSync(p)) return true;
   try {

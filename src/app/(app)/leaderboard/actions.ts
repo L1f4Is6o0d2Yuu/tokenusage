@@ -10,7 +10,7 @@ export async function toggleLeaderboardVisibility(formData: FormData): Promise<v
   const user = await readCurrentUser();
   if (!user) redirect("/login");
   const show = formData.get("show") === "1";
-  setShowOnLeaderboard(user.id, show);
+  await setShowOnLeaderboard(user.id, show);
   revalidatePath("/leaderboard");
 }
 

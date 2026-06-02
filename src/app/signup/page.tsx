@@ -51,7 +51,7 @@ export default async function SignupPage({
   }
 
   // First-run admin signup (no users exist yet).
-  if (isFirstRun()) {
+  if (await isFirstRun()) {
     return (
       <main className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center px-6 py-10">
         <div className="mb-8 text-center">

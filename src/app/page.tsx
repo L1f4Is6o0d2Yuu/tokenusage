@@ -16,7 +16,7 @@ import { SmoothScrollProvider } from "@/components/smooth-scroll-provider";
 //   - Single-user deployment (no auth at all): collapse to /dashboard
 //     since the marketing page has no audience to convert.
 export default async function Page() {
-  if (isMultiUserMode() && isFirstRun()) redirect("/signup");
+  if (isMultiUserMode() && (await isFirstRun())) redirect("/signup");
   if (!isMultiUserMode()) redirect("/dashboard");
 
   const currentUser = await readCurrentUser();

@@ -24,12 +24,14 @@ type SessionRow = {
   title: string | null;
 };
 
-const DEFAULT_PATH = path.join(os.homedir(), ".hermes", "state.db");
-
+// os.homedir() throws "operation not permitted" under Workers'
+// nodejs_compat. Deferring the call into the function keeps module-init
+// harmless on the CF runtime — the single-user code path that actually
+// reaches resolvePath only runs in the Node/Docker build.
 function resolvePath(): string {
   const override = process.env.TOKENUSAGE_HERMES_DB;
   if (override && override.length > 0) return override;
-  return DEFAULT_PATH;
+  return path.join(os.homedir(), ".hermes", "state.db");
 }
 
 function open(dbPath: string): Database.Database {

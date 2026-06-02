@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { CSSProperties } from "react";
 import type { UsageRecord } from "@/lib/types";
 import { formatUsd } from "@/lib/format";
@@ -92,10 +92,20 @@ function heatSwatchStyle(level: 0 | 1 | 2 | 3 | 4): CSSProperties {
 }
 
 export function UsageHeatmap({ records }: { records: UsageRecord[] }) {
-  // Always 53 weeks back so the column count is stable across renders
-  // (and across users) — Sunday-anchored grid that aligns with the
-  // GitHub convention people already pattern-match against.
-  const buckets = useMemo(() => buildBuckets(records, 7 * 53), [records]);
+  // buildBuckets calls `new Date()` + `setHours(...)` which resolve in the
+  // host timezone. The Workers SSR runs in UTC; the user's browser runs in
+  // their local TZ. That guarantees a hydration mismatch on the bucket
+  // date strings whenever the two days differ. Defer the real render until
+  // mount so SSR emits the placeholder and the client renders the real
+  // grid in the same TZ React will reconcile against.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+  const buckets = useMemo(
+    () => (mounted ? buildBuckets(records, 7 * 53) : []),
+    [records, mounted]
+  );
   const total = useMemo(
     () => buckets.reduce((s, b) => s + b.costUsd, 0),
     [buckets]
@@ -112,6 +122,24 @@ export function UsageHeatmap({ records }: { records: UsageRecord[] }) {
     () => bucketize(buckets.map((b) => b.costUsd)),
     [buckets]
   );
+
+  const [hover, setHover] = useState<{
+    b: DayBucket;
+    x: number;
+    y: number;
+  } | null>(null);
+
+  // SSR placeholder: render an identical-sized but empty container so
+  // layout doesn't reflow when the real grid lights up after mount.
+  if (!mounted) {
+    return (
+      <div
+        className="rounded-lg border border-border-subtle bg-bg-panel p-4"
+        style={{ minHeight: 180 }}
+        aria-hidden
+      />
+    );
+  }
 
   // Layout as 53 weeks × 7 rows. Shift the first column to align to
   // Sunday — the first cell may be a few days before our 365-day window
@@ -141,12 +169,6 @@ export function UsageHeatmap({ records }: { records: UsageRecord[] }) {
       lastMonth = m;
     }
   });
-
-  const [hover, setHover] = useState<{
-    b: DayBucket;
-    x: number;
-    y: number;
-  } | null>(null);
 
   const CELL = 12; // px
   const GAP = 3;

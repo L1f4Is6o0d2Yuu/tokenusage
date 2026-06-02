@@ -2,6 +2,8 @@ import "server-only";
 import { cookies } from "next/headers";
 import crypto from "node:crypto";
 import { openServerDb } from "./server-db";
+import { hashToken } from "./token-hash";
+import { isCloudflareRuntime } from "./runtime";
 
 export const SESSION_COOKIE = "tokenusage-session";
 const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
@@ -46,12 +48,19 @@ export function verifyPassword(password: string, stored: string): boolean {
 }
 
 // ---- session tokens ----
+//
+// Every public API in this file is async + runtime-dispatching. On CF
+// the dynamic import lands on `./cloudflare-auth`; on Node the function
+// falls through to the sqlite path right here. The dynamic import is
+// what avoids a circular module-init dependency (cloudflare-auth
+// imports `hashPassword` / `verifyPassword` / `SESSION_COOKIE` / types
+// statically from this module — fine because those don't touch DB).
 
-function hashToken(token: string): string {
-  return crypto.createHash("sha256").update(token).digest("hex");
-}
-
-export function createSession(userId: number): string {
+export async function createSession(userId: number): Promise<string> {
+  if (isCloudflareRuntime()) {
+    const { createSessionD1 } = await import("./cloudflare-auth");
+    return createSessionD1(userId);
+  }
   const token = crypto.randomBytes(32).toString("hex");
   const db = openServerDb();
   try {
@@ -66,7 +75,11 @@ export function createSession(userId: number): string {
   return token;
 }
 
-export function destroySession(token: string): void {
+export async function destroySession(token: string): Promise<void> {
+  if (isCloudflareRuntime()) {
+    const { destroySessionD1 } = await import("./cloudflare-auth");
+    return destroySessionD1(token);
+  }
   const db = openServerDb();
   try {
     db.prepare(`DELETE FROM auth_sessions WHERE token_hash = ?`).run(hashToken(token));
@@ -76,6 +89,10 @@ export function destroySession(token: string): void {
 }
 
 export async function readCurrentUser(): Promise<User | null> {
+  if (isCloudflareRuntime()) {
+    const { readCurrentUserD1 } = await import("./cloudflare-auth");
+    return readCurrentUserD1();
+  }
   const c = await cookies();
   const token = c.get(SESSION_COOKIE)?.value;
   if (!token) return null;
@@ -129,7 +146,11 @@ export type CreateUserInput = {
   isAdmin?: boolean;
 };
 
-export function createUser(input: CreateUserInput): User {
+export async function createUser(input: CreateUserInput): Promise<User> {
+  if (isCloudflareRuntime()) {
+    const { createUserD1 } = await import("./cloudflare-auth");
+    return createUserD1(input);
+  }
   const db = openServerDb();
   try {
     const now = Date.now();
@@ -204,7 +225,11 @@ export function createPendingOauthUser(input: {
   }
 }
 
-export function activateUser(userId: number): void {
+export async function activateUser(userId: number): Promise<void> {
+  if (isCloudflareRuntime()) {
+    const { activateUserD1 } = await import("./cloudflare-auth");
+    return activateUserD1(userId);
+  }
   const db = openServerDb();
   try {
     db.prepare(`UPDATE users SET activated_at = ? WHERE id = ? AND activated_at IS NULL`).run(
@@ -220,7 +245,11 @@ export function activateUser(userId: number): void {
 // comparison is case-sensitive at the SQLite level — the UNIQUE index
 // is on the raw column — so we lowercase here to avoid mismatch with
 // the address Google reports for OAuth sign-in.
-export function findUserByEmail(email: string): User | null {
+export async function findUserByEmail(email: string): Promise<User | null> {
+  if (isCloudflareRuntime()) {
+    const { findUserByEmailD1 } = await import("./cloudflare-auth");
+    return findUserByEmailD1(email);
+  }
   const db = openServerDb();
   try {
     const row = db
@@ -252,7 +281,11 @@ export function findUserByEmail(email: string): User | null {
 
 // Login by either username or email — whichever the user typed in. Passwords
 // are still always required.
-export function authenticate(identifier: string, password: string): User | null {
+export async function authenticate(identifier: string, password: string): Promise<User | null> {
+  if (isCloudflareRuntime()) {
+    const { authenticateD1 } = await import("./cloudflare-auth");
+    return authenticateD1(identifier, password);
+  }
   const db = openServerDb();
   try {
     const row = db
@@ -322,10 +355,14 @@ function generateInviteCode(db: ReturnType<typeof openServerDb>): string {
   throw new Error("invite code space exhausted — revoke expired invites and retry");
 }
 
-export function createInvite(adminUserId: number, note: string | null): {
+export async function createInvite(adminUserId: number, note: string | null): Promise<{
   id: number;
   plaintext: string;
-} {
+}> {
+  if (isCloudflareRuntime()) {
+    const { createInviteD1 } = await import("./cloudflare-auth");
+    return createInviteD1(adminUserId, note);
+  }
   const db = openServerDb();
   try {
     const code = generateInviteCode(db);
@@ -342,7 +379,11 @@ export function createInvite(adminUserId: number, note: string | null): {
   }
 }
 
-export function listInvites(): InviteRow[] {
+export async function listInvites(): Promise<InviteRow[]> {
+  if (isCloudflareRuntime()) {
+    const { listInvitesD1 } = await import("./cloudflare-auth");
+    return listInvitesD1();
+  }
   const db = openServerDb();
   try {
     return db
@@ -357,7 +398,11 @@ export function listInvites(): InviteRow[] {
   }
 }
 
-export function revokeInvite(id: number): void {
+export async function revokeInvite(id: number): Promise<void> {
+  if (isCloudflareRuntime()) {
+    const { revokeInviteD1 } = await import("./cloudflare-auth");
+    return revokeInviteD1(id);
+  }
   const db = openServerDb();
   try {
     db.prepare(`DELETE FROM invite_tokens WHERE id = ? AND used_at IS NULL`).run(id);
@@ -369,7 +414,11 @@ export function revokeInvite(id: number): void {
 // Admin edits the human-readable note on an invite. We allow this even
 // after the invite is redeemed — the note is purely descriptive, useful
 // for "who did I give this to?" bookkeeping.
-export function updateInviteNote(id: number, note: string | null): void {
+export async function updateInviteNote(id: number, note: string | null): Promise<void> {
+  if (isCloudflareRuntime()) {
+    const { updateInviteNoteD1 } = await import("./cloudflare-auth");
+    return updateInviteNoteD1(id, note);
+  }
   const db = openServerDb();
   try {
     db.prepare(`UPDATE invite_tokens SET note = ? WHERE id = ?`).run(note, id);
@@ -460,7 +509,7 @@ export function redeemInvite(
   }
 }
 
-export function listUsers(): Array<{
+export async function listUsers(): Promise<Array<{
   id: number;
   username: string;
   email: string | null;
@@ -473,7 +522,11 @@ export function listUsers(): Array<{
   agentSeenAt: number | null;
   lastUploadedAt: number | null;
   agentVersion: string | null;
-}> {
+}>> {
+  if (isCloudflareRuntime()) {
+    const { listUsersD1 } = await import("./cloudflare-auth");
+    return listUsersD1();
+  }
   const db = openServerDb();
   try {
     return db
@@ -513,8 +566,12 @@ export function listUsers(): Array<{
 // Record the agent's self-reported version. Called from the heartbeat
 // (/api/agent) and upload endpoints when they see an X-Agent-Version
 // header. No-op for unknown / empty version strings.
-export function recordAgentVersion(userId: number, version: string): void {
+export async function recordAgentVersion(userId: number, version: string): Promise<void> {
   if (!version || version.length > 32) return;
+  if (isCloudflareRuntime()) {
+    const { recordAgentVersionD1 } = await import("./cloudflare-sync-state");
+    return recordAgentVersionD1(userId, version);
+  }
   const db = openServerDb();
   try {
     db.prepare(`UPDATE users SET agent_version = ? WHERE id = ?`).run(
@@ -526,7 +583,11 @@ export function recordAgentVersion(userId: number, version: string): void {
   }
 }
 
-export function readAgentVersion(userId: number): string | null {
+export async function readAgentVersion(userId: number): Promise<string | null> {
+  if (isCloudflareRuntime()) {
+    const { readAgentVersionD1 } = await import("./cloudflare-auth");
+    return readAgentVersionD1(userId);
+  }
   const db = openServerDb();
   try {
     const row = db
@@ -541,8 +602,12 @@ export function readAgentVersion(userId: number): string | null {
 // Stamp a login event onto the user row. Called from loginAction with
 // the request's client IP (resolved from X-Forwarded-For, since we sit
 // behind Caddy). No-op if the ip string is empty.
-export function recordUserIp(userId: number, ip: string): void {
+export async function recordUserIp(userId: number, ip: string): Promise<void> {
   if (!ip) return;
+  if (isCloudflareRuntime()) {
+    const { recordUserIpD1 } = await import("./cloudflare-auth");
+    return recordUserIpD1(userId, ip);
+  }
   const db = openServerDb();
   try {
     db.prepare(`UPDATE users SET last_ip = ?, last_ip_at = ? WHERE id = ?`).run(
@@ -564,7 +629,11 @@ export type ApiTokenRow = {
   lastUsedAt: number | null;
 };
 
-export function listTokens(userId: number): ApiTokenRow[] {
+export async function listTokens(userId: number): Promise<ApiTokenRow[]> {
+  if (isCloudflareRuntime()) {
+    const { listTokensD1 } = await import("./cloudflare-auth");
+    return listTokensD1(userId);
+  }
   const db = openServerDb();
   try {
     return db
@@ -578,10 +647,14 @@ export function listTokens(userId: number): ApiTokenRow[] {
   }
 }
 
-export function createApiToken(userId: number, name: string): {
+export async function createApiToken(userId: number, name: string): Promise<{
   id: number;
   plaintext: string;
-} {
+}> {
+  if (isCloudflareRuntime()) {
+    const { createApiTokenD1 } = await import("./cloudflare-auth");
+    return createApiTokenD1(userId, name);
+  }
   const plaintext = "tu_" + crypto.randomBytes(24).toString("hex");
   const db = openServerDb();
   try {
@@ -597,7 +670,11 @@ export function createApiToken(userId: number, name: string): {
   }
 }
 
-export function revokeApiToken(userId: number, id: number): void {
+export async function revokeApiToken(userId: number, id: number): Promise<void> {
+  if (isCloudflareRuntime()) {
+    const { revokeApiTokenD1 } = await import("./cloudflare-auth");
+    return revokeApiTokenD1(userId, id);
+  }
   const db = openServerDb();
   try {
     db.prepare(`DELETE FROM api_tokens WHERE id = ? AND user_id = ?`).run(id, userId);
@@ -606,8 +683,14 @@ export function revokeApiToken(userId: number, id: number): void {
   }
 }
 
-export function authenticateApiToken(plaintext: string): User | null {
+export async function authenticateApiToken(plaintext: string): Promise<User | null> {
   if (!plaintext.startsWith("tu_")) return null;
+  if (isCloudflareRuntime()) {
+    const { authenticateApiTokenD1 } = await import("./cloudflare-auth");
+    const { getTokenusageD1 } = await import("./cloudflare-bindings");
+    const db = await getTokenusageD1();
+    return authenticateApiTokenD1(db, plaintext);
+  }
   const db = openServerDb();
   try {
     const row = db
@@ -656,7 +739,11 @@ export function authenticateApiToken(plaintext: string): User | null {
 // Admin flips the flag. We don't invalidate the user's current sessions —
 // they can still log in with their old password until they reset. (The
 // flag is permission to reset, not a forced logout.)
-export function flagPasswordReset(userId: number): void {
+export async function flagPasswordReset(userId: number): Promise<void> {
+  if (isCloudflareRuntime()) {
+    const { flagPasswordResetD1 } = await import("./cloudflare-auth");
+    return flagPasswordResetD1(userId);
+  }
   const db = openServerDb();
   try {
     db.prepare(`UPDATE users SET password_reset_at = ? WHERE id = ?`).run(

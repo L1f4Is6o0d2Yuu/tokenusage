@@ -1,6 +1,7 @@
 import "server-only";
 import { openServerDb } from "@/lib/server-db";
 import { resolveUsageCost } from "@/lib/pricing";
+import { isCloudflareRuntime } from "@/lib/runtime";
 import type { UsageRecord } from "@/lib/types";
 
 type Row = {
@@ -22,7 +23,11 @@ type Row = {
   title: string | null;
 };
 
-export function loadServerRecords(userId: number): UsageRecord[] {
+export async function loadServerRecords(userId: number): Promise<UsageRecord[]> {
+  if (isCloudflareRuntime()) {
+    const { loadServerRecordsD1 } = await import("@/lib/cloudflare-adapters");
+    return loadServerRecordsD1(userId);
+  }
   const db = openServerDb();
   try {
     const rows = db
@@ -73,7 +78,11 @@ export function loadServerRecords(userId: number): UsageRecord[] {
   }
 }
 
-export function countServerRecords(userId: number): number {
+export async function countServerRecords(userId: number): Promise<number> {
+  if (isCloudflareRuntime()) {
+    const { countServerRecordsD1 } = await import("@/lib/cloudflare-adapters");
+    return countServerRecordsD1(userId);
+  }
   const db = openServerDb();
   try {
     const row = db

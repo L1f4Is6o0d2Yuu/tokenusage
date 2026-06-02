@@ -1,5 +1,6 @@
 import "server-only";
 import { openServerDb } from "./server-db";
+import { isCloudflareRuntime } from "./runtime";
 
 // Hard-coded catalog. Adding a new plan is a one-line change here —
 // users see / pick from this list. Monthly USD is the sticker price;
@@ -293,7 +294,7 @@ export const PLAN_CATALOG: PlanDef[] = [
   },
 ];
 
-const PLAN_BY_ID = new Map(PLAN_CATALOG.map((p) => [p.id, p]));
+export const PLAN_BY_ID = new Map(PLAN_CATALOG.map((p) => [p.id, p]));
 
 export function getPlan(id: string): PlanDef | undefined {
   return PLAN_BY_ID.get(id as PlanId);
@@ -301,7 +302,11 @@ export function getPlan(id: string): PlanDef | undefined {
 
 // ─── DB helpers ──────────────────────────────────────────────────────────
 
-export function listUserSubscriptions(userId: number): PlanId[] {
+export async function listUserSubscriptions(userId: number): Promise<PlanId[]> {
+  if (isCloudflareRuntime()) {
+    const { listUserSubscriptionsD1 } = await import("./cloudflare-subscriptions");
+    return listUserSubscriptionsD1(userId);
+  }
   const db = openServerDb();
   try {
     const rows = db
@@ -318,7 +323,11 @@ export function listUserSubscriptions(userId: number): PlanId[] {
   }
 }
 
-export function setUserSubscriptions(userId: number, plans: PlanId[]): void {
+export async function setUserSubscriptions(userId: number, plans: PlanId[]): Promise<void> {
+  if (isCloudflareRuntime()) {
+    const { setUserSubscriptionsD1 } = await import("./cloudflare-subscriptions");
+    return setUserSubscriptionsD1(userId, plans);
+  }
   // Replace the user's set in one txn — simpler than diff-then-apply.
   // Also stamps `subscriptions_setup_at` so the welcome gate doesn't
   // re-fire on the next dashboard visit even when the user submits an
@@ -347,7 +356,11 @@ export function setUserSubscriptions(userId: number, plans: PlanId[]): void {
 // Has the user been through the first-time arsenal-picking screen
 // (regardless of whether they actually picked any plans)? Drives the
 // welcome redirect on the dashboard.
-export function hasFinishedSubscriptionsSetup(userId: number): boolean {
+export async function hasFinishedSubscriptionsSetup(userId: number): Promise<boolean> {
+  if (isCloudflareRuntime()) {
+    const { hasFinishedSubscriptionsSetupD1 } = await import("./cloudflare-subscriptions");
+    return hasFinishedSubscriptionsSetupD1(userId);
+  }
   const db = openServerDb();
   try {
     const row = db

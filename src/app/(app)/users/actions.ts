@@ -23,7 +23,7 @@ async function requireAdmin() {
 export async function createInviteAction(formData: FormData): Promise<void> {
   const admin = await requireAdmin();
   const note = String(formData.get("note") ?? "").trim() || null;
-  const { plaintext } = createInvite(admin.id, note);
+  const { plaintext } = await createInvite(admin.id, note);
   revalidatePath("/users");
   redirect(`/users?new=${encodeURIComponent(plaintext)}`);
 }
@@ -32,7 +32,7 @@ export async function revokeInviteAction(formData: FormData): Promise<void> {
   await requireAdmin();
   const id = Number(formData.get("id"));
   if (!Number.isFinite(id)) return;
-  revokeInvite(id);
+  await revokeInvite(id);
   revalidatePath("/users");
 }
 
@@ -44,7 +44,7 @@ export async function updateInviteNoteAction(formData: FormData): Promise<void> 
   const id = Number(formData.get("id"));
   const noteRaw = String(formData.get("note") ?? "").trim();
   if (!Number.isFinite(id)) return;
-  updateInviteNote(id, noteRaw || null);
+  await updateInviteNote(id, noteRaw || null);
   revalidatePath("/users");
 }
 
@@ -55,7 +55,7 @@ export async function resetUserPasswordAction(formData: FormData): Promise<void>
   const admin = await requireAdmin();
   const id = Number(formData.get("userId"));
   if (!Number.isFinite(id) || id === admin.id) return;
-  flagPasswordReset(id);
+  await flagPasswordReset(id);
   revalidatePath("/users");
 }
 
@@ -67,7 +67,7 @@ export async function activateUserAction(formData: FormData): Promise<void> {
   const admin = await requireAdmin();
   const id = Number(formData.get("userId"));
   if (!Number.isFinite(id)) return;
-  activateUser(id);
+  await activateUser(id);
   const h = await headers();
   recordAudit({
     userId: admin.id,

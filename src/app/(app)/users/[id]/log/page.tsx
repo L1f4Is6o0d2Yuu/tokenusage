@@ -51,7 +51,7 @@ export default async function UserAuditLogPage({
   const userId = parseUserId(rawId);
   if (userId == null) notFound();
 
-  const users = listUsers();
+  const users = await listUsers();
   const target = users.find((u) => u.id === userId);
   if (!target) notFound();
 

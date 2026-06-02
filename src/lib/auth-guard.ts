@@ -10,7 +10,7 @@ import { readCurrentUser, type User } from "./auth";
 // /signup if the server is fresh and has no users).
 export async function requireUser(): Promise<User | null> {
   if (!isMultiUserMode()) {
-    if (isFirstRun()) {
+    if (await isFirstRun()) {
       // server.db file may exist (created when checking) but no users yet.
       // Treat as single-user.
       return null;
@@ -19,7 +19,7 @@ export async function requireUser(): Promise<User | null> {
   }
   const user = await readCurrentUser();
   if (!user) {
-    redirect(isFirstRun() ? "/signup" : "/login");
+    redirect((await isFirstRun()) ? "/signup" : "/login");
   }
   return user;
 }

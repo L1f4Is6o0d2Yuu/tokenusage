@@ -2,8 +2,9 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { headers } from "next/headers";
-import { getShareBySlug } from "@/lib/shares";
 import { formatUsd } from "@/lib/format";
+import { isCloudflareRuntime } from "@/lib/runtime";
+import type { SavedShare } from "@/lib/shares";
 
 // Public-by-link share view. WeChat / X / 微博 crawlers will pick up
 // the og:image tag and inline-preview the poster — the actual point
@@ -30,13 +31,22 @@ async function siteOrigin(): Promise<string> {
   return `${proto}://${host}`;
 }
 
+async function readShare(slug: string): Promise<SavedShare | null> {
+  if (isCloudflareRuntime()) {
+    const { getShareBySlugD1 } = await import("@/lib/cloudflare-shares");
+    return getShareBySlugD1(slug);
+  }
+  const { getShareBySlug } = await import("@/lib/shares");
+  return getShareBySlug(slug);
+}
+
 export async function generateMetadata({
   params,
 }: {
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const share = getShareBySlug(slug);
+  const share = await readShare(slug);
   if (!share || share.revokedAt != null) {
     return { title: "tokenusage — 分享不存在" };
   }
@@ -71,7 +81,7 @@ export default async function SharePage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const share = getShareBySlug(slug);
+  const share = await readShare(slug);
   if (!share || share.revokedAt != null) notFound();
 
   const imageUrl = `/api/shares/${slug}`;

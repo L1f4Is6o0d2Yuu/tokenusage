@@ -21,7 +21,7 @@ export async function saveSubscriptionsAction(formData: FormData): Promise<void>
     .getAll("plan")
     .filter((v): v is string => typeof v === "string" && validIds.has(v)) as PlanId[];
 
-  setUserSubscriptions(user.id, picked);
+  await setUserSubscriptions(user.id, picked);
   revalidatePath("/");
   revalidatePath("/subscriptions");
   // If the user landed here from the first-time welcome gate, send

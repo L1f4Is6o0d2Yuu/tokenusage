@@ -19,10 +19,10 @@ type ThreadRow = {
   tokens_used: number;
 };
 
-const DEFAULT_DIR = path.join(os.homedir(), ".codex");
-
+// os.homedir() at module top-level throws "operation not permitted"
+// on Workers (nodejs_compat). Defer to keep CF module-init safe.
 function resolveDir(): string {
-  return process.env.TOKENUSAGE_CODEX_DIR || DEFAULT_DIR;
+  return process.env.TOKENUSAGE_CODEX_DIR || path.join(os.homedir(), ".codex");
 }
 
 function statePath(dir: string): string {

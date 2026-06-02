@@ -66,9 +66,9 @@ export default async function TokensPage({
     );
   }
   const { new: newToken, settings } = await searchParams;
-  const tokens = listTokens(user.id);
+  const tokens = await listTokens(user.id);
   const publicUrl = await getPublicUrl();
-  const syncState = getUserSyncState(user.id);
+  const syncState = await getUserSyncState(user.id);
   const options = intervalOptions(t.intervalOptions);
 
   return (

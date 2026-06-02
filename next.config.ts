@@ -1,12 +1,16 @@
 import type { NextConfig } from "next";
 
+const isCloudflareBuild = process.env.TOKENUSAGE_CLOUDFLARE === "1";
+
 const nextConfig: NextConfig = {
   // 'standalone' bundles a minimal node_modules subtree into .next/standalone,
-  // letting the production Docker image stay slim. Set
-  // TOKENUSAGE_DISABLE_STANDALONE=1 if you need the classic build for some
-  // reason (rare).
+  // letting the production Docker image stay slim. Cloudflare/OpenNext needs
+  // the normal Next build output instead, so cf:* scripts set
+  // TOKENUSAGE_CLOUDFLARE=1 to disable standalone without touching Docker.
   output:
-    process.env.TOKENUSAGE_DISABLE_STANDALONE === "1" ? undefined : "standalone",
+    process.env.TOKENUSAGE_DISABLE_STANDALONE === "1" || isCloudflareBuild
+      ? undefined
+      : "standalone",
 
   // better-sqlite3 is a native Node module; tell the Next bundler to leave it
   // alone in server bundles so the prebuilt binary keeps working.

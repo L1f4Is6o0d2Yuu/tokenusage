@@ -61,16 +61,23 @@ test('logged-in users have a persistent sidebar entry to regenerate the agent in
 });
 
 test('chunked ingest marks sync completion for polling dashboard progress', () => {
-  const source = read('../src/app/api/ingest/route.ts');
+  const source = read('../src/app/api/ingest/node-handler.ts');
+  const cloudflare = read('../src/app/api/ingest/cloudflare-handler.ts');
   assert.match(source, /markUploaded\(user\.id\)/);
   assert.match(source, /clearUploadInProgress\(user\.id\)/);
+  assert.match(cloudflare, /UPDATE users SET last_uploaded_at = \?/);
+  assert.match(cloudflare, /upload_started_at = NULL/);
 });
 
 test('chunked ingest stores resolved Hermes costs instead of raw zero costs', () => {
-  const source = read('../src/app/api/ingest/route.ts');
+  const source = read('../src/app/api/ingest/node-handler.ts');
+  const cloudflare = read('../src/app/api/ingest/cloudflare-handler.ts');
   assert.match(source, /resolveUsageCost\(/);
   assert.match(source, /cost_usd: resolvedCost\.costUsd/);
   assert.match(source, /cost_status: resolvedCost\.status/);
+  assert.match(cloudflare, /resolveUsageCost\(/);
+  assert.match(cloudflare, /resolvedCost\.costUsd/);
+  assert.match(cloudflare, /resolvedCost\.status/);
 });
 
 test('subscription picker keeps selections in parent state and submits hidden selected ids', () => {
@@ -130,8 +137,9 @@ test('agent start prefers resumable small-record ingest over monolithic tar uplo
 test('upload and ingest failures are recorded in audit_log and forwarded to Telegram alerts', () => {
   const audit = read('../src/lib/audit.ts');
   const alerts = read('../src/lib/ops-alerts.ts');
-  const upload = read('../src/app/api/upload/route.ts');
-  const ingest = read('../src/app/api/ingest/route.ts');
+  const upload = read('../src/app/api/upload/node-handler.ts');
+  const ingest = read('../src/app/api/ingest/node-handler.ts');
+  const ingestCloudflare = read('../src/app/api/ingest/cloudflare-handler.ts');
   const compose = read('../docker-compose.yml');
 
   assert.match(audit, /\| "upload_failed"/);
@@ -149,6 +157,8 @@ test('upload and ingest failures are recorded in audit_log and forwarded to Tele
   assert.match(upload, /reason:/);
   assert.match(ingest, /action: "ingest_failed"/);
   assert.match(ingest, /reason:/);
+  assert.match(ingestCloudflare, /action: "ingest_failed"/);
+  assert.match(ingestCloudflare, /recordIngestFailed\("invalid_json"\)/);
 });
 
 test('ops agent health report is dry-run first and safe for Telegram alerts', () => {
@@ -176,7 +186,7 @@ test('ops agent health report is dry-run first and safe for Telegram alerts', ()
 });
 
 test('health exposes deployment build sha without replacing package version', () => {
-  const route = read('../src/app/api/health/route.ts');
+  const route = read('../src/app/api/health/node-handler.ts');
   const dockerfile = read('../Dockerfile');
   const compose = read('../docker-compose.yml');
 
@@ -293,3 +303,72 @@ test('admin access console combines invites and members without blocking on geo 
   assert.match(logPage, /Agent observability fields/);
   assert.match(logPage, /Recent audit events/);
 });
+
+
+test('cloudflare migration branch has OpenNext preflight config and documents native blockers', () => {
+  const pkg = read('../package.json');
+  const nextConfig = read('../next.config.ts');
+  const wrangler = read('../wrangler.jsonc');
+  const openNext = read('../open-next.config.ts');
+  const migration = read('../docs/cloudflare-migration.md');
+  const uploadRoute = read('../src/app/api/upload/route.ts');
+  const uploadNodeHandler = read('../src/app/api/upload/node-handler.ts');
+  const runtime = read('../src/lib/runtime.ts');
+  const d1Migration = read('../migrations/0001_initial.sql');
+  const ingestRoute = read('../src/app/api/ingest/route.ts');
+  const ingestCloudflare = read('../src/app/api/ingest/cloudflare-handler.ts');
+  const healthRoute = read('../src/app/api/health/route.ts');
+  const shareSaveRoute = read('../src/app/api/share/save/route.ts');
+  const shareImageRoute = read('../src/app/api/shares/[slug]/route.ts');
+  const cloudflareBindings = read('../src/lib/cloudflare-bindings.ts');
+  const cloudflareShares = read('../src/lib/cloudflare-shares.ts');
+  const sharePage = read('../src/app/s/[slug]/page.tsx');
+  const gitignore = read('../.gitignore');
+  const eslintConfig = read('../eslint.config.mjs');
+
+  assert.match(pkg, /"cf:build": "TOKENUSAGE_CLOUDFLARE=1 opennextjs-cloudflare build"/);
+  assert.match(pkg, /"cf:preview": "TOKENUSAGE_CLOUDFLARE=1 opennextjs-cloudflare build && opennextjs-cloudflare preview"/);
+  assert.match(wrangler, /"main": "\.open-next\/worker\.js"/);
+  assert.match(wrangler, /"compatibility_flags": \["nodejs_compat"\]/);
+  assert.match(wrangler, /"TOKENUSAGE_RUNTIME": "cloudflare"/);
+  assert.match(wrangler, /"binding": "TOKENUSAGE_DB"/);
+  assert.match(wrangler, /"database_name": "tokenusage"/);
+  assert.match(wrangler, /"binding": "TOKENUSAGE_SHARES"/);
+  assert.match(wrangler, /"bucket_name": "tokenusage-shares"/);
+  assert.match(openNext, /defineCloudflareConfig\(\)/);
+  assert.match(nextConfig, /const isCloudflareBuild = process\.env\.TOKENUSAGE_CLOUDFLARE === "1"/);
+  assert.match(nextConfig, /process\.env\.TOKENUSAGE_DISABLE_STANDALONE === "1" \|\| isCloudflareBuild/);
+  assert.match(migration, /Cloudflare D1/);
+  assert.match(migration, /Cloudflare R2/);
+  assert.match(migration, /legacy tarball/);
+  assert.match(migration, /without explicit approval/);
+  assert.match(uploadRoute, /isCloudflareRuntime\(\)/);
+  assert.match(uploadRoute, /status: 410/);
+  assert.match(uploadRoute, /api\/ingest agent path/);
+  assert.match(uploadRoute, /await import\("\.\/node-handler"\)/);
+  assert.match(uploadNodeHandler, /spawn\(\s*"tar"/s);
+  assert.match(runtime, /TOKENUSAGE_RUNTIME === "cloudflare"/);
+  assert.match(d1Migration, /CREATE TABLE IF NOT EXISTS users/);
+  assert.match(d1Migration, /CREATE TABLE IF NOT EXISTS sessions_data/);
+  assert.match(d1Migration, /CREATE TABLE IF NOT EXISTS audit_log/);
+  assert.match(ingestRoute, /await import\("\.\/cloudflare-handler"\)/);
+  assert.match(ingestRoute, /await import\("\.\/node-handler"\)/);
+  assert.match(ingestCloudflare, /getTokenusageD1\(\)/);
+  assert.match(ingestCloudflare, /authenticateApiTokenD1\(/);
+  assert.match(ingestCloudflare, /ON CONFLICT\(user_id, provider, external_id\)/);
+  assert.match(healthRoute, /await import\("\.\/cloudflare-handler"\)/);
+  assert.match(healthRoute, /await import\("\.\/node-handler"\)/);
+  assert.match(shareSaveRoute, /await import\("\.\/cloudflare-handler"\)/);
+  assert.match(shareImageRoute, /await import\("\.\/cloudflare-handler"\)/);
+  assert.match(cloudflareBindings, /TOKENUSAGE_DB/);
+  assert.match(cloudflareBindings, /TOKENUSAGE_SHARES/);
+  assert.match(cloudflareShares, /bucket\.put\(shareObjectKey\(slug\)/);
+  assert.match(cloudflareShares, /bucket\.get\(shareObjectKey\(slug\)\)/);
+  assert.match(sharePage, /await import\("@\/lib\/cloudflare-shares"\)/);
+  assert.match(gitignore, /\/\.open-next\//);
+  assert.match(gitignore, /\/\.wrangler\//);
+  assert.match(eslintConfig, /"\.open-next\/\*\*"/);
+  assert.match(eslintConfig, /"\.wrangler\/\*\*"/);
+});
+
+

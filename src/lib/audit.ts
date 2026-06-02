@@ -1,6 +1,7 @@
 import "server-only";
 import { openServerDb } from "./server-db";
 import { notifyAuditAlert } from "./ops-alerts";
+import { isCloudflareRuntime } from "./runtime";
 
 // Security-relevant actions we record to the audit_log table. Keep this
 // list tight — every entry expands the surface that ops/forensics has to
@@ -27,7 +28,31 @@ export function recordAudit(params: {
   meta?: Record<string, unknown>;
 }): void {
   // Audit log failures must never bubble back to the caller — a broken
-  // logger should not break a successful upload or login.
+  // logger should not break a successful upload or login. On the CF
+  // runtime we don't have a D1 audit_log table yet, so we log to
+  // `console.warn` (visible via `wrangler tail`) and still fire the
+  // Telegram alert path. Persistent CF audit storage is a TODO; the
+  // node side keeps its full DB+alert behaviour unchanged.
+  if (isCloudflareRuntime()) {
+    console.warn("[audit:cf]", JSON.stringify({
+      userId: params.userId,
+      action: params.action,
+      ip: params.ip,
+      ua: params.userAgent ? params.userAgent.slice(0, 80) : null,
+      meta: params.meta ?? null,
+      ts: Date.now(),
+    }));
+    try {
+      notifyAuditAlert({
+        action: params.action,
+        userId: params.userId,
+        meta: params.meta,
+      });
+    } catch (e) {
+      console.error("[audit:cf] notifyAuditAlert failed:", e);
+    }
+    return;
+  }
   try {
     const db = openServerDb();
     try {

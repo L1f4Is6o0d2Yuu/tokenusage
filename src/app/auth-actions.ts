@@ -53,7 +53,7 @@ export async function loginAction(
   if (!username || !password) return { error: "username and password are required" };
   const ip = await clientIpFromHeaders();
   const ua = await userAgentFromHeaders();
-  const user = authenticate(username, password);
+  const user = await authenticate(username, password);
   if (!user) {
     recordAudit({
       userId: null,
@@ -64,9 +64,9 @@ export async function loginAction(
     });
     return { error: "invalid username or password" };
   }
-  recordUserIp(user.id, ip);
+  await recordUserIp(user.id, ip);
   recordAudit({ userId: user.id, action: "login", ip, userAgent: ua });
-  const token = createSession(user.id);
+  const token = await createSession(user.id);
   await setSessionCookie(token);
   revalidatePath("/", "layout");
   redirect("/dashboard");
@@ -87,7 +87,7 @@ export async function signupAction(
 ): Promise<AuthFormState> {
   // First-run admin signup only — after the first user exists, additional
   // accounts go through /signup?invite=... (the redemption flow below).
-  if (!isFirstRun()) return { error: "signup is closed — use an invite link instead" };
+  if (!(await isFirstRun())) return { error: "signup is closed — use an invite link instead" };
   const username = String(formData.get("username") ?? "").trim();
   const email = String(formData.get("email") ?? "").trim();
   const password = String(formData.get("password") ?? "");
@@ -96,7 +96,7 @@ export async function signupAction(
   if (email && !isValidEmail(email)) return { error: "email looks invalid" };
   const pwErr = passwordError(password);
   if (pwErr) return { error: pwErr };
-  const user = createUser({
+  const user = await createUser({
     username,
     email: email || null,
     password,
@@ -104,9 +104,9 @@ export async function signupAction(
   });
   const ip = await clientIpFromHeaders();
   const ua = await userAgentFromHeaders();
-  recordUserIp(user.id, ip);
+  await recordUserIp(user.id, ip);
   recordAudit({ userId: user.id, action: "signup", ip, userAgent: ua });
-  const token = createSession(user.id);
+  const token = await createSession(user.id);
   await setSessionCookie(token);
   revalidatePath("/", "layout");
   redirect("/dashboard");
@@ -141,7 +141,7 @@ export async function redeemInviteAction(
   }
   const ip = await clientIpFromHeaders();
   const ua = await userAgentFromHeaders();
-  recordUserIp(user.id, ip);
+  await recordUserIp(user.id, ip);
   recordAudit({
     userId: user.id,
     action: "invite_redeemed",
@@ -149,7 +149,7 @@ export async function redeemInviteAction(
     userAgent: ua,
     meta: { username: finalUsername },
   });
-  const token = createSession(user.id);
+  const token = await createSession(user.id);
   await setSessionCookie(token);
   revalidatePath("/", "layout");
   redirect("/dashboard");
@@ -194,13 +194,13 @@ export async function forgotPasswordCompleteAction(
   const ok = completePasswordReset(email, password);
   if (!ok) return { error: "reset is no longer available — ask the admin to flag your account again" };
   // Log the user in directly: the admin already vouched for them.
-  const auth = authenticate(email, password);
+  const auth = await authenticate(email, password);
   if (auth) {
     const ip = await clientIpFromHeaders();
     const ua = await userAgentFromHeaders();
-    recordUserIp(auth.id, ip);
+    await recordUserIp(auth.id, ip);
     recordAudit({ userId: auth.id, action: "password_reset", ip, userAgent: ua });
-    const token = createSession(auth.id);
+    const token = await createSession(auth.id);
     await setSessionCookie(token);
   }
   revalidatePath("/", "layout");
@@ -210,7 +210,7 @@ export async function forgotPasswordCompleteAction(
 export async function logoutAction(): Promise<void> {
   const c = await cookies();
   const token = c.get(SESSION_COOKIE)?.value;
-  if (token) destroySession(token);
+  if (token) await destroySession(token);
   c.delete(SESSION_COOKIE);
   revalidatePath("/", "layout");
   redirect(isMultiUserMode() ? "/login" : "/");

@@ -69,7 +69,7 @@ export async function GET(req: NextRequest): Promise<Response> {
     return await redirectToLogin("oauth_email_unverified");
   }
 
-  let user = findUserByEmail(identity.email);
+  let user = await findUserByEmail(identity.email);
   const h = await headers();
   const ip = h.get("x-forwarded-for")?.split(",")[0]?.trim() ?? h.get("x-real-ip") ?? null;
   const ua = h.get("user-agent");
@@ -100,9 +100,9 @@ export async function GET(req: NextRequest): Promise<Response> {
     });
   }
 
-  recordUserIp(user.id, ip ?? "");
+  await recordUserIp(user.id, ip ?? "");
 
-  const sessionToken = createSession(user.id);
+  const sessionToken = await createSession(user.id);
   // Pending users land on /pending; activated users land on /.
   const landingPath = user.activatedAt == null ? "/pending" : "/dashboard";
   const res = NextResponse.redirect(new URL(landingPath, origin), { status: 303 });

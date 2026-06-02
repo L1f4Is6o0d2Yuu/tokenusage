@@ -1,0 +1,64 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "tokenusage",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2026-05-28",
+  "compatibility_flags": ["nodejs_compat"],
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+  "observability": {
+    "enabled": true
+  },
+  "vars": {
+    "TOKENUSAGE_RUNTIME": "cloudflare",
+    "TOKENUSAGE_CLOUDFLARE": "1"
+  },
+  // Default top-level bindings hold the future *production* IDs. Until the
+  // real prod D1 / R2 are provisioned, the staging env is the one to use:
+  //
+  //     pnpm cf:deploy -- --env staging
+  //
+  // The staging env below targets a real (paid-tier-free) D1 + R2 pair
+  // created on 2026-06-01 in account 4d6f95f2b49adea6e06da9334f2cecfd.
+  "d1_databases": [
+    {
+      "binding": "TOKENUSAGE_DB",
+      "database_name": "tokenusage",
+      "database_id": "00000000-0000-0000-0000-000000000000"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "TOKENUSAGE_SHARES",
+      "bucket_name": "tokenusage-shares"
+    }
+  ],
+  "env": {
+    "staging": {
+      "name": "tokenusage-staging",
+      "vars": {
+        "TOKENUSAGE_RUNTIME": "cloudflare",
+        "TOKENUSAGE_CLOUDFLARE": "1",
+        "TOKENUSAGE_PUBLIC_URL": "https://cf-staging.tokenusage.online"
+      },
+      "d1_databases": [
+        {
+          "binding": "TOKENUSAGE_DB",
+          "database_name": "tokenusage-staging",
+          "database_id": "2a008c21-c52f-4cdf-ac2a-9ec7f5edfe12"
+        }
+      ]
+      // r2_buckets is intentionally absent: R2 needs a one-time
+      // dashboard subscription with a credit card (free tier, but the
+      // activation flow demands a payment method). The share-poster
+      // routes will return 500 until R2 is enabled and this binding
+      // is added back as:
+      //   "r2_buckets": [
+      //     { "binding": "TOKENUSAGE_SHARES",
+      //       "bucket_name": "tokenusage-shares-staging" }
+      //   ]
+    }
+  }
+}
