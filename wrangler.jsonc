@@ -1,7 +1,11 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "tokenusage",
-  "main": ".open-next/worker.js",
+  // worker-entry.mjs wraps the OpenNext-generated .open-next/worker.js so we
+  // can add a scheduled() handler (Cron Trigger) alongside the regular fetch
+  // path. The wrapper re-exports the Durable Object classes verbatim so the
+  // binding names below still resolve.
+  "main": "worker-entry.mjs",
   "compatibility_date": "2026-05-28",
   "compatibility_flags": ["nodejs_compat"],
   "assets": {
@@ -55,7 +59,13 @@
           "binding": "TOKENUSAGE_SHARES",
           "bucket_name": "tokenusage-shares-staging"
         }
-      ]
+      ],
+      // Daily 04:00 UTC tick — the scheduled handler in worker-entry.mjs
+      // calls runSharesCleanup() to purge any D1 shares rows older than
+      // RETENTION_DAYS (matches the R2 lifecycle in ops/r2-lifecycle.json).
+      "triggers": {
+        "crons": ["0 4 * * *"]
+      }
     }
   }
 }
