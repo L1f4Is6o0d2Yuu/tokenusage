@@ -29,9 +29,14 @@ export type TokenusageR2Bucket = {
   delete(key: string): Promise<void>;
 };
 
+type AssetsBinding = {
+  fetch(request: Request | string | URL): Promise<Response>;
+};
+
 type TokenusageCloudflareEnv = CloudflareEnv & {
   TOKENUSAGE_DB?: TokenusageD1Database;
   TOKENUSAGE_SHARES?: TokenusageR2Bucket;
+  ASSETS?: AssetsBinding;
 };
 
 export async function getTokenusageCloudflareEnv(): Promise<TokenusageCloudflareEnv> {
@@ -45,6 +50,14 @@ export async function getTokenusageD1(): Promise<TokenusageD1Database> {
     throw new Error("missing Cloudflare D1 binding TOKENUSAGE_DB");
   }
   return env.TOKENUSAGE_DB;
+}
+
+export async function getTokenusageAssets(): Promise<AssetsBinding> {
+  const env = await getTokenusageCloudflareEnv();
+  if (!env.ASSETS) {
+    throw new Error("missing Cloudflare ASSETS binding");
+  }
+  return env.ASSETS;
 }
 
 export async function getTokenusageR2(): Promise<TokenusageR2Bucket> {
