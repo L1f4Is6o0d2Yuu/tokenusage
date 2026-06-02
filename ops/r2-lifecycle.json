@@ -1,0 +1,20 @@
+{
+  "rules": [
+    {
+      "id": "expire-after-30-days",
+      "enabled": true,
+      "conditions": { "prefix": "" },
+      "deleteObjectsTransition": {
+        "condition": { "type": "Age", "maxAge": 2592000 }
+      }
+    },
+    {
+      "id": "abort-incomplete-multipart-1-day",
+      "enabled": true,
+      "conditions": { "prefix": "" },
+      "abortMultipartUploadsTransition": {
+        "condition": { "type": "Age", "maxAge": 86400 }
+      }
+    }
+  ]
+}
