@@ -183,10 +183,14 @@ export async function createUser(input: CreateUserInput): Promise<User> {
 // no account yet. We create the row in a pending state (no password, no
 // admin, activated_at NULL) so an admin can review on /users and flip
 // them active. Until then they get the /pending placeholder.
-export function createPendingOauthUser(input: {
+export async function createPendingOauthUser(input: {
   email: string;
   preferredUsername?: string | null;
-}): User {
+}): Promise<User> {
+  if (isCloudflareRuntime()) {
+    const { createPendingOauthUserD1 } = await import("./cloudflare-auth");
+    return createPendingOauthUserD1(input);
+  }
   const db = openServerDb();
   try {
     const now = Date.now();
@@ -459,9 +463,14 @@ function findInviteRow(
 
 // Validate a plaintext invite without consuming it. Used by the redemption
 // page to decide whether to render the form or an error.
-export function lookupInvite(plaintext: string):
+export async function lookupInvite(plaintext: string): Promise<
   | { ok: true; id: number; expiresAt: number }
-  | { ok: false; reason: "not-found" | "expired" | "used" } {
+  | { ok: false; reason: "not-found" | "expired" | "used" }
+> {
+  if (isCloudflareRuntime()) {
+    const { lookupInviteD1 } = await import("./cloudflare-auth");
+    return lookupInviteD1(plaintext);
+  }
   const db = openServerDb();
   try {
     const row = findInviteRow(db, plaintext);
@@ -476,12 +485,16 @@ export function lookupInvite(plaintext: string):
 
 // Atomic redemption: validate + create user + mark invite used in one txn.
 // Throws on conflict (duplicate username/email or invalid token).
-export function redeemInvite(
+export async function redeemInvite(
   plaintext: string,
   username: string,
   email: string,
   password: string
-): User {
+): Promise<User> {
+  if (isCloudflareRuntime()) {
+    const { redeemInviteD1 } = await import("./cloudflare-auth");
+    return redeemInviteD1(plaintext, username, email, password);
+  }
   const db = openServerDb();
   try {
     const txn = db.transaction(() => {
@@ -762,7 +775,13 @@ export type PasswordResetLookup =
   // separate at the data layer so server-side logs can tell them apart.
   | { ok: false; reason: "no-user" | "not-flagged" };
 
-export function lookupPasswordReset(email: string): PasswordResetLookup {
+export async function lookupPasswordReset(
+  email: string
+): Promise<PasswordResetLookup> {
+  if (isCloudflareRuntime()) {
+    const { lookupPasswordResetD1 } = await import("./cloudflare-auth");
+    return lookupPasswordResetD1(email);
+  }
   const db = openServerDb();
   try {
     const row = db
@@ -782,7 +801,14 @@ export function lookupPasswordReset(email: string): PasswordResetLookup {
 // Atomic: re-check the flag is set, swap the hash, clear the flag, kill all
 // existing sessions. The session purge keeps an attacker who took over the
 // account temporarily from lingering after the legit owner resets.
-export function completePasswordReset(email: string, newPassword: string): boolean {
+export async function completePasswordReset(
+  email: string,
+  newPassword: string
+): Promise<boolean> {
+  if (isCloudflareRuntime()) {
+    const { completePasswordResetD1 } = await import("./cloudflare-auth");
+    return completePasswordResetD1(email, newPassword);
+  }
   const db = openServerDb();
   try {
     const txn = db.transaction(() => {

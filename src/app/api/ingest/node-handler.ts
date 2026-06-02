@@ -171,7 +171,7 @@ export async function POST(req: NextRequest): Promise<Response> {
   markUploaded(user.id);
   clearUploadInProgress(user.id);
 
-  recordAudit({
+  await recordAudit({
     userId: user.id,
     action: "ingest",
     ip: req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null,

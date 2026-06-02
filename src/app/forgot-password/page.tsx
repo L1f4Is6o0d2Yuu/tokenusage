@@ -26,7 +26,7 @@ export default async function ForgotPasswordPage({
   // between step 1 and step 2 (or someone hand-crafted the URL), bounce
   // back to step 1 with a stale notice.
   if (step === "reset" && email) {
-    const lookup = lookupPasswordReset(email);
+    const lookup = await lookupPasswordReset(email);
     if (lookup.ok) {
       return (
         <main className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center px-6 py-10">

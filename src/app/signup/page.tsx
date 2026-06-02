@@ -18,7 +18,7 @@ export default async function SignupPage({
   const t = (await getDictionary()).authForms;
 
   if (invite) {
-    const status = lookupInvite(invite);
+    const status = await lookupInvite(invite);
     return (
       <main className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center px-6 py-10">
         <div className="mb-8 text-center">

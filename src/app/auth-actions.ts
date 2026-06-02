@@ -55,7 +55,7 @@ export async function loginAction(
   const ua = await userAgentFromHeaders();
   const user = await authenticate(username, password);
   if (!user) {
-    recordAudit({
+    await recordAudit({
       userId: null,
       action: "login_failed",
       ip,
@@ -65,7 +65,7 @@ export async function loginAction(
     return { error: "invalid username or password" };
   }
   await recordUserIp(user.id, ip);
-  recordAudit({ userId: user.id, action: "login", ip, userAgent: ua });
+  await recordAudit({ userId: user.id, action: "login", ip, userAgent: ua });
   const token = await createSession(user.id);
   await setSessionCookie(token);
   revalidatePath("/", "layout");
@@ -105,7 +105,7 @@ export async function signupAction(
   const ip = await clientIpFromHeaders();
   const ua = await userAgentFromHeaders();
   await recordUserIp(user.id, ip);
-  recordAudit({ userId: user.id, action: "signup", ip, userAgent: ua });
+  await recordAudit({ userId: user.id, action: "signup", ip, userAgent: ua });
   const token = await createSession(user.id);
   await setSessionCookie(token);
   revalidatePath("/", "layout");
@@ -128,7 +128,7 @@ export async function redeemInviteAction(
   if (finalUsername.length < 2) return { error: "username too short" };
   let user;
   try {
-    user = redeemInviteInternal(invite, finalUsername, email, password);
+    user = await redeemInviteInternal(invite, finalUsername, email, password);
   } catch (err) {
     const msg = err instanceof Error ? err.message : "could not redeem invite";
     if (msg.includes("UNIQUE constraint") && msg.includes("email")) {
@@ -142,7 +142,7 @@ export async function redeemInviteAction(
   const ip = await clientIpFromHeaders();
   const ua = await userAgentFromHeaders();
   await recordUserIp(user.id, ip);
-  recordAudit({
+  await recordAudit({
     userId: user.id,
     action: "invite_redeemed",
     ip,
@@ -170,7 +170,7 @@ export async function forgotPasswordLookupAction(
 ): Promise<ForgotPasswordLookupState> {
   const email = String(formData.get("email") ?? "").trim();
   if (!email || !isValidEmail(email)) return { error: "valid email is required" };
-  const lookup = lookupPasswordReset(email);
+  const lookup = await lookupPasswordReset(email);
   if (!lookup.ok) {
     // Tell the user "not reset" identically whether they typed a wrong email
     // or a real one without the admin flag. That way enumeration via this
@@ -191,7 +191,7 @@ export async function forgotPasswordCompleteAction(
   if (!email || !isValidEmail(email)) return { error: "valid email is required" };
   const pwErr = passwordError(password);
   if (pwErr) return { error: pwErr };
-  const ok = completePasswordReset(email, password);
+  const ok = await completePasswordReset(email, password);
   if (!ok) return { error: "reset is no longer available — ask the admin to flag your account again" };
   // Log the user in directly: the admin already vouched for them.
   const auth = await authenticate(email, password);
@@ -199,7 +199,7 @@ export async function forgotPasswordCompleteAction(
     const ip = await clientIpFromHeaders();
     const ua = await userAgentFromHeaders();
     await recordUserIp(auth.id, ip);
-    recordAudit({ userId: auth.id, action: "password_reset", ip, userAgent: ua });
+    await recordAudit({ userId: auth.id, action: "password_reset", ip, userAgent: ua });
     const token = await createSession(auth.id);
     await setSessionCookie(token);
   }

@@ -56,7 +56,7 @@ export default async function UserAuditLogPage({
   if (!target) notFound();
 
   const locale = await readLocale();
-  const rows = readRecentAudit(100, target.id);
+  const rows = await readRecentAudit(100, target.id);
 
   return (
     <main className="mx-auto w-full max-w-5xl px-6 py-10">

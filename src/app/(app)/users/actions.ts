@@ -69,7 +69,7 @@ export async function activateUserAction(formData: FormData): Promise<void> {
   if (!Number.isFinite(id)) return;
   await activateUser(id);
   const h = await headers();
-  recordAudit({
+  await recordAudit({
     userId: admin.id,
     action: "user_activated",
     ip: h.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null,

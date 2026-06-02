@@ -408,3 +408,192 @@ export async function activateUserD1(userId: number): Promise<void> {
     .bind(Date.now(), userId)
     .run();
 }
+
+// Mirrors findInviteRow in auth.ts: try the short `TU####` code first
+// (case-insensitive), then fall back to the legacy hashed `tui_…` token.
+async function findInviteRowD1(
+  db: TokenusageD1Database,
+  plaintext: string
+): Promise<{ id: number; expiresAt: number; usedAt: number | null } | null> {
+  const trimmed = plaintext.trim();
+  const codeKey = /^tu\d{4}$/i.test(trimmed) ? trimmed.toUpperCase() : trimmed;
+  const byCode = await db
+    .prepare(
+      `SELECT id, expires_at AS expiresAt, used_at AS usedAt
+       FROM invite_tokens WHERE code = ? LIMIT 1`
+    )
+    .bind(codeKey)
+    .first<{ id: number; expiresAt: number; usedAt: number | null }>();
+  if (byCode) return byCode;
+  const byHash = await db
+    .prepare(
+      `SELECT id, expires_at AS expiresAt, used_at AS usedAt
+       FROM invite_tokens WHERE token_hash = ? LIMIT 1`
+    )
+    .bind(hashToken(trimmed))
+    .first<{ id: number; expiresAt: number; usedAt: number | null }>();
+  return byHash ?? null;
+}
+
+export async function lookupInviteD1(
+  plaintext: string
+): Promise<
+  | { ok: true; id: number; expiresAt: number }
+  | { ok: false; reason: "not-found" | "expired" | "used" }
+> {
+  const db = await getTokenusageD1();
+  const row = await findInviteRowD1(db, plaintext);
+  if (!row) return { ok: false, reason: "not-found" };
+  if (row.usedAt != null) return { ok: false, reason: "used" };
+  if (row.expiresAt < Date.now()) return { ok: false, reason: "expired" };
+  return { ok: true, id: row.id, expiresAt: row.expiresAt };
+}
+
+// Atomic-ish redemption on D1: validate → batch(INSERT user, UPDATE invite).
+// The batch is one txn, so a UNIQUE violation on username/email rolls both
+// back. The narrow remaining race is a second redeemer slipping between our
+// validate and the batch — they'll either also pass validation and hit the
+// UNIQUE constraint (rollback), or the UPDATE's `used_at IS NULL` guard
+// catches it (0 changes; we throw and leave a stranded user row). Same
+// race shape as the better-sqlite3 `db.transaction()` path in auth.ts and
+// acceptable for a single-shot admin-issued code.
+export async function redeemInviteD1(
+  plaintext: string,
+  username: string,
+  email: string,
+  password: string
+): Promise<User> {
+  const db = await getTokenusageD1();
+  const inv = await findInviteRowD1(db, plaintext);
+  if (!inv) throw new Error("invite not found");
+  if (inv.usedAt != null) throw new Error("invite already used");
+  if (inv.expiresAt < Date.now()) throw new Error("invite expired");
+
+  const now = Date.now();
+  // Inside D1's batch transaction, last_insert_rowid() picks up the row id
+  // produced by the preceding INSERT — saves a round trip and keeps the
+  // used_by_user_id link consistent with the new user row.
+  const results = await db.batch([
+    db
+      .prepare(
+        `INSERT INTO users (username, email, password_hash, is_admin, created_at, activated_at)
+         VALUES (?, ?, ?, 0, ?, ?)`
+      )
+      .bind(username, email, hashPassword(password), now, now),
+    db
+      .prepare(
+        `UPDATE invite_tokens
+         SET used_at = ?, used_by_user_id = last_insert_rowid()
+         WHERE id = ? AND used_at IS NULL`
+      )
+      .bind(now, inv.id),
+  ]);
+  const insertMeta = results[0]?.meta as { last_row_id?: number } | undefined;
+  const updateMeta = results[1]?.meta as { changes?: number } | undefined;
+  if ((updateMeta?.changes ?? 0) !== 1) {
+    throw new Error("invite redemption raced");
+  }
+  return {
+    id: Number(insertMeta?.last_row_id ?? 0),
+    username,
+    email,
+    isAdmin: false,
+    activatedAt: now,
+  };
+}
+
+// ---- password reset (D1 mirrors) ----
+
+export type PasswordResetLookupD1 =
+  | { ok: true; userId: number; flaggedAt: number }
+  | { ok: false; reason: "no-user" | "not-flagged" };
+
+export async function lookupPasswordResetD1(
+  email: string
+): Promise<PasswordResetLookupD1> {
+  const db = await getTokenusageD1();
+  const row = await db
+    .prepare(
+      `SELECT id, password_reset_at AS resetAt
+       FROM users WHERE email = ? LIMIT 1`
+    )
+    .bind(email)
+    .first<{ id: number; resetAt: number | null }>();
+  if (!row) return { ok: false, reason: "no-user" };
+  if (row.resetAt == null) return { ok: false, reason: "not-flagged" };
+  return { ok: true, userId: row.id, flaggedAt: row.resetAt };
+}
+
+// Re-checks the reset flag, swaps the hash, clears the flag, and kills every
+// existing session for the user — all in one D1 batch so a partial state
+// (new hash without session purge, or vice versa) can't survive a failure.
+export async function completePasswordResetD1(
+  email: string,
+  newPassword: string
+): Promise<boolean> {
+  const db = await getTokenusageD1();
+  const row = await db
+    .prepare(
+      `SELECT id, password_reset_at AS resetAt
+       FROM users WHERE email = ? LIMIT 1`
+    )
+    .bind(email)
+    .first<{ id: number; resetAt: number | null }>();
+  if (!row || row.resetAt == null) return false;
+  await db.batch([
+    db
+      .prepare(
+        `UPDATE users SET password_hash = ?, password_reset_at = NULL
+         WHERE id = ? AND password_reset_at IS NOT NULL`
+      )
+      .bind(hashPassword(newPassword), row.id),
+    db.prepare(`DELETE FROM auth_sessions WHERE user_id = ?`).bind(row.id),
+  ]);
+  return true;
+}
+
+// OAuth bootstrap: create a pending (activated_at NULL, unusable password)
+// user row. The username-collision retry mirrors the sqlite path — but
+// without a server-side `for` loop pre-checking, we'd race against another
+// signup. We pre-check via SELECT here; the UNIQUE index is the final
+// safety net (it'll surface as a thrown error to the OAuth callback).
+export async function createPendingOauthUserD1(input: {
+  email: string;
+  preferredUsername?: string | null;
+}): Promise<User> {
+  const db = await getTokenusageD1();
+  const now = Date.now();
+  const seed =
+    ((input.preferredUsername || input.email.split("@")[0] || "user")
+      .toLowerCase()
+      .replace(/[^a-z0-9_-]/g, "")
+      .slice(0, 32)) || "user";
+  let username = seed;
+  for (let i = 1; i < 1000; i++) {
+    const taken = await db
+      .prepare(`SELECT 1 AS hit FROM users WHERE username = ? LIMIT 1`)
+      .bind(username)
+      .first<{ hit: number }>();
+    if (!taken) break;
+    username = `${seed}${i}`;
+  }
+  // Unusable placeholder: random 32-byte hex hashed via scrypt. The user can
+  // never reproduce the plaintext, so password login is blocked until an
+  // admin flips the reset flag.
+  const placeholder = hashPassword(crypto.randomBytes(32).toString("hex"));
+  const result = await db
+    .prepare(
+      `INSERT INTO users (username, email, password_hash, is_admin, created_at, activated_at)
+       VALUES (?, ?, ?, 0, ?, NULL)`
+    )
+    .bind(username, input.email, placeholder, now)
+    .run();
+  const meta = result.meta as { last_row_id?: number } | undefined;
+  return {
+    id: Number(meta?.last_row_id ?? 0),
+    username,
+    email: input.email,
+    isAdmin: false,
+    activatedAt: null,
+  };
+}

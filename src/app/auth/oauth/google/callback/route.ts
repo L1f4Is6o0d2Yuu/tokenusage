@@ -79,11 +79,11 @@ export async function GET(req: NextRequest): Promise<Response> {
     // redirect them to /pending until an admin flips them active from
     // /users. We session them in so the admin can see who they are and
     // they can return to /pending without re-doing the Google flow.
-    user = createPendingOauthUser({
+    user = await createPendingOauthUser({
       email: identity.email,
       preferredUsername: identity.name,
     });
-    recordAudit({
+    await recordAudit({
       userId: user.id,
       action: "oauth_pending_created",
       ip,
@@ -91,7 +91,7 @@ export async function GET(req: NextRequest): Promise<Response> {
       meta: { method: "google", email: identity.email, name: identity.name },
     });
   } else {
-    recordAudit({
+    await recordAudit({
       userId: user.id,
       action: "login",
       ip,

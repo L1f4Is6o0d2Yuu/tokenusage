@@ -20,28 +20,22 @@ export type AuditAction =
   | "oauth_pending_created"
   | "user_activated";
 
-export function recordAudit(params: {
+export async function recordAudit(params: {
   userId: number | null;
   action: AuditAction;
   ip: string | null;
   userAgent: string | null;
   meta?: Record<string, unknown>;
-}): void {
+}): Promise<void> {
   // Audit log failures must never bubble back to the caller — a broken
-  // logger should not break a successful upload or login. On the CF
-  // runtime we don't have a D1 audit_log table yet, so we log to
-  // `console.warn` (visible via `wrangler tail`) and still fire the
-  // Telegram alert path. Persistent CF audit storage is a TODO; the
-  // node side keeps its full DB+alert behaviour unchanged.
+  // logger should not break a successful upload or login.
   if (isCloudflareRuntime()) {
-    console.warn("[audit:cf]", JSON.stringify({
-      userId: params.userId,
-      action: params.action,
-      ip: params.ip,
-      ua: params.userAgent ? params.userAgent.slice(0, 80) : null,
-      meta: params.meta ?? null,
-      ts: Date.now(),
-    }));
+    try {
+      const { recordAuditD1 } = await import("./cloudflare-audit");
+      await recordAuditD1(params);
+    } catch (e) {
+      console.error("[audit:cf] failed to record:", e);
+    }
     try {
       notifyAuditAlert({
         action: params.action,
@@ -90,7 +84,14 @@ export type AuditRow = {
   ts: number;
 };
 
-export function readRecentAudit(limit = 100, userId?: number): AuditRow[] {
+export async function readRecentAudit(
+  limit = 100,
+  userId?: number
+): Promise<AuditRow[]> {
+  if (isCloudflareRuntime()) {
+    const { readRecentAuditD1 } = await import("./cloudflare-audit");
+    return readRecentAuditD1(limit, userId);
+  }
   const db = openServerDb();
   try {
     if (userId != null) {
