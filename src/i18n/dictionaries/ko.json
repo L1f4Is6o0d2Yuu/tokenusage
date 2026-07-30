@@ -188,13 +188,13 @@
     "about": "설명"
   },
   "agent": {
-    "statusLive": "Agent 온라인",
+    "statusLive": "Agent 활성",
     "statusPaused": "추적 일시중지",
-    "statusOffline": "Agent 오프라인",
+    "statusOffline": "최근 활동 없음",
     "statusNotInstalled": "Agent 설치되지 않음",
-    "onlineSuffix": "agent 온라인",
-    "seenAgo": "{when} 전 접속",
-    "lastSeenAgo": "마지막 접속 {when} 전",
+    "onlineSuffix": "agent 활성",
+    "seenAgo": "{when} 전 활동",
+    "lastSeenAgo": "마지막 활동 {when} 전",
     "lastSyncedLabel": "마지막 동기화",
     "never": "미동기화",
     "heartbeatLabel": "하트비트",

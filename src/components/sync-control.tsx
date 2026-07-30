@@ -7,31 +7,39 @@ import { RefreshCw, Check, AlertCircle } from "lucide-react";
 // that used to live in the AgentStatusBar at the top of the dashboard
 // body — now an icon-sized affordance next to the Share button.
 //
-// Behavior:
-//   1. On mount, auto-fire /api/sync-now once if data is stale (last
-//      sync ≥ 90s ago, or never). The agent picks it up on next
-//      heartbeat and uploads.
-//   2. Manual click does the same, with a 20s cooldown to defang
-//      finger-mash mode.
-//   3. After click, poll /api/sync-status every POLL_MS to learn when
-//      the agent has actually finished uploading. The progress bar is
-//      bound to real state, not a fixed timer:
+// Behavior under the push model (v0.28):
+//   1. No auto-fire on mount. The agent pushes within ~30s of any local
+//      change, so an open dashboard is already current and the old
+//      "auto-sync if data is ≥90s stale" only ever generated traffic to
+//      re-confirm that. It fired on every dashboard open, and each one
+//      dragged a 1Hz status poll behind it.
+//   2. Manual click queues a request. The agent is not polling any more,
+//      so this is picked up on its next check-in rather than instantly —
+//      the button reports "queued", not "syncing", when the agent has
+//      nothing else scheduled. `tokenusage sync` on the machine itself is
+//      the instant path.
+//   3. While a sync is outstanding, poll /api/sync-status at POLL_MS to
+//      drive the progress bar off real state:
 //        - 0–40%   grows over the first few seconds (request acked)
 //        - 40–90%  smoothly creeps while we wait for the agent
 //        - 100%    snaps when lastUploadedAt > syncRequestedAt
-//      Times out at TIMEOUT_MS — likely the agent is offline.
+//      Polling only runs while the tab is visible and stops at the
+//      timeouts below, so a forgotten tab can't poll forever.
 //   4. On real completion, soft-reload so the dashboard picks up new
 //      sessions. On timeout, show an error state instead of reloading.
 
-const AUTO_STALE_MS = 90 * 1000;     // auto-sync if data is older than this
 const COOLDOWN_MS = 20 * 1000;       // re-click guard window
-const POLL_MS = 1000;                // how often to check sync-status
+// 3s rather than 1s: this only exists to animate a progress bar, and at 1Hz
+// a single stuck sync cost 60 requests a minute.
+const POLL_MS = 3000;                // how often to check sync-status
 const WAIT_TIMEOUT_MS = 60 * 1000;   // no agent response after request
 const UPLOAD_STALL_TIMEOUT_MS = 10 * 60 * 1000; // upload started but stopped reporting
 const CREEP_TARGET_MS = 15 * 1000;   // time over which the bar creeps to 90%
 
 type Phase = "idle" | "syncing" | "done" | "timeout";
-type SyncBlockReason = "offline" | "paused" | "stalled" | "waiting" | null;
+// "queued" is not a failure: the agent no longer polls, so a request it
+// hasn't picked up yet is the normal case, not a broken one.
+type SyncBlockReason = "offline" | "paused" | "stalled" | "queued" | null;
 
 function formatBytes(bytes: number): string {
   if (bytes >= 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
@@ -52,7 +60,6 @@ function formatDuration(ms: number): string {
 }
 
 export function SyncControl({
-  lastSyncedAt,
   paused,
   installed,
   agentLive,
@@ -60,7 +67,9 @@ export function SyncControl({
   syncingLabel,
   doneLabel,
 }: {
-  lastSyncedAt: number | null;
+  // `lastSyncedAt` used to drive the auto-fire-if-stale check on mount.
+  // That's gone with the push model, and with it the only reason this
+  // component needed to know when the last sync landed.
   paused: boolean;
   installed: boolean;
   agentLive: boolean;
@@ -81,44 +90,58 @@ export function SyncControl({
   // `now`-derived UI is gated on other state (cooldownEnds /
   // triggeredAtRef / uploadStartedAt) which is null at first paint.
   const [now, setNow] = useState(0);
-  const autoFired = useRef(false);
+  // Mirrors triggeredAtRef for render. The ref stays the source of truth for
+  // the async poll loop's staleness check; this is what the UI reads.
+  const [triggeredAt, setTriggeredAt] = useState<number | null>(null);
   const triggeredAtRef = useRef<number | null>(null);
   const uploadStartedAtRef = useRef<number | null>(null);
   const uploadTotalBytesRef = useRef<number | null>(null);
   const pollTimer = useRef<ReturnType<typeof setInterval> | null>(null);
   const reloadTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // 1Hz tick so the cooldown countdown re-renders. Seed `now` once on
-  // mount (so the first useEffect bump is non-zero) then update on tick.
+  // 1Hz tick so the cooldown countdown re-renders. Purely local — no network —
+  // and it stops while the tab is hidden so a backgrounded dashboard isn't
+  // re-rendering once a second all day.
+  //
+  // No synchronous seed here on purpose: `now` stays 0 until the first tick,
+  // and every value derived from it (cooldownLeftSec, elapsedMs,
+  // uploadElapsedMs) is already gated on state that is null before the user
+  // triggers anything, so nothing renders wrong in that first second. Seeding
+  // it would be a setState synchronously inside an effect — an extra render
+  // pass for no visible difference.
   useEffect(() => {
-    setNow(Date.now());
-    const id = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(id);
+    let id: ReturnType<typeof setInterval> | null = null;
+    const start = () => {
+      if (id == null) id = setInterval(() => setNow(Date.now()), 1000);
+    };
+    const stop = () => {
+      if (id != null) {
+        clearInterval(id);
+        id = null;
+      }
+    };
+    const onVisibility = () => {
+      if (document.hidden) stop();
+      else {
+        setNow(Date.now());
+        start();
+      }
+    };
+    if (!document.hidden) start();
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisibility);
+      stop();
+    };
   }, []);
 
-  // Auto-sync on every dashboard open. The agent is now pull-based —
-  // it doesn't push uploads on a schedule anymore — so the dashboard
-  // is responsible for waking the agent up. The sessionStorage marker
-  // still prevents an infinite reload loop within a single session
-  // (sync triggers a page reload, lastSyncedAt won't bump until the
-  // agent actually uploads, ~10s), but the cooldown is tight (60s) so
-  // a real second visit a minute later does re-sync.
-  useEffect(() => {
-    if (autoFired.current) return;
-    if (!installed || paused || !agentLive) return;
-    const stale =
-      lastSyncedAt == null || Date.now() - lastSyncedAt > AUTO_STALE_MS;
-    if (!stale) return;
-    const lastAutoStr = sessionStorage.getItem("tu-auto-synced-at");
-    if (lastAutoStr) {
-      const lastAuto = Number(lastAutoStr);
-      if (Date.now() - lastAuto < 60 * 1000) return;
-    }
-    autoFired.current = true;
-    sessionStorage.setItem("tu-auto-synced-at", String(Date.now()));
-    void trigger();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [installed, paused, agentLive, lastSyncedAt]);
+  // Deliberately no auto-sync on mount.
+  //
+  // This used to fire /api/sync-now on every dashboard open whose data was
+  // ≥90s old, then poll /api/sync-status once a second until the agent
+  // answered. Under the push model the agent uploads within ~30s of any
+  // local change, so the dashboard is already current on arrival and all
+  // that traffic bought nothing. Opening the dashboard is now a read.
 
   function clearTimers() {
     if (pollTimer.current) {
@@ -131,13 +154,24 @@ export function SyncControl({
     }
   }
 
+  // `trigger` only ever runs from the button's onClick and from `dismissTimeout`
+  // — never during render — so reading the clock here is safe. react-hooks/purity
+  // can't see that: it analyses any function declared in the component body as
+  // potentially render-phase. The obvious silencer, wrapping this in
+  // useCallback, buys nothing real, because `trigger` closes over `poll`, which
+  // is redeclared every render and would have to become a dependency.
+  // Suppressing the false positive is honest; restructuring the sync path to
+  // satisfy the analyser is not worth the regression risk.
   async function trigger() {
     if (!installed || paused || !agentLive || phase === "syncing") return;
+    // eslint-disable-next-line react-hooks/purity -- event handler, not render
     const cooldownLeft = cooldownEnds ? cooldownEnds - Date.now() : 0;
     if (cooldownLeft > 0) return;
 
+    // eslint-disable-next-line react-hooks/purity -- event handler, not render
     const startedAt = Date.now();
     triggeredAtRef.current = startedAt;
+    setTriggeredAt(startedAt);
     setPhase("syncing");
     setProgress(5);
     setUploadStartedAt(null);
@@ -223,9 +257,13 @@ export function SyncControl({
       latestUploadStartedAt != null && Date.now() - latestUploadStartedAt > UPLOAD_STALL_TIMEOUT_MS;
     if ((requestIsWaiting && elapsed > WAIT_TIMEOUT_MS) || uploadIsStalled) {
       clearTimers();
-      setBlockReason(uploadIsStalled ? "stalled" : "waiting");
+      // Nothing has started uploading yet. Under the push model that means
+      // the agent simply hasn't reached its next check-in — the request is
+      // parked server-side and will be honoured then. Report it as queued,
+      // and stop polling rather than sitting at 1 request per POLL_MS
+      // waiting for something that may be a day out.
+      setBlockReason(uploadIsStalled ? "stalled" : "queued");
       setPhase("timeout");
-      // Hold the error until the user explicitly retries or dismisses it.
     }
   }
 
@@ -256,7 +294,7 @@ export function SyncControl({
     paused
       ? "agent 已暂停"
       : !agentLive
-      ? "agent 离线"
+      ? "agent 无近期活动"
       : phase === "syncing"
       ? syncingLabel
       : phase === "done"
@@ -267,14 +305,17 @@ export function SyncControl({
             : blockReason === "paused"
               ? "agent 已暂停"
               : blockReason === "offline"
-                ? "agent 离线"
-                : "agent 未响应"
+                ? "agent 无近期活动"
+                : "已排队"
           : cooldownLeftSec > 0
             ? `${cooldownLeftSec}s`
             : label;
 
   const showTelemetry = phase === "syncing" || phase === "done" || phase === "timeout";
-  const elapsedMs = triggeredAtRef.current ? Math.max(0, now - triggeredAtRef.current) : 0;
+  // Read from state, not triggeredAtRef: the ref exists so the async poll
+  // loop can detect stale triggers, and reading a ref during render is
+  // exactly the kind of tearing React can't track.
+  const elapsedMs = triggeredAt ? Math.max(0, now - triggeredAt) : 0;
   const uploadElapsedMs = uploadStartedAt ? Math.max(1000, now - uploadStartedAt) : 0;
   const bytesPerSecond = uploadTotalBytes && uploadStartedAt
     ? uploadTotalBytes / Math.max(1, uploadElapsedMs / 1000)
@@ -286,10 +327,10 @@ export function SyncControl({
     blockReason === "paused"
       ? "Agent 已暂停，恢复后再同步。"
       : blockReason === "offline"
-        ? "Agent 离线，先运行修复流程。"
+        ? "Agent 超过 26 小时没有活动，先运行修复流程。"
         : blockReason === "stalled"
           ? "上传已开始但长时间没有完成。"
-          : "Agent 暂未响应同步请求。";
+          : "已排队：agent 检测到新数据或下次签到时会上传。想立刻同步，在本机运行 tokenusage sync。";
 
   return (
     <>
@@ -303,7 +344,11 @@ export function SyncControl({
         >
           <div
             className={`h-full transition-[width] duration-500 ease-out ${
-              phase === "timeout" ? "bg-red-500" : "bg-accent"
+              phase !== "timeout"
+                ? "bg-accent"
+                : blockReason === "queued"
+                  ? "bg-amber-500"
+                  : "bg-red-500"
             }`}
             style={{ width: `${progress}%` }}
           />
@@ -339,7 +384,11 @@ export function SyncControl({
             >
               <div
                 className={`h-full rounded-full transition-[width] duration-500 ease-out ${
-                  phase === "timeout" ? "bg-red-500" : "bg-accent"
+                  phase !== "timeout"
+                ? "bg-accent"
+                : blockReason === "queued"
+                  ? "bg-amber-500"
+                  : "bg-red-500"
                 }`}
                 style={{ width: `${progress}%` }}
               />
@@ -348,7 +397,7 @@ export function SyncControl({
               <span className="truncate">{telemetryLine}</span>
               {phase === "timeout" && (
                 <div className="flex shrink-0 items-center gap-2">
-                  {(blockReason === "offline" || blockReason === "waiting") && (
+                  {(blockReason === "offline" || blockReason === "stalled") && (
                     <a
                       href="/install#troubleshoot"
                       className="text-[10px] font-medium text-amber-400 hover:text-amber-300"

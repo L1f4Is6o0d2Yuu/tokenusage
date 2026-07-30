@@ -188,13 +188,13 @@
     "about": "說明"
   },
   "agent": {
-    "statusLive": "Agent 線上",
+    "statusLive": "Agent 活躍",
     "statusPaused": "已暫停追蹤",
-    "statusOffline": "Agent 離線",
+    "statusOffline": "無近期活動",
     "statusNotInstalled": "Agent 未安裝",
-    "onlineSuffix": "agent 線上",
-    "seenAgo": "{when} 前在線",
-    "lastSeenAgo": "{when} 前最後在線",
+    "onlineSuffix": "agent 活躍",
+    "seenAgo": "{when} 前活動",
+    "lastSeenAgo": "{when} 前最後活動",
     "lastSyncedLabel": "上次同步",
     "never": "尚未同步",
     "heartbeatLabel": "心跳",

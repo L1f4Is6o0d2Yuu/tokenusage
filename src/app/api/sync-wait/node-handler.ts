@@ -2,21 +2,14 @@ import type { NextRequest } from "next/server";
 import { authenticateApiToken, recordAgentVersion } from "@/lib/auth";
 import { getUserSyncState } from "@/lib/sync-state";
 import { waitSync } from "@/lib/sync-events";
+import { isSyncPending, resolveUploadServer } from "@/lib/agent-checkin";
+import { LEGACY_HOLD_MS } from "./legacy-hold";
 
-// Server-side maximum hold. We're behind Cloudflare's orange-cloud proxy
-// (Free plan), which cuts any connection at 100s with a hard TCP reset.
-// Holding longer than that leaves the agent seeing "connection reset"
-// every cycle instead of a clean `{ sync: false }` response. 90s gives
-// us a safety margin under the limit while still amortising reconnect
-// cost across most idle minutes.
-const MAX_HOLD_MS = 90 * 1000;
-
-function getUploadServer(): string | null {
-  const explicit = process.env.TOKENUSAGE_UPLOAD_SERVER;
-  if (explicit) return explicit;
-  const direct = process.env.TOKENUSAGE_DIRECT_DOMAIN;
-  return direct ? `https://${direct}` : null;
-}
+// DEPRECATED — see cloudflare-handler.ts for the full story. Kept only so
+// agents older than v0.28, whose sole pacing is this hold plus a `sleep 1`,
+// keep running at ~1 request per 91s instead of spinning. New agents use
+// POST /api/agent-checkin. Delete once deployed agents have rolled past
+// v0.28.
 
 function err(status: number, message: string): Response {
   return new Response(JSON.stringify({ ok: false, message }), {
@@ -28,27 +21,25 @@ function err(status: number, message: string): Response {
 export async function GET(req: NextRequest): Promise<Response> {
   const auth = req.headers.get("authorization") ?? "";
   if (!auth.toLowerCase().startsWith("bearer ")) return err(401, "missing bearer token");
-  const user = await authenticateApiToken(auth.slice(7).trim());
+  // "throttled" — a poll carries no new information, so it rewrites
+  // last_used_at at most once a day instead of once per cycle.
+  const user = await authenticateApiToken(auth.slice(7).trim(), "throttled");
   if (!user) return err(401, "invalid token");
 
   const reportedVersion = req.headers.get("x-agent-version");
   if (reportedVersion) await recordAgentVersion(user.id, reportedVersion);
 
   const state = await getUserSyncState(user.id);
-  const userIntervalMs = state.syncIntervalSeconds * 1000;
-  const holdMs = Math.min(userIntervalMs, MAX_HOLD_MS);
-  const uploadServer = getUploadServer();
+  const holdMs = Math.min(state.syncIntervalSeconds * 1000, LEGACY_HOLD_MS);
+  const uploadServer = resolveUploadServer();
 
-  if (
-    state.paused ||
-    (state.syncRequestedAt != null &&
-      (state.lastUploadedAt == null || state.syncRequestedAt > state.lastUploadedAt))
-  ) {
+  if (state.paused || isSyncPending(state)) {
     return Response.json({
-      sync: !state.paused && state.syncRequestedAt != null,
+      sync: !state.paused && isSyncPending(state),
       paused: state.paused,
       intervalSeconds: state.syncIntervalSeconds,
       uploadServer,
+      deprecated: true,
     });
   }
 
@@ -59,5 +50,6 @@ export async function GET(req: NextRequest): Promise<Response> {
     paused: after.paused,
     intervalSeconds: after.syncIntervalSeconds,
     uploadServer,
+    deprecated: true,
   });
 }
