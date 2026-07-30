@@ -99,12 +99,17 @@ export function SyncControl({
   const pollTimer = useRef<ReturnType<typeof setInterval> | null>(null);
   const reloadTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // 1Hz tick so the cooldown countdown re-renders. Seed `now` once on
-  // mount (so the first useEffect bump is non-zero) then update on tick.
-  // Purely local — no network — but it stops while the tab is hidden so a
-  // backgrounded dashboard isn't re-rendering once a second all day.
+  // 1Hz tick so the cooldown countdown re-renders. Purely local — no network —
+  // and it stops while the tab is hidden so a backgrounded dashboard isn't
+  // re-rendering once a second all day.
+  //
+  // No synchronous seed here on purpose: `now` stays 0 until the first tick,
+  // and every value derived from it (cooldownLeftSec, elapsedMs,
+  // uploadElapsedMs) is already gated on state that is null before the user
+  // triggers anything, so nothing renders wrong in that first second. Seeding
+  // it would be a setState synchronously inside an effect — an extra render
+  // pass for no visible difference.
   useEffect(() => {
-    setNow(Date.now());
     let id: ReturnType<typeof setInterval> | null = null;
     const start = () => {
       if (id == null) id = setInterval(() => setNow(Date.now()), 1000);
@@ -149,11 +154,21 @@ export function SyncControl({
     }
   }
 
+  // `trigger` only ever runs from the button's onClick and from `dismissTimeout`
+  // — never during render — so reading the clock here is safe. react-hooks/purity
+  // can't see that: it analyses any function declared in the component body as
+  // potentially render-phase. The obvious silencer, wrapping this in
+  // useCallback, buys nothing real, because `trigger` closes over `poll`, which
+  // is redeclared every render and would have to become a dependency.
+  // Suppressing the false positive is honest; restructuring the sync path to
+  // satisfy the analyser is not worth the regression risk.
   async function trigger() {
     if (!installed || paused || !agentLive || phase === "syncing") return;
+    // eslint-disable-next-line react-hooks/purity -- event handler, not render
     const cooldownLeft = cooldownEnds ? cooldownEnds - Date.now() : 0;
     if (cooldownLeft > 0) return;
 
+    // eslint-disable-next-line react-hooks/purity -- event handler, not render
     const startedAt = Date.now();
     triggeredAtRef.current = startedAt;
     setTriggeredAt(startedAt);
