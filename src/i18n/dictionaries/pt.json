@@ -188,13 +188,13 @@
     "about": "Sobre"
   },
   "agent": {
-    "statusLive": "Agente online",
+    "statusLive": "Agente ativo",
     "statusPaused": "Rastreamento pausado",
-    "statusOffline": "Agente offline",
+    "statusOffline": "Sem atividade recente",
     "statusNotInstalled": "Agente não instalado",
-    "onlineSuffix": "agente online",
-    "seenAgo": "visto há {when}",
-    "lastSeenAgo": "último há {when}",
+    "onlineSuffix": "agente ativo",
+    "seenAgo": "ativo há {when}",
+    "lastSeenAgo": "última atividade há {when}",
     "lastSyncedLabel": "Última sinc.",
     "never": "nunca",
     "heartbeatLabel": "Heartbeat",

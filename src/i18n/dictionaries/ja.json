@@ -188,13 +188,13 @@
     "about": "ガイド"
   },
   "agent": {
-    "statusLive": "Agent オンライン",
+    "statusLive": "Agent 稼働中",
     "statusPaused": "追跡を一時停止中",
-    "statusOffline": "Agent オフライン",
+    "statusOffline": "最近の活動なし",
     "statusNotInstalled": "Agent 未インストール",
-    "onlineSuffix": "agent オンライン",
-    "seenAgo": "{when}前にオンライン",
-    "lastSeenAgo": "最終オンライン {when}前",
+    "onlineSuffix": "agent 稼働中",
+    "seenAgo": "{when}前に活動",
+    "lastSeenAgo": "最終活動 {when}前",
     "lastSyncedLabel": "前回の同期",
     "never": "未同期",
     "heartbeatLabel": "ハートビート",

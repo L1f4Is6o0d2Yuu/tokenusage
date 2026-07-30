@@ -143,8 +143,13 @@ export default async function InstallPage() {
       {/* Client-side polling — refreshes RSC payload only and unmounts
           on navigation, so the user can leave the page without being
           yanked back. Faster cadence while an upload is in flight so
-          the elapsed clock visibly advances. */}
-      <InstallAutoRefresh intervalMs={uploadInProgress ? 2000 : 8000} />
+          the elapsed clock visibly advances.
+
+          Idle is 30s rather than the old 8s: the agent pushes on its own
+          now, so this page is watching for a first sync that arrives when
+          it arrives. The component also pauses on tab-hide and stops
+          entirely after 15 minutes. */}
+      <InstallAutoRefresh intervalMs={uploadInProgress ? 3000 : 30000} />
 
       <header className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-border-subtle bg-bg-app/85 px-6 py-3 backdrop-blur">
         <div className="min-w-0">

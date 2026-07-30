@@ -188,13 +188,13 @@
     "about": "Guía"
   },
   "agent": {
-    "statusLive": "Agente en línea",
+    "statusLive": "Agente activo",
     "statusPaused": "Seguimiento pausado",
-    "statusOffline": "Agente desconectado",
+    "statusOffline": "Sin actividad reciente",
     "statusNotInstalled": "Agente no instalado",
-    "onlineSuffix": "agente en línea",
-    "seenAgo": "visto hace {when}",
-    "lastSeenAgo": "último visto hace {when}",
+    "onlineSuffix": "agente activo",
+    "seenAgo": "activo hace {when}",
+    "lastSeenAgo": "última actividad hace {when}",
     "lastSyncedLabel": "Última sinc.",
     "never": "nunca",
     "heartbeatLabel": "Heartbeat",

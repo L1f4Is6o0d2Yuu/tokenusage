@@ -18,7 +18,8 @@ A route is "dual" when `route.ts` is a thin dispatcher and both
 | `/api/upload`               | dual ✓ | CF returns 410 — tarball path is Node-only by design. |
 | `/api/whoami`               | dual ✓ | CF reads `cf-connecting-ip` first. |
 | `/api/sync-status`          | dual ✓ | |
-| `/api/sync-wait`            | dual ✓ | CF skips long-poll (no EventEmitter in Workers); agent learns about manual syncs on next interval. |
+| `/api/sync-wait`            | **deprecated** | Compatibility shim for pre-v0.28 agents only. Both runtimes now hold ~90s before answering — CF used to return immediately, which turned those agents' `sleep 1` loop into ~79k req/day each. Delete once agents have rolled past v0.28. |
+| `/api/agent-checkin`        | dual ✓ | Replaces sync-wait. Not polled: the agent calls it only when local files changed or its daily heartbeat is due. |
 | `/api/upload-progress`      | dual ✓ | |
 | `/api/install-command`      | dual ✓ | |
 | `/api/sync-now`             | TODO   | Needs `requestSyncD1` + decide what `notifySync` means on CF. |
@@ -52,7 +53,8 @@ handlers call).
 | `lib/cloudflare-leaderboard.ts` | **ready** | `loadLeaderboardD1` + `setShowOnLeaderboardD1`. Pure helpers (`tierFor`, `pickFlavor`, `rowFlavor`) stay in the shared module. |
 | `lib/auth.ts`              | **dispatch** | Public API stays the same shape; sync→async where needed; each function dispatches to `cloudflare-auth.ts` on the CF runtime. Still sqlite-only internals: invites (5), password reset (3), createPendingOauthUser, activateUser, listUsers, readAgentVersion. |
 | `lib/sync-state.ts`        | **dispatch** | All 8 functions are now async + dispatch to `cloudflare-sync-state.ts`. |
-| `lib/sync-events.ts`       | sqlite-only | Node EventEmitter — no CF equivalent yet. CF route skips long-poll. |
+| `lib/sync-events.ts`       | sqlite-only | Node EventEmitter, used only by the deprecated sync-wait shim to release a held legacy poll early. Nothing in the push path needs it. |
+| `lib/agent-checkin.ts`     | shared | Runtime-agnostic wire shape + touch policy for `/api/agent-checkin`, so the two handlers can't drift. |
 | `lib/shares.ts`            | sqlite-only | Node disk-backed PNG storage. |
 | `lib/server-db.ts`         | **dispatch** | `isMultiUserMode()` short-circuits to `true` on CF (no fs check). `isFirstRun()` async + dispatch. `openServerDb()` remains Node-only. |
 | `lib/subscriptions.ts`     | **dispatch** | All 4 DB functions async + dispatch. Catalog `PLAN_BY_ID` exported for CF re-use. |

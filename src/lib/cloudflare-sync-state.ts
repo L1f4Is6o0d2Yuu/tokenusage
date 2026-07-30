@@ -66,12 +66,21 @@ export async function clearUploadInProgressD1(userId: number): Promise<void> {
     .run();
 }
 
+// Read-before-write, same rationale as the Node twin in src/lib/auth.ts:
+// the agent reports its version on every request but it changes about
+// once a month, and D1 row-writes are the scarce resource (100k/day free)
+// while reads are not (5M/day).
 export async function recordAgentVersionD1(
   userId: number,
   version: string
 ): Promise<void> {
   if (!version || version.length > 32) return;
   const db = await getTokenusageD1();
+  const row = await db
+    .prepare(`SELECT agent_version AS v FROM users WHERE id = ?`)
+    .bind(userId)
+    .first<{ v: string | null }>();
+  if (row?.v === version) return;
   await db
     .prepare(`UPDATE users SET agent_version = ? WHERE id = ?`)
     .bind(version, userId)

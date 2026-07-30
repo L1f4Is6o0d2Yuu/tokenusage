@@ -188,13 +188,13 @@
     "about": "Справка"
   },
   "agent": {
-    "statusLive": "Agent онлайн",
+    "statusLive": "Agent активен",
     "statusPaused": "Отслеживание на паузе",
-    "statusOffline": "Agent офлайн",
+    "statusOffline": "Нет недавней активности",
     "statusNotInstalled": "Agent не установлен",
-    "onlineSuffix": "agent онлайн",
-    "seenAgo": "видели {when} назад",
-    "lastSeenAgo": "последний раз {when} назад",
+    "onlineSuffix": "agent активен",
+    "seenAgo": "активен {when} назад",
+    "lastSeenAgo": "последняя активность {when} назад",
     "lastSyncedLabel": "Последняя синхр.",
     "never": "никогда",
     "heartbeatLabel": "Heartbeat",
