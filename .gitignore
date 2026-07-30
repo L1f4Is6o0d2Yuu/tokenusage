@@ -57,7 +57,11 @@ next-env.d.ts
 /scripts/.fetched/
 
 # Claude Code task scratch (pua-loop state, history)
-/.claude/
+# Contents are ignored, but agent skills are checked in — see docs/agents/.
+# Must exclude the contents (/.claude/*) rather than the dir (/.claude/), since
+# git cannot re-include a path whose parent directory is itself excluded.
+/.claude/*
+!/.claude/skills/
 
 # multi-user mode server DB — never commit, contains user credentials
 /data/server.db
