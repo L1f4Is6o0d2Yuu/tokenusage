@@ -12,12 +12,50 @@ status: active
 
 ---
 
+## v0.28 — 轮询改推送（已完成）
+
+**背景**：Cloudflare 一天 5.8 万请求，曲线全天几乎持平——典型的机器心跳，不是人。
+
+拆下来主要是三块：
+
+| 来源 | 改之前 | 改之后 |
+|---|---|---|
+| agent 长轮询 `/api/sync-wait` | 950 请求/天/agent（Node，靠服务端 hold 90s 限速）<br>**79,000 请求/天/agent（Workers，handler 立即返回，只剩 `sleep 1`）** | 0（空闲机器完全不发请求） |
+| 每次 dashboard 打开自动同步 + 1Hz 轮询 `/api/sync-status` | 每次打开十几~几十个请求 | 取消自动同步；轮询降到 3s、隐藏标签页暂停 |
+| `/install` 页 8s 自动刷新 | 450 请求/小时/标签页，无限期 | 30s，隐藏暂停，15 分钟后停 |
+
+**新架构**：agent 扫本地源目录（`find -newer` 比对 `~/.tokenusage/last-sync.marker`，纯本地、零网络），
+有变化才调 `POST /api/agent-checkin` 然后上传；否则每天签到一次。手动同步走排队——服务端记 `sync_requested_at`，
+agent 下次签到时消费；要立刻同步就在本机跑 `tokenusage sync`。
+
+扫描间隔是**退避**的：活动后回到 30 秒，每次空转翻倍，上限是用户自己在 UI 里设的 `sync_interval_seconds`
+（旧循环把这个值取下来后从来没用过，这才是 `sleep 1` 成为唯一节流的原因）。空闲 24 小时的扫描次数从
+2880 次降到最宽设置下的 12 次。注意这**不省服务器请求**（空闲本来就是 0），省的是别人不用电脑时还每
+30 秒去翻一遍 `~/.claude/projects`，同时让 UI 上那个间隔设置重新有意义。
+
+退避有个坑：心跳只在扫描时判断，所以间隔不能无上限放大。选 86400（"仅手动"）时序列会让第一次超期扫描
+落在 122850 秒 = 34.1 小时，超过本次引入的 26 小时活跃窗口——健康的空闲 agent 会显示成"无近期活动"。
+现在每次退避都额外按"距下次心跳还剩多久"截断，六档间隔的心跳都精确落在 24.0 小时。
+
+**D1 写入才是真正的天花板**：免费额度 100k 行写入/天，而改之前每个 agent 请求要写 2 行
+（`api_tokens.last_used_at` 无条件写 + `users.agent_version` 无条件写）。现在心跳每天最多写 1 次，
+只有真实推送/手动同步才 force 写；`agent_version` 改成读后比对、值变了才写。
+
+**兼容性**：`/api/sync-wait` 不能直接删也不能改成快速失败——老 agent 唯一的限速就是服务端那 90 秒 hold，
+一旦快速返回它们会退化成 1 秒 1 次。所以两个 runtime 都保留 hold，等 agent 版本滚过 v0.28 再删。
+
+**遗留**：`sync_requested_at` 只能在 agent 下次签到时送达，机器空闲时最长可能等到第二天的心跳。
+真要秒级下推得上 Durable Object（每用户一个 DO + WebSocket），当时评估后没做。
+
+---
+
 ## 0. 起因 / 为什么有这份文档
 
 **2026-05-21 事件**：用户 `pipixiafacai2@gmail.com` 点击同步，前端进度条变红 5 秒后自动消失，用户和管理员都没拿到任何有效信号。
 
 排查链路后定性：
 - 服务端架构自 v0.27 起改为 **pull-based**——用户点同步 → server 写 `sync_requested_at` → 等 agent 长轮询 `/api/sync-wait`
+  （v0.28 起改为 **push-based**：agent 监听本地文件变化后主动上传，`/api/sync-wait` 降级为老 agent 的兼容层，详见下方 v0.28 段落）
 - 该用户的 agent 自 **2026-05-14 07:18 起从未与服务端通信**（`api_tokens.last_used_at` 卡住）。原因大概率是 Mac 重启后 agent 进程没自动起
 - **服务端拿不到任何失败信号**：因为 agent 根本没来，所以 `audit_log` 里没失败记录；前端只能靠固定 60s 超时盲判，且 5s 后自动复位
 - **管理员看不出哪些用户的 agent 已死**：成员表只显示 IP/Joined，没有 last-seen / agent version

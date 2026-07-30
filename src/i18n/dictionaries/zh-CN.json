@@ -188,13 +188,13 @@
     "about": "说明"
   },
   "agent": {
-    "statusLive": "Agent 在线",
+    "statusLive": "Agent 活跃",
     "statusPaused": "已暂停追踪",
-    "statusOffline": "Agent 离线",
+    "statusOffline": "无近期活动",
     "statusNotInstalled": "Agent 未安装",
-    "onlineSuffix": "agent 在线",
-    "seenAgo": "{when} 前在线",
-    "lastSeenAgo": "{when} 前最后在线",
+    "onlineSuffix": "agent 活跃",
+    "seenAgo": "{when} 前活动",
+    "lastSeenAgo": "{when} 前最后活动",
     "lastSyncedLabel": "上次同步",
     "never": "未同步",
     "heartbeatLabel": "心跳",

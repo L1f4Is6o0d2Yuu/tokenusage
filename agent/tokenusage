@@ -2,7 +2,7 @@
 # tokenusage — agent CLI for the tokenusage.online dashboard.
 #
 # Single-file: handles install/uninstall, service registration on
-# launchd / systemd, and the long-poll upload loop.
+# launchd / systemd, and the local-watch push loop.
 #
 # Usage:
 #   tokenusage start --server URL --token TOKEN   # first-time install + start
@@ -12,19 +12,23 @@
 #   tokenusage uninstall                          # remove service + config
 #   tokenusage status                             # show config + last-upload time
 #   tokenusage logs                               # tail the agent log
-#   tokenusage sync                               # manual sync now (server flag)
+#   tokenusage sync                               # push local data now
 #   tokenusage report [today|7d|30d|all]          # print server aggregate as JSON
 #   tokenusage statusline                         # one-line for shell prompts (60s cache)
 #   tokenusage doctor                             # local config/network/service diagnostics
-#   tokenusage --loop                             # internal: long-poll + upload loop
+#   tokenusage --loop                             # internal: watch local data + push
 #   tokenusage version
 
 set -uo pipefail
 
-VERSION="0.27.0"
+VERSION="0.28.0"
 CONFIG_DIR="$HOME/.tokenusage"
 CONFIG_FILE="$CONFIG_DIR/config.env"
 STATE_FILE="$CONFIG_DIR/state"
+# mtime == the instant the last successful upload began collecting. The
+# push loop's change detector compares source files against this; see
+# has_new_data().
+SYNC_MARKER="$CONFIG_DIR/last-sync.marker"
 LOG_FILE="$CONFIG_DIR/agent.log"
 NODE_AGENT_FILE="$CONFIG_DIR/agent-node.mjs"
 PLIST_PATH="$HOME/Library/LaunchAgents/com.tokenusage.agent.plist"
@@ -235,10 +239,14 @@ cmd_start() {
     print_failure_context
     exit 1
   fi
-  if ! curl -fsS --max-time 20 "$SERVER/api/sync-wait" \
+  # Must not use /api/sync-wait: that route is now a deprecated shim that
+  # deliberately holds ~90s to pace legacy agents, so it would stall install.
+  if ! curl -fsS --max-time 20 -X POST "$SERVER/api/agent-checkin" \
       -H "Authorization: Bearer $TOKEN" \
-      -H "X-Agent-Version: $VERSION" >/dev/null 2>&1; then
-    err "auth/sync-wait check failed"
+      -H "X-Agent-Version: $VERSION" \
+      -H "Content-Type: application/json" \
+      --data '{"reason":"startup"}' >/dev/null 2>&1; then
+    err "auth/check-in failed"
     print_failure_context
     exit 1
   fi
@@ -334,14 +342,36 @@ cmd_logs() {
   exec tail -n 200 -f "$LOG_FILE"
 }
 
+# Under the push model this pushes for real instead of asking the server to
+# ask us. It's also the instant path for a manual sync: the dashboard button
+# can only queue a request that the background service picks up on its next
+# check-in, whereas this uploads right now.
+#
+# (The old implementation POSTed /api/sync-now with a bearer token, which
+# that route never accepted — it reads a cookie session — so it always 401'd.)
 cmd_sync() {
   [ -f "$CONFIG_FILE" ] || { err "not configured"; exit 1; }
   # shellcheck disable=SC1090
   . "$CONFIG_FILE"
-  curl -fsS -X POST "$SERVER/api/sync-now" \
-    -H "Authorization: Bearer $TOKEN" \
-    -H "X-Agent-Version: $VERSION" \
-    -o /dev/null && printf '✓ sync requested\n'
+  PAUSED=false
+  SYNC_REQUESTED=false
+  SCAN_FLOOR_SECONDS=30
+  INTERVAL_SECONDS=300
+  HEARTBEAT_SECONDS=86400
+  if ! checkin manual; then
+    err "check-in failed — server unreachable or token invalid"
+    exit 1
+  fi
+  if [ "$PAUSED" = "true" ]; then
+    printf 'tracking is paused — resume it on the dashboard first\n'
+    exit 0
+  fi
+  if upload; then
+    printf '✓ synced\n'
+  else
+    err "sync failed — see $LOG_FILE"
+    exit 1
+  fi
 }
 
 cmd_version() {
@@ -454,12 +484,20 @@ cmd_doctor() {
     printf 'server unreachable\n'
   fi
   printf 'auth:         '
-  if curl -fsS --max-time 15 "$SERVER/api/sync-wait" \
+  if curl -fsS --max-time 15 -X POST "$SERVER/api/agent-checkin" \
     -H "Authorization: Bearer $TOKEN" \
-    -H "X-Agent-Version: $VERSION" >/dev/null 2>&1; then
+    -H "X-Agent-Version: $VERSION" \
+    -H "Content-Type: application/json" \
+    --data '{"reason":"heartbeat"}' >/dev/null 2>&1; then
     printf 'ok\n'
   else
     printf 'failed\n'
+  fi
+  printf 'local data:   '
+  if has_new_data; then
+    printf 'unsent changes present (next scan will push)\n'
+  else
+    printf 'up to date\n'
   fi
   if [ -f "$LOG_FILE" ]; then
     printf '\nlast log lines:\n'
@@ -467,12 +505,37 @@ cmd_doctor() {
   fi
 }
 
-# ---------- the long-poll loop (--loop) ----------
+# ---------- the push path ----------
+
+# Stamp a successful upload.
+#
+# $1 is a scratch file created at collection start; promoting it to
+# $SYNC_MARKER carries that exact mtime over, which is what has_new_data()
+# compares against. $STATE_FILE keeps the whole-second epoch alongside it,
+# purely for `tokenusage status` and the restart guard — never for change
+# detection, which needs the sub-second precision only a real file has.
+mark_uploaded() {
+  local start_marker="$1"
+  if [ -f "$start_marker" ]; then
+    mv -f "$start_marker" "$SYNC_MARKER" 2>/dev/null || touch "$SYNC_MARKER"
+  else
+    touch "$SYNC_MARKER"
+  fi
+  LAST_UPLOAD=$(date +%s)
+  printf '%s' "$LAST_UPLOAD" > "$STATE_FILE"
+}
 
 upload() {
-  local TMP SIZE
+  local TMP SIZE START_MARKER
+  # Created before any collection so it captures the moment we began
+  # reading, not the moment we finished sending.
+  START_MARKER="$(mktemp -t tokenusage-start-XXXXXX)"
   if ensure_node_agent; then
     if TOKENUSAGE_SERVER="$SERVER" TOKENUSAGE_TOKEN="$TOKEN" node "$NODE_AGENT_FILE"; then
+      # The node agent talks to /api/ingest and knows nothing about the
+      # marker. Stamping here is what tells the push loop the local tree is
+      # caught up — without it the loop would re-push on every scan.
+      mark_uploaded "$START_MARKER"
       return 0
     fi
     printf '[%s] node agent failed; falling back to legacy tar upload (service will keep retrying next cycle if this also fails)\n' "$(ts)"
@@ -481,7 +544,15 @@ upload() {
   fi
 
   TMP="$(mktemp -d -t tokenusage-XXXXXX)"
-  trap 'rm -rf "$TMP"' RETURN
+  # `trap - RETURN` at the end is load-bearing, not tidiness. A RETURN trap set
+  # inside a function also fires when the *caller* returns, and $TMP is local to
+  # this one — so the second firing hits an unbound variable and `set -u` kills
+  # the shell. That stayed hidden while only the infinite cmd_loop called
+  # upload(); now that `tokenusage sync` and the LOOP_ONCE install self-test
+  # both call it and then return, it surfaced as `✓ synced` immediately followed
+  # by `TMP: unbound variable` and exit 1 — a successful sync reporting failure,
+  # and an install self-test failing on a healthy install.
+  trap 'rm -rf "$TMP"; rm -f "$START_MARKER"; trap - RETURN' RETURN
 
   mkdir -p "$TMP/payload"
 
@@ -582,22 +653,20 @@ upload() {
   # codex/state_5.sqlite) always stay — the server-side parsers need
   # them to enumerate which sessions exist at all.
   #
-  # First upload after install (LAST_UPLOAD=0) sends everything. Same
-  # for the eager retry after a 413 — we bumped LAST_UPLOAD on that
-  # path so subsequent syncs are incremental.
+  # First upload after install (no marker yet) sends everything. Same for
+  # the eager retry after a 413 — we stamped the marker on that path so
+  # subsequent syncs are incremental.
+  #
+  # Reuses $SYNC_MARKER, the same reference has_new_data() tests against,
+  # so "what the scan decided was new" and "what we actually ship" can't
+  # disagree. It also inherits the sub-second precision that an epoch-second
+  # marker rebuilt via `touch -d` would round away.
   INCREMENTAL=0
-  if [ "$LAST_UPLOAD" -gt 0 ]; then
-    # Build a marker file with mtime exactly $LAST_UPLOAD so find -newer
-    # is portable across BSD (macOS) and GNU (Linux) flavors of touch.
+  if [ -f "$SYNC_MARKER" ]; then
     MARKER="$TMP/.mtime-marker"
-    case "$(uname -s)" in
-      Darwin) touch -t "$(date -r "$LAST_UPLOAD" +%Y%m%d%H%M.%S)" "$MARKER" 2>/dev/null ;;
-      *)      touch -d "@$LAST_UPLOAD" "$MARKER" 2>/dev/null ;;
-    esac
-    if [ -f "$MARKER" ]; then
-      # Sweep large JSONLs that haven't changed. Use find ! -newer so
-      # the marker file itself (mtime == $LAST_UPLOAD) doesn't get
-      # included spuriously.
+    if cp -p "$SYNC_MARKER" "$MARKER" 2>/dev/null; then
+      # Sweep large JSONLs that haven't changed. Use find ! -newer so the
+      # marker file itself doesn't get included spuriously.
       for sweep in "$TMP/payload/claude-projects" "$TMP/payload/codex/sessions"; do
         [ -d "$sweep" ] || continue
         find "$sweep" -type f -name '*.jsonl' \! -newer "$MARKER" -delete 2>/dev/null
@@ -638,8 +707,8 @@ upload() {
   # If UPLOAD_SERVER is set in config.env (typically a "DNS only"
   # sibling of $SERVER like https://direct.tokenusage.online), the
   # tarball POST bypasses CF and lands directly on the origin Caddy,
-  # which allows up to 500 MB. Everything else (sync-wait long-poll,
-  # sync-now, export) still uses $SERVER and benefits from CF.
+  # which allows up to 500 MB. Everything else (agent-checkin, export)
+  # still uses $SERVER and benefits from CF.
   UPLOAD_URL="${UPLOAD_SERVER:-$SERVER}/api/upload"
   INCR_HEADER="X-Incremental: $INCREMENTAL"
   HTTP_CODE=$(curl -sS --max-time 600 \
@@ -652,15 +721,14 @@ upload() {
 
   case "$HTTP_CODE" in
     2*)
-      LAST_UPLOAD=$(date +%s)
-      printf '%s' "$LAST_UPLOAD" > "$STATE_FILE"
+      mark_uploaded "$START_MARKER"
       printf '[%s] upload OK (%s bytes, %s)\n' "$(ts)" "$SIZE" \
         "$([ "$INCREMENTAL" = "1" ] && echo "incremental" || echo "full")"
       return 0
       ;;
     503)
-      # Server is busy (disk full / locked). The outer loop retries every
-      # 5 min anyway, so just log and move on — no exit, no state bump.
+      # Server is busy (disk full / locked). The push loop backs off 5 min
+      # on a failed upload, so just log and move on — no state bump.
       printf '[%s] upload 503 (server busy) — will retry next cycle\n' "$(ts)"
       return 1
       ;;
@@ -668,10 +736,13 @@ upload() {
       # Body too large at the edge (likely Cloudflare's 100 MB cap).
       # Bump LAST_UPLOAD so the retry storm subsides: the user will
       # see a stale "last synced" stamp and notice, instead of the
-      # agent thrashing every 90s. They should set UPLOAD_SERVER in
+      # agent thrashing. They should set UPLOAD_SERVER in
       # ~/.tokenusage/config.env to a DNS-only origin endpoint.
-      LAST_UPLOAD=$(date +%s)
-      printf '%s' "$LAST_UPLOAD" > "$STATE_FILE"
+      # Deliberately stamps "now" rather than $START_MARKER: the payload is
+      # too big to ever succeed, so treating the tree as caught up is what
+      # stops the retry storm. The user sees a stale last-synced time and
+      # the message below tells them what to fix.
+      mark_uploaded ""
       printf '[%s] upload 413 — payload exceeds proxy limit. Set UPLOAD_SERVER in %s to a DNS-only origin endpoint (e.g. https://direct.your.domain).\n' "$(ts)" "$CONFIG_FILE"
       return 1
       ;;
@@ -684,6 +755,146 @@ upload() {
   rm -rf "$TMP"
 }
 
+# The directories `upload` collects from. Kept in one place so the change
+# detector below and the payload builder can't drift apart.
+source_paths() {
+  printf '%s\n' \
+    "$HOME/.hermes/state.db" \
+    "$HOME/.codex" \
+    "$HOME/.config/codex" \
+    "$HOME/.claude/projects" \
+    "$HOME/.config/claude/projects"
+}
+
+# Is any source file newer than the last successful push? Exit 0 = yes.
+#
+# This is the heart of the push model: the question "is there anything new"
+# is answered on the user's own disk, for free, instead of by asking the
+# server 950 times a day.
+#
+# The reference is $SYNC_MARKER — a real file whose mtime is the instant the
+# last successful upload *began* collecting. Using a file rather than an
+# epoch-second integer matters: file mtimes carry sub-second precision, so a
+# marker reconstructed from `date +%s` sits at T.0 while the files it is
+# meant to cover sit at T.4, T.7 — every one of which reads as "newer"
+# forever, and the agent pushes on every scan for the rest of time.
+# Comparing file-to-file has no rounding to get wrong.
+#
+# Anchoring to collection *start* (not finish) is what keeps a write that
+# lands mid-upload from being marked sent: it stays newer than the marker
+# and goes out on the next push.
+#
+# `-print -quit` bails at the first hit, so "yes, something changed" costs
+# almost nothing. No marker (first run) means everything is new.
+has_new_data() {
+  local d hit now_marker rc=1
+  [ -f "$SYNC_MARKER" ] || return 0
+
+  # Upper bound as well as lower. A file dated in the future — clock skew, a
+  # restored backup, an archive extracted with bogus timestamps — is newer than
+  # any marker we will ever write, so `-newer $SYNC_MARKER` alone stays true
+  # forever and the loop pushes on every single scan for the life of the agent.
+  # That is the exact failure this whole change exists to remove, arriving from
+  # the other direction.
+  #
+  # Requiring `! -newer $now_marker` too means such a file cannot *trigger* a
+  # push. It is still *included* in any push that happens for another reason,
+  # because the incremental filter in upload() keeps everything newer than the
+  # marker — so this bounds the request rate without dropping the data.
+  now_marker="$(mktemp -t tokenusage-now-XXXXXX)" || return 0
+  while IFS= read -r d; do
+    [ -e "$d" ] || continue
+    hit=$(find "$d" -newer "$SYNC_MARKER" ! -newer "$now_marker" -type f -print -quit 2>/dev/null)
+    if [ -n "$hit" ]; then
+      rc=0
+      break
+    fi
+  done <<< "$(source_paths)"
+  rm -f "$now_marker"
+  return $rc
+}
+
+# One call to /api/agent-checkin. Sets PAUSED / SYNC_REQUESTED / UPLOAD_SERVER
+# and refreshes the cadence knobs. Returns non-zero if the server was
+# unreachable, so the caller can decide whether to push blind.
+checkin() {
+  local reason="$1" resp
+  resp=$(curl -fsS --max-time 20 -X POST \
+    "$SERVER/api/agent-checkin" \
+    -H "Authorization: Bearer $TOKEN" \
+    -H "X-Agent-Version: $VERSION" \
+    -H "Content-Type: application/json" \
+    --data "{\"reason\":\"$reason\"}" 2>/dev/null) || return 1
+
+  local paused sync_requested
+  paused=$(printf '%s' "$resp" | sed -nE 's/.*"paused":(true|false).*/\1/p')
+  sync_requested=$(printf '%s' "$resp" | sed -nE 's/.*"syncRequested":(true|false).*/\1/p')
+  # A 200 we can't parse is not a successful check-in. Falling through with
+  # PAUSED empty would read as "not paused" and push against a server that
+  # may well have told us not to.
+  case "$paused" in true|false) ;; *) return 1 ;; esac
+  case "$sync_requested" in true|false) ;; *) return 1 ;; esac
+  PAUSED=$paused
+  SYNC_REQUESTED=$sync_requested
+
+  # Server-advertised upload endpoint. Overrides any local UPLOAD_SERVER set
+  # in config.env — lets the server roll out an off-CF upload host to
+  # existing agents without anyone editing files.
+  local server_upload
+  server_upload=$(printf '%s' "$resp" | sed -nE 's/.*"uploadServer":"([^"]+)".*/\1/p')
+  [ -n "$server_upload" ] && UPLOAD_SERVER="$server_upload"
+
+  # Cadence knobs. These set the floor and ceiling only — never the live
+  # backoff gap, or every check-in would reset the loop's progress.
+  local hb scan interval
+  hb=$(printf '%s' "$resp" | sed -nE 's/.*"heartbeatSeconds":([0-9]+).*/\1/p')
+  [ -n "$hb" ] && HEARTBEAT_SECONDS=$hb
+  scan=$(printf '%s' "$resp" | sed -nE 's/.*"scanSeconds":([0-9]+).*/\1/p')
+  [ -n "$scan" ] && SCAN_FLOOR_SECONDS=$scan
+  interval=$(printf '%s' "$resp" | sed -nE 's/.*"intervalSeconds":([0-9]+).*/\1/p')
+  [ -n "$interval" ] && INTERVAL_SECONDS=$interval
+  # Don't trust the server not to hand us a 0 — `sleep 0` in the scan loop is a
+  # busy-spin over the user's whole ~/.claude tree. The server clamps too; this
+  # is the half that protects an already-deployed agent from a bad rollout.
+  [ "$SCAN_FLOOR_SECONDS" -lt 5 ] && SCAN_FLOOR_SECONDS=5
+  [ "$INTERVAL_SECONDS" -lt 5 ] && INTERVAL_SECONDS=5
+  # Heartbeat needs a floor for a different reason: it gates a *network* call,
+  # not a local scan. A small value here fires the heartbeat branch on every
+  # pass, which is a check-in per scan — the request loop we just removed,
+  # reintroduced by a config typo. 60s is well under any real setting.
+  [ "$HEARTBEAT_SECONDS" -lt 60 ] && HEARTBEAT_SECONDS=60
+  # A ceiling below the floor would make the backoff run backwards.
+  [ "$INTERVAL_SECONDS" -lt "$SCAN_FLOOR_SECONDS" ] && SCAN_FLOOR_SECONDS=$INTERVAL_SECONDS
+  return 0
+}
+
+# Push loop (v0.28) — replaces the /api/sync-wait long-poll.
+#
+# The old loop asked the server "should I sync?" forever: ~950 requests per
+# agent per day on Node, and ~79,000 on Workers (where the handler answered
+# instantly and the `sleep 1` below it became the only delay). Both were
+# paying network cost to learn something the local filesystem already knew.
+#
+# Now the agent watches its own disk and speaks only when it has something
+# to say:
+#
+#   * local data changed         → check in (reason=data) and push
+#   * $HEARTBEAT_SECONDS elapsed → check in (reason=heartbeat), push if the
+#                                  server has a queued "sync now"
+#
+# An idle machine makes zero requests. A machine in active use makes about
+# one push per burst of Claude/Codex activity.
+#
+# The scan gap backs off exponentially: $SCAN_FLOOR_SECONDS right after any
+# activity, doubling each idle pass up to $INTERVAL_SECONDS. That ceiling is
+# the user's existing `sync_interval_seconds` setting — the same value the old
+# loop fetched into INTERVAL_SECONDS and then never used, which is how the
+# `sleep 1` came to be the only thing pacing the agent.
+#
+# The scan is local, so this saves no server requests (an idle agent already
+# sends none). What it saves is walking ~/.claude/projects off disk every 30
+# seconds forever on a machine nobody is using, and it makes the interval the
+# user picked in the UI mean something again.
 cmd_loop() {
   [ -f "$CONFIG_FILE" ] || { err "not configured"; exit 1; }
   # shellcheck disable=SC1090
@@ -694,57 +905,100 @@ cmd_loop() {
   else
     LAST_UPLOAD=0
   fi
-  INTERVAL_SECONDS=300
 
-  printf '[%s] tokenusage agent starting; server=%s\n' "$(ts)" "$SERVER"
+  # Server overrides all three on the first check-in.
+  SCAN_FLOOR_SECONDS=30
+  INTERVAL_SECONDS=300
+  HEARTBEAT_SECONDS=86400
+  PAUSED=false
+  SYNC_REQUESTED=false
+
+  printf '[%s] tokenusage agent starting (push mode); server=%s\n' "$(ts)" "$SERVER"
 
   if [ "${LOOP_ONCE:-0}" = "1" ]; then
+    checkin manual || true
+    [ "$PAUSED" = "true" ] && { printf '[%s] tracking paused — nothing to do\n' "$(ts)"; return 0; }
     upload
     return
   fi
 
-  # Eager first upload unless we just uploaded (rapid restart loop guard).
+  # Eager first push unless we just uploaded (rapid restart loop guard).
   NOW=$(date +%s)
+  LAST_BEAT=$NOW
   if [ $((NOW - LAST_UPLOAD)) -gt 60 ]; then
-    upload
+    if checkin startup; then
+      if [ "$PAUSED" = "true" ]; then
+        printf '[%s] tracking paused — skipping startup upload\n' "$(ts)"
+      else
+        upload
+      fi
+    fi
   fi
 
+  # Suppresses repeat check-ins while paused, or while an upload keeps
+  # failing, so a stuck agent still can't turn into a request loop.
+  SKIP_UNTIL=0
+  # Live backoff gap, between $SCAN_FLOOR_SECONDS and $INTERVAL_SECONDS.
+  SCAN_SECONDS=$SCAN_FLOOR_SECONDS
+
   while true; do
-    RESP=$(curl -fsS --max-time 360 \
-      "$SERVER/api/sync-wait" \
-      -H "Authorization: Bearer $TOKEN" \
-      -H "X-Agent-Version: $VERSION" 2>/dev/null || echo '')
+    sleep "$SCAN_SECONDS"
 
-    NEW_INTERVAL=$(printf '%s' "$RESP" | sed -nE 's/.*"intervalSeconds":([0-9]+).*/\1/p')
-    [ -n "$NEW_INTERVAL" ] && INTERVAL_SECONDS=$NEW_INTERVAL
-
-    # Server-advertised upload endpoint. Overrides any local UPLOAD_SERVER
-    # set in config.env — lets the server roll out an off-CF upload host
-    # to existing agents without anyone editing files. Empty / absent
-    # means "use whatever you had before" (UPLOAD_SERVER → SERVER).
-    SERVER_UPLOAD=$(printf '%s' "$RESP" | sed -nE 's/.*"uploadServer":"([^"]+)".*/\1/p')
-    [ -n "$SERVER_UPLOAD" ] && UPLOAD_SERVER="$SERVER_UPLOAD"
-
-    PAUSED=$(printf '%s' "$RESP" | sed -nE 's/.*"paused":(true|false).*/\1/p')
-    SYNC=$(printf '%s' "$RESP" | sed -nE 's/.*"sync":(true|false).*/\1/p')
     NOW=$(date +%s)
-    ELAPSED=$((NOW - LAST_UPLOAD))
+    REASON=""
 
-    # Pull-based sync: only upload when the server explicitly asks via
-    # SYNC=true (the dashboard auto-fires /api/sync-now when a user
-    # opens or refreshes a page). The old "every $INTERVAL_SECONDS
-    # regardless of viewer activity" branch is gone — agents on idle
-    # machines whose owner isn't looking now stay silent instead of
-    # burning bandwidth into a void. ELAPSED / INTERVAL_SECONDS still
-    # come back from the server so this is a single-version change to
-    # flip back if needed.
-    if [ "$PAUSED" = "true" ]; then
-      printf '[%s] tracking paused — skipping upload\n' "$(ts)"
-    elif [ "$SYNC" = "true" ]; then
-      upload
+    if [ "$NOW" -ge "$SKIP_UNTIL" ] && has_new_data; then
+      REASON=data
+    elif [ $((NOW - LAST_BEAT)) -ge "$HEARTBEAT_SECONDS" ]; then
+      REASON=heartbeat
     fi
 
-    sleep 1
+    if [ -z "$REASON" ]; then
+      # Quiet pass — widen the window toward the user's configured interval.
+      SCAN_SECONDS=$((SCAN_SECONDS * 2))
+      [ "$SCAN_SECONDS" -gt "$INTERVAL_SECONDS" ] && SCAN_SECONDS=$INTERVAL_SECONDS
+      # ...but never sleep past the next heartbeat. The heartbeat is only
+      # evaluated on a scan pass, so an unbounded gap silently delays it: with
+      # the 86400 ("manual only") interval the gap sequence reaches 61440 at
+      # t=61410s, and the following pass lands at t=122850s — 34.1h, past the
+      # 26h liveness window, so a perfectly healthy idle agent would render as
+      # "no recent activity" on the dashboard. Clamping here keeps the observed
+      # heartbeat within a few minutes of HEARTBEAT_SECONDS for every interval.
+      HB_REMAINING=$((LAST_BEAT + HEARTBEAT_SECONDS - NOW))
+      [ "$HB_REMAINING" -lt 1 ] && HB_REMAINING=1
+      [ "$SCAN_SECONDS" -gt "$HB_REMAINING" ] && SCAN_SECONDS=$HB_REMAINING
+      continue
+    fi
+
+    # Something happened — snap back to the floor so the rest of a burst of
+    # Claude activity is picked up promptly instead of at the backed-off gap.
+    SCAN_SECONDS=$SCAN_FLOOR_SECONDS
+
+    # Only now do we touch the network.
+    if ! checkin "$REASON"; then
+      printf '[%s] check-in failed (offline?) — retrying in %ss\n' "$(ts)" "$SCAN_SECONDS"
+      # Don't let an outage turn every scan into a failed request.
+      SKIP_UNTIL=$((NOW + 300))
+      continue
+    fi
+    LAST_BEAT=$NOW
+
+    if [ "$PAUSED" = "true" ]; then
+      printf '[%s] tracking paused — skipping upload\n' "$(ts)"
+      SKIP_UNTIL=$((NOW + 3600))
+      continue
+    fi
+
+    # Push when there's new data, or when the dashboard queued a manual sync
+    # (which we only learn about on a check-in we were making anyway).
+    if [ "$REASON" = "data" ] || [ "$SYNC_REQUESTED" = "true" ]; then
+      if upload; then
+        SKIP_UNTIL=0
+      else
+        # Back off rather than retrying the same failing payload every scan.
+        SKIP_UNTIL=$((NOW + 300))
+      fi
+    fi
   done
 }
 

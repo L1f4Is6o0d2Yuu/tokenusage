@@ -153,7 +153,6 @@ export function AgentStatusBar({
           </button>
         )}
         <SyncControl
-          lastSyncedAt={lastSyncedAt}
           paused={paused}
           installed={installed}
           agentLive={agentLive}

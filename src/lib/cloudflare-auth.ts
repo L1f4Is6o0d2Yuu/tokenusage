@@ -6,10 +6,12 @@ import {
   hashPassword,
   verifyPassword,
   type CreateUserInput,
+  type TokenTouchMode,
   type User,
 } from "./auth";
 import { getTokenusageD1, type TokenusageD1Database } from "./cloudflare-bindings";
 import { hashToken } from "./token-hash";
+import { shouldWriteAgentSeen } from "./agent-health";
 
 // 30 days — must stay in lockstep with SESSION_TTL_MS in src/lib/auth.ts.
 // Imported via the same module would be cleaner, but auth.ts pulls in
@@ -55,14 +57,15 @@ export async function readCurrentUserD1(): Promise<User | null> {
 
 export async function authenticateApiTokenD1(
   db: TokenusageD1Database,
-  plaintext: string
+  plaintext: string,
+  touch: TokenTouchMode = "throttled"
 ): Promise<User | null> {
   if (!plaintext.startsWith("tu_")) return null;
   const row = await db
     .prepare(
       `SELECT u.id AS id, u.username AS username, u.email AS email,
               u.is_admin AS is_admin, u.activated_at AS activated_at,
-              t.id AS token_id
+              t.id AS token_id, t.last_used_at AS token_last_used_at
        FROM api_tokens t
        JOIN users u ON u.id = t.user_id
        WHERE t.token_hash = ?`
@@ -75,9 +78,21 @@ export async function authenticateApiTokenD1(
       is_admin: number;
       activated_at: number | null;
       token_id: number;
+      token_last_used_at: number | null;
     }>();
   if (!row) return null;
-  await db.prepare(`UPDATE api_tokens SET last_used_at = ? WHERE id = ?`).bind(Date.now(), row.token_id).run();
+  // See the TokenTouchMode docs in src/lib/auth.ts — on D1 this is the
+  // difference between one row-write per agent request and one per day.
+  const now = Date.now();
+  if (
+    touch === "force" ||
+    (touch === "throttled" && shouldWriteAgentSeen(row.token_last_used_at, now))
+  ) {
+    await db
+      .prepare(`UPDATE api_tokens SET last_used_at = ? WHERE id = ?`)
+      .bind(now, row.token_id)
+      .run();
+  }
   return {
     id: row.id,
     username: row.username,

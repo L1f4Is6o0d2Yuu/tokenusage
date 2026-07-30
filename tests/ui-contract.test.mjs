@@ -32,13 +32,28 @@ test('sync control does not auto-trigger or allow stuck progress when agent is o
   const installPage = read('../src/app/(app)/install/page.tsx');
   assert.match(control, /agentLive: boolean/);
   assert.match(control, /!installed \|\| paused \|\| !agentLive/);
-  assert.match(control, /agent 离线/);
+  // Push model: the agent only talks when it has data or when its daily
+  // check-in comes due, so the UI claims "no recent activity", not "offline".
+  assert.match(control, /agent 无近期活动/);
+  // The dashboard must not fire a sync on mount — that was one request plus
+  // a 1Hz status poll on every page open, re-confirming data the agent had
+  // already pushed.
+  assert.doesNotMatch(control, /sessionStorage\.getItem\("tu-auto-synced-at"\)/);
+  assert.match(control, /Deliberately no auto-sync on mount/);
   assert.match(statusBar, /agentLive=\{agentLive\}/);
   assert.match(statusBar, /href="\/install#troubleshoot"/);
   assert.match(statusBar, /修复 Agent/);
   assert.match(installPage, /id="troubleshoot"/);
-  assert.match(installPage, /tokenusage doctor/);
-  assert.match(installPage, /tokenusage logs/);
+  // The remediation copy itself is localized, so assert on the dictionary
+  // rather than the page source — the page only renders `ot.troubleshootStepN`.
+  const zh = JSON.parse(read('../src/i18n/dictionaries/zh-CN.json'));
+  const steps = [
+    zh.onboarding.troubleshootStep1,
+    zh.onboarding.troubleshootStep2,
+    zh.onboarding.troubleshootStep3,
+  ].join('\n');
+  assert.match(steps, /tokenusage doctor/);
+  assert.match(steps, /tokenusage logs/);
 });
 
 test('sync completion uses server timestamps only so browser clock skew cannot pin progress at 90%', () => {
@@ -223,14 +238,21 @@ test('prices page and server actions are admin-only in multi-user mode', () => {
 test('sync-status returns canonical agent observability fields', () => {
   const helper = read('../src/lib/agent-health.ts');
   const state = read('../src/lib/sync-state.ts');
-  const route = read('../src/app/api/sync-status/route.ts');
+  // The route is a thin runtime dispatcher since the Cloudflare split; the
+  // observability fields live in the per-runtime handlers.
+  const route = read('../src/app/api/sync-status/node-handler.ts');
   const control = read('../src/components/sync-control.tsx');
   const page = read('../src/app/(app)/dashboard/page.tsx');
   const dashboard = read('../src/app/(app)/dashboard-client.tsx');
   const statusBar = read('../src/components/agent-status-bar.tsx');
 
-  assert.match(helper, /AGENT_LIVE_THRESHOLD_MS = 90 \* 1000/);
+  // 26h, not 90s: under the push model the agent's quietest legitimate
+  // cadence is the once-a-day heartbeat, so a 90s window would report every
+  // healthy agent as dead for 23 hours out of 24.
+  assert.match(helper, /AGENT_LIVE_THRESHOLD_MS = 26 \* 60 \* 60 \* 1000/);
   assert.match(helper, /isAgentLiveAt/);
+  // Heartbeat writes are coalesced — they are the D1 row-write budget.
+  assert.match(helper, /shouldWriteAgentSeen/);
   assert.match(state, /agentSeenAt: number \| null/);
   assert.match(state, /agentLive: boolean/);
   assert.match(state, /agentVersion: string \| null/);
@@ -255,15 +277,21 @@ test('sync-status returns canonical agent observability fields', () => {
 test('sync control gives actionable paused offline and stalled states', () => {
   const source = read('../src/components/sync-control.tsx');
 
-  assert.match(source, /type SyncBlockReason = "offline" \| "paused" \| "stalled" \| "waiting" \| null/);
+  // "waiting" became "queued": with no agent polling, a request the agent
+  // hasn't picked up yet is the expected path, not a failure.
+  assert.match(source, /type SyncBlockReason = "offline" \| "paused" \| "stalled" \| "queued" \| null/);
   assert.match(source, /setBlockReason\(data\.paused \? "paused" : "offline"\)/);
-  assert.match(source, /setBlockReason\(uploadIsStalled \? "stalled" : "waiting"\)/);
+  assert.match(source, /setBlockReason\(uploadIsStalled \? "stalled" : "queued"\)/);
   assert.match(source, /agent 已暂停/);
   assert.match(source, /上传卡住/);
-  assert.match(source, /Agent 离线，先运行修复流程。/);
+  assert.match(source, /Agent 超过 26 小时没有活动/);
   assert.match(source, /Agent 已暂停，恢复后再同步。/);
   assert.match(source, /上传已开始但长时间没有完成。/);
   assert.match(source, /href="\/install#troubleshoot"/);
+  // A queued request is not broken, so it must not offer a repair link and
+  // must tell the user the instant path.
+  assert.match(source, /blockReason === "offline" \|\| blockReason === "stalled"/);
+  assert.match(source, /tokenusage sync/);
 });
 
 test('sync timeout distinguishes offline agent from stalled upload and stays visible', () => {
@@ -273,7 +301,7 @@ test('sync timeout distinguishes offline agent from stalled upload and stays vis
   assert.match(source, /const UPLOAD_STALL_TIMEOUT_MS = 10 \* 60 \* 1000/);
   assert.match(source, /requestIsWaiting && elapsed > WAIT_TIMEOUT_MS/);
   assert.match(source, /uploadIsStalled/);
-  assert.match(source, /Hold the error until the user explicitly retries or dismisses it/);
+  assert.match(source, /parked server-side/);
   assert.match(source, /function dismissTimeout\(\)/);
   assert.doesNotMatch(source, /setTimeout\(\(\) => \{\s*setPhase\("idle"\)/s);
 });
@@ -372,3 +400,154 @@ test('cloudflare migration branch has OpenNext preflight config and documents na
 });
 
 
+
+test('agent pushes on local change instead of polling the server', () => {
+  const agent = read('../agent/tokenusage');
+
+  // The old loop was `curl /api/sync-wait; sleep 1` forever. On Node the
+  // server's 90s hold paced it to ~950 requests/agent/day; on Workers, where
+  // the handler answered immediately, it degraded to ~79,000/day — one user
+  // could exhaust the 100k/day free tier alone.
+  assert.doesNotMatch(agent, /curl[^\n]*\/api\/sync-wait/);
+  assert.match(agent, /\/api\/agent-checkin/);
+
+  // Change detection is local, so an idle machine makes zero requests.
+  assert.match(agent, /has_new_data\(\)/);
+  // Bounded on BOTH sides. A future-dated file (clock skew, restored backup,
+  // archive with bogus timestamps) is newer than any marker we will ever
+  // write, so a lower bound alone stays true forever and the agent pushes on
+  // every scan for its whole life — the same request storm from the other
+  // direction. Such a file can't trigger a push, but is still carried along by
+  // any push that happens for another reason, so no data is dropped.
+  assert.match(agent, /find "\$d" -newer "\$SYNC_MARKER" ! -newer "\$now_marker" -type f -print -quit/);
+
+  // The marker must be a real file: an epoch-second marker rebuilt via
+  // `touch -d` sits at T.0 while the files it covers sit at T.4, so every one
+  // of them reads as newer forever and the agent pushes on every scan.
+  assert.match(agent, /SYNC_MARKER="\$CONFIG_DIR\/last-sync\.marker"/);
+
+  // The stamp is taken before collection starts, so a write landing mid-upload
+  // stays newer than the marker and goes out on the next push rather than
+  // being silently marked as sent.
+  assert.match(agent, /START_MARKER="\$\(mktemp -t tokenusage-start-XXXXXX\)"/);
+  // Every success path stamps it — including the node-agent path, which
+  // returns early and would otherwise leave the loop pushing every scan.
+  assert.match(agent, /mark_uploaded "\$START_MARKER"\n      return 0/);
+
+  // A failed upload or a paused agent must back off, not retry every scan.
+  assert.match(agent, /SKIP_UNTIL=/);
+
+  // upload()'s RETURN trap must disarm itself. A RETURN trap set in a function
+  // fires again when the CALLER returns, and $TMP is local to upload() — the
+  // second firing hits an unbound variable and `set -u` kills the shell. Only
+  // the never-returning cmd_loop called upload() before; now `tokenusage sync`
+  // and the LOOP_ONCE install self-test do, which turned a successful sync into
+  // "✓ synced" followed by exit 1.
+  assert.match(agent, /trap 'rm -rf "\$TMP"; rm -f "\$START_MARKER"; trap - RETURN' RETURN/);
+
+  // The scan gap backs off toward the user's configured sync_interval_seconds
+  // instead of sitting at a flat gap. INTERVAL_SECONDS was the value the old
+  // loop fetched and then never used — leaving `sleep 1` as the only pacing.
+  assert.match(agent, /SCAN_SECONDS=\$\(\(SCAN_SECONDS \* 2\)\)/);
+  assert.match(agent, /\[ "\$SCAN_SECONDS" -gt "\$INTERVAL_SECONDS" \] && SCAN_SECONDS=\$INTERVAL_SECONDS/);
+  // Activity resets to the floor so a burst stays responsive.
+  assert.match(agent, /SCAN_SECONDS=\$SCAN_FLOOR_SECONDS/);
+  // A ceiling below the floor would make the backoff run backwards.
+  assert.match(agent, /\[ "\$INTERVAL_SECONDS" -lt "\$SCAN_FLOOR_SECONDS" \] && SCAN_FLOOR_SECONDS=\$INTERVAL_SECONDS/);
+  // checkin() must set floor/ceiling only — never the live gap, or every
+  // check-in would reset the backoff.
+  assert.doesNotMatch(agent, /\[ -n "\$scan" \] && SCAN_SECONDS=/);
+
+  // The gap must never overshoot the heartbeat deadline. The heartbeat is only
+  // evaluated on a scan pass, so an unbounded gap delays it: at the 86400
+  // interval the sequence lands the first post-deadline pass at 122850s =
+  // 34.1h, past the 26h liveness window, and a healthy idle agent would render
+  // as "no recent activity". With the clamp every interval heartbeats at 24.0h.
+  assert.match(agent, /HB_REMAINING=\$\(\(LAST_BEAT \+ HEARTBEAT_SECONDS - NOW\)\)/);
+  assert.match(agent, /\[ "\$SCAN_SECONDS" -gt "\$HB_REMAINING" \] && SCAN_SECONDS=\$HB_REMAINING/);
+  assert.match(agent, /\[ "\$HB_REMAINING" -lt 1 \] && HB_REMAINING=1/);
+});
+
+test('agent check-in spends a D1 row-write only on real work', () => {
+  const lib = read('../src/lib/agent-checkin.ts');
+  const agent = read('../agent/tokenusage');
+  const health = read('../src/lib/agent-health.ts');
+  const nodeHandler = read('../src/app/api/agent-checkin/node-handler.ts');
+  const cfHandler = read('../src/app/api/agent-checkin/cloudflare-handler.ts');
+  const auth = read('../src/lib/auth.ts');
+  const cfAuth = read('../src/lib/cloudflare-auth.ts');
+  const cfSyncState = read('../src/lib/cloudflare-sync-state.ts');
+
+  // D1 free tier is 100k row-writes/day. Two unconditional writes per agent
+  // request (api_tokens.last_used_at + users.agent_version) was the real
+  // ceiling — tighter than the request quota itself.
+  assert.match(auth, /export type TokenTouchMode = "throttled" \| "force" \| "never"/);
+  assert.match(health, /shouldWriteAgentSeen/);
+  assert.match(health, /AGENT_SEEN_WRITE_INTERVAL_MS/);
+
+  // Heartbeats coalesce to one write/day; data and manual syncs force one.
+  assert.match(lib, /touchModeFor/);
+  assert.match(lib, /REAL_WORK/);
+  assert.match(nodeHandler, /touchModeFor\(reason\)/);
+  assert.match(cfHandler, /touchModeFor\(reason\)/);
+
+  // agent_version is read-before-write: reported every request, changes ~monthly.
+  assert.match(cfSyncState, /if \(row\?\.v === version\) return;/);
+  assert.match(auth, /if \(row\?\.v === version\) return;/);
+  assert.match(cfAuth, /shouldWriteAgentSeen\(row\.token_last_used_at, now\)/);
+
+  // Both runtimes must agree on the wire shape.
+  assert.match(nodeHandler, /buildCheckinResponse/);
+  assert.match(cfHandler, /buildCheckinResponse/);
+
+  // The response carries the user's configured interval as the backoff
+  // ceiling, and never advertises a floor above it.
+  assert.match(lib, /const interval = sane\(state\.syncIntervalSeconds, 300\)/);
+  assert.match(lib, /intervalSeconds: interval/);
+  assert.match(lib, /Math\.min\(AGENT_SCAN_FLOOR_SECONDS, interval\)/);
+  // A stored 0 would make the agent `sleep 0` and busy-spin over the user's
+  // whole ~/.claude tree. Clamped on both sides — server and agent.
+  assert.match(lib, /MIN_ADVERTISED_SECONDS = 5/);
+  assert.match(agent, /\[ "\$INTERVAL_SECONDS" -lt 5 \] && INTERVAL_SECONDS=5/);
+  // heartbeatSeconds needs its own floor: unlike the scan knobs it gates a
+  // *network* call, so a small value means one check-in per scan — the request
+  // loop this change removed, reintroduced by a config typo.
+  assert.match(agent, /\[ "\$HEARTBEAT_SECONDS" -lt 60 \] && HEARTBEAT_SECONDS=60/);
+});
+
+test('deprecated sync-wait still holds so legacy agents cannot hot-loop', () => {
+  const cf = read('../src/app/api/sync-wait/cloudflare-handler.ts');
+  const node = read('../src/app/api/sync-wait/node-handler.ts');
+  const hold = read('../src/app/api/sync-wait/legacy-hold.ts');
+
+  // Pre-v0.28 agents have no pacing of their own beyond `sleep 1`, so the
+  // server-side hold is the only throttle. Answering fast on Workers is what
+  // turned a 91s cycle into a 1.1s one.
+  assert.match(hold, /LEGACY_HOLD_MS = 90 \* 1000/);
+  assert.match(cf, /await new Promise\(\(r\) => setTimeout\(r, LEGACY_HOLD_MS\)\)/);
+  assert.match(node, /waitSync\(user\.id, holdMs\)/);
+  assert.match(cf, /deprecated: true/);
+  assert.match(node, /deprecated: true/);
+
+  // Legacy polls are heartbeats too — they must not burn a write each.
+  assert.match(cf, /"throttled"/);
+  assert.match(node, /"throttled"/);
+});
+
+test('dashboard and install page do not poll on a hot loop', () => {
+  const control = read('../src/components/sync-control.tsx');
+  const refresh = read('../src/components/install-auto-refresh.tsx');
+  const installPage = read('../src/app/(app)/install/page.tsx');
+
+  // 1Hz status polling meant 60 requests/min for as long as a sync was
+  // outstanding, and the install page's 8s refresh was 450 requests/hour per
+  // open tab, forever.
+  assert.match(control, /const POLL_MS = 3000/);
+  assert.doesNotMatch(control, /const POLL_MS = 1000/);
+  assert.match(installPage, /intervalMs=\{uploadInProgress \? 3000 : 30000\}/);
+
+  // Both must stop when nobody is looking, and the install page must give up.
+  assert.match(refresh, /visibilitychange/);
+  assert.match(control, /visibilitychange/);
+  assert.match(refresh, /maxMs/);
+});

@@ -4,6 +4,7 @@ import crypto from "node:crypto";
 import { openServerDb } from "./server-db";
 import { hashToken } from "./token-hash";
 import { isCloudflareRuntime } from "./runtime";
+import { shouldWriteAgentSeen } from "./agent-health";
 
 export const SESSION_COOKIE = "tokenusage-session";
 const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
@@ -566,6 +567,10 @@ export async function listUsers(): Promise<Array<{
 // Record the agent's self-reported version. Called from the heartbeat
 // (/api/agent) and upload endpoints when they see an X-Agent-Version
 // header. No-op for unknown / empty version strings.
+// Read-before-write: the agent reports its version on every request, but
+// the value changes maybe once a month. An unconditional UPDATE here cost
+// one D1 row-write per agent request against a 100k/day budget; the read
+// it's replaced with comes out of a 5M/day budget instead.
 export async function recordAgentVersion(userId: number, version: string): Promise<void> {
   if (!version || version.length > 32) return;
   if (isCloudflareRuntime()) {
@@ -574,6 +579,10 @@ export async function recordAgentVersion(userId: number, version: string): Promi
   }
   const db = openServerDb();
   try {
+    const row = db
+      .prepare(`SELECT agent_version AS v FROM users WHERE id = ?`)
+      .get(userId) as { v: string | null } | undefined;
+    if (row?.v === version) return;
     db.prepare(`UPDATE users SET agent_version = ? WHERE id = ?`).run(
       version,
       userId
@@ -683,13 +692,29 @@ export async function revokeApiToken(userId: number, id: number): Promise<void> 
   }
 }
 
-export async function authenticateApiToken(plaintext: string): Promise<User | null> {
+// `touch` controls whether a successful auth is allowed to rewrite
+// `api_tokens.last_used_at`:
+//
+//   "throttled" (default) — write at most once per AGENT_SEEN_WRITE_INTERVAL_MS.
+//                           Used by heartbeats and read-only bearer calls
+//                           (statusline, export), which would otherwise burn
+//                           a D1 row-write per request for no new information.
+//   "force"               — always write. Used when the agent is doing real
+//                           work (an upload, a user-initiated sync) so the
+//                           dashboard's "last active" stamp is exact.
+//   "never"               — don't write at all.
+export type TokenTouchMode = "throttled" | "force" | "never";
+
+export async function authenticateApiToken(
+  plaintext: string,
+  touch: TokenTouchMode = "throttled"
+): Promise<User | null> {
   if (!plaintext.startsWith("tu_")) return null;
   if (isCloudflareRuntime()) {
     const { authenticateApiTokenD1 } = await import("./cloudflare-auth");
     const { getTokenusageD1 } = await import("./cloudflare-bindings");
     const db = await getTokenusageD1();
-    return authenticateApiTokenD1(db, plaintext);
+    return authenticateApiTokenD1(db, plaintext, touch);
   }
   const db = openServerDb();
   try {
@@ -697,7 +722,7 @@ export async function authenticateApiToken(plaintext: string): Promise<User | nu
       .prepare(
         `SELECT u.id AS id, u.username AS username, u.email AS email,
                 u.is_admin AS is_admin, u.activated_at AS activated_at,
-                t.id AS token_id
+                t.id AS token_id, t.last_used_at AS token_last_used_at
          FROM api_tokens t
          JOIN users u ON u.id = t.user_id
          WHERE t.token_hash = ?`
@@ -710,13 +735,21 @@ export async function authenticateApiToken(plaintext: string): Promise<User | nu
           is_admin: number;
           activated_at: number | null;
           token_id: number;
+          token_last_used_at: number | null;
         }
       | undefined;
     if (!row) return null;
-    db.prepare(`UPDATE api_tokens SET last_used_at = ? WHERE id = ?`).run(
-      Date.now(),
-      row.token_id
-    );
+    const now = Date.now();
+    if (
+      touch === "force" ||
+      (touch === "throttled" &&
+        shouldWriteAgentSeen(row.token_last_used_at, now))
+    ) {
+      db.prepare(`UPDATE api_tokens SET last_used_at = ? WHERE id = ?`).run(
+        now,
+        row.token_id
+      );
+    }
     return {
       id: row.id,
       username: row.username,

@@ -1,0 +1,57 @@
+name: CI
+
+# Merge gate. Runs on every PR and on pushes to the long-lived branches.
+#
+# There is deliberately no deploy job here: production is a self-hosted
+# docker-compose stack on our own box, and deploys stay manual
+# (`git pull && docker compose up -d --build` in /opt/tokenusage). This
+# workflow only answers "is this branch safe to merge".
+on:
+  pull_request:
+  push:
+    branches: [main, dev]
+
+# A new push to a PR makes the in-flight run obsolete.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Must come before setup-node so the pnpm cache can be wired up.
+      # No version pin here on purpose: pnpm/action-setup reads the
+      # `packageManager` field in package.json, so the version tracks the repo.
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          # Matches the `engines.node` floor in package.json and the
+          # node:22-alpine base image the Dockerfile builds from.
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Typecheck
+        run: npx tsc --noEmit
+
+      - name: Test
+        run: pnpm test
+
+      # Catches what the other three miss: a route that only fails to compile
+      # under the real Next build, which is exactly what ships in the image.
+      - name: Build
+        run: pnpm build

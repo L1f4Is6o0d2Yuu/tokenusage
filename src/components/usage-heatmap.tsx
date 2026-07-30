@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import type { CSSProperties } from "react";
 import type { UsageRecord } from "@/lib/types";
 import { formatUsd } from "@/lib/format";
+import { useHasMounted } from "@/lib/use-has-mounted";
 
 // GitHub-style contribution graph for AI cost. Last 365 days bucketed
 // by local-day; intensity buckets driven by quantile (not absolute
@@ -98,10 +99,7 @@ export function UsageHeatmap({ records }: { records: UsageRecord[] }) {
   // date strings whenever the two days differ. Defer the real render until
   // mount so SSR emits the placeholder and the client renders the real
   // grid in the same TZ React will reconcile against.
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const mounted = useHasMounted();
   const buckets = useMemo(
     () => (mounted ? buildBuckets(records, 7 * 53) : []),
     [records, mounted]
