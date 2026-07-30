@@ -355,7 +355,8 @@ cmd_sync() {
   . "$CONFIG_FILE"
   PAUSED=false
   SYNC_REQUESTED=false
-  SCAN_SECONDS=30
+  SCAN_FLOOR_SECONDS=30
+  INTERVAL_SECONDS=300
   HEARTBEAT_SECONDS=86400
   if ! checkin manual; then
     err "check-in failed — server unreachable or token invalid"
@@ -543,7 +544,15 @@ upload() {
   fi
 
   TMP="$(mktemp -d -t tokenusage-XXXXXX)"
-  trap 'rm -rf "$TMP"; rm -f "$START_MARKER"' RETURN
+  # `trap - RETURN` at the end is load-bearing, not tidiness. A RETURN trap set
+  # inside a function also fires when the *caller* returns, and $TMP is local to
+  # this one — so the second firing hits an unbound variable and `set -u` kills
+  # the shell. That stayed hidden while only the infinite cmd_loop called
+  # upload(); now that `tokenusage sync` and the LOOP_ONCE install self-test
+  # both call it and then return, it surfaced as `✓ synced` immediately followed
+  # by `TMP: unbound variable` and exit 1 — a successful sync reporting failure,
+  # and an install self-test failing on a healthy install.
+  trap 'rm -rf "$TMP"; rm -f "$START_MARKER"; trap - RETURN' RETURN
 
   mkdir -p "$TMP/payload"
 
@@ -778,14 +787,31 @@ source_paths() {
 # `-print -quit` bails at the first hit, so "yes, something changed" costs
 # almost nothing. No marker (first run) means everything is new.
 has_new_data() {
-  local d hit
+  local d hit now_marker rc=1
   [ -f "$SYNC_MARKER" ] || return 0
+
+  # Upper bound as well as lower. A file dated in the future — clock skew, a
+  # restored backup, an archive extracted with bogus timestamps — is newer than
+  # any marker we will ever write, so `-newer $SYNC_MARKER` alone stays true
+  # forever and the loop pushes on every single scan for the life of the agent.
+  # That is the exact failure this whole change exists to remove, arriving from
+  # the other direction.
+  #
+  # Requiring `! -newer $now_marker` too means such a file cannot *trigger* a
+  # push. It is still *included* in any push that happens for another reason,
+  # because the incremental filter in upload() keeps everything newer than the
+  # marker — so this bounds the request rate without dropping the data.
+  now_marker="$(mktemp -t tokenusage-now-XXXXXX)" || return 0
   while IFS= read -r d; do
     [ -e "$d" ] || continue
-    hit=$(find "$d" -newer "$SYNC_MARKER" -type f -print -quit 2>/dev/null)
-    [ -n "$hit" ] && return 0
+    hit=$(find "$d" -newer "$SYNC_MARKER" ! -newer "$now_marker" -type f -print -quit 2>/dev/null)
+    if [ -n "$hit" ]; then
+      rc=0
+      break
+    fi
   done <<< "$(source_paths)"
-  return 1
+  rm -f "$now_marker"
+  return $rc
 }
 
 # One call to /api/agent-checkin. Sets PAUSED / SYNC_REQUESTED / UPLOAD_SERVER
@@ -818,11 +844,27 @@ checkin() {
   server_upload=$(printf '%s' "$resp" | sed -nE 's/.*"uploadServer":"([^"]+)".*/\1/p')
   [ -n "$server_upload" ] && UPLOAD_SERVER="$server_upload"
 
-  local hb scan
+  # Cadence knobs. These set the floor and ceiling only — never the live
+  # backoff gap, or every check-in would reset the loop's progress.
+  local hb scan interval
   hb=$(printf '%s' "$resp" | sed -nE 's/.*"heartbeatSeconds":([0-9]+).*/\1/p')
   [ -n "$hb" ] && HEARTBEAT_SECONDS=$hb
   scan=$(printf '%s' "$resp" | sed -nE 's/.*"scanSeconds":([0-9]+).*/\1/p')
-  [ -n "$scan" ] && SCAN_SECONDS=$scan
+  [ -n "$scan" ] && SCAN_FLOOR_SECONDS=$scan
+  interval=$(printf '%s' "$resp" | sed -nE 's/.*"intervalSeconds":([0-9]+).*/\1/p')
+  [ -n "$interval" ] && INTERVAL_SECONDS=$interval
+  # Don't trust the server not to hand us a 0 — `sleep 0` in the scan loop is a
+  # busy-spin over the user's whole ~/.claude tree. The server clamps too; this
+  # is the half that protects an already-deployed agent from a bad rollout.
+  [ "$SCAN_FLOOR_SECONDS" -lt 5 ] && SCAN_FLOOR_SECONDS=5
+  [ "$INTERVAL_SECONDS" -lt 5 ] && INTERVAL_SECONDS=5
+  # Heartbeat needs a floor for a different reason: it gates a *network* call,
+  # not a local scan. A small value here fires the heartbeat branch on every
+  # pass, which is a check-in per scan — the request loop we just removed,
+  # reintroduced by a config typo. 60s is well under any real setting.
+  [ "$HEARTBEAT_SECONDS" -lt 60 ] && HEARTBEAT_SECONDS=60
+  # A ceiling below the floor would make the backoff run backwards.
+  [ "$INTERVAL_SECONDS" -lt "$SCAN_FLOOR_SECONDS" ] && SCAN_FLOOR_SECONDS=$INTERVAL_SECONDS
   return 0
 }
 
@@ -836,12 +878,23 @@ checkin() {
 # Now the agent watches its own disk and speaks only when it has something
 # to say:
 #
-#   * local fingerprint changed  → check in (reason=data) and push
+#   * local data changed         → check in (reason=data) and push
 #   * $HEARTBEAT_SECONDS elapsed → check in (reason=heartbeat), push if the
 #                                  server has a queued "sync now"
 #
 # An idle machine makes zero requests. A machine in active use makes about
 # one push per burst of Claude/Codex activity.
+#
+# The scan gap backs off exponentially: $SCAN_FLOOR_SECONDS right after any
+# activity, doubling each idle pass up to $INTERVAL_SECONDS. That ceiling is
+# the user's existing `sync_interval_seconds` setting — the same value the old
+# loop fetched into INTERVAL_SECONDS and then never used, which is how the
+# `sleep 1` came to be the only thing pacing the agent.
+#
+# The scan is local, so this saves no server requests (an idle agent already
+# sends none). What it saves is walking ~/.claude/projects off disk every 30
+# seconds forever on a machine nobody is using, and it makes the interval the
+# user picked in the UI mean something again.
 cmd_loop() {
   [ -f "$CONFIG_FILE" ] || { err "not configured"; exit 1; }
   # shellcheck disable=SC1090
@@ -853,8 +906,9 @@ cmd_loop() {
     LAST_UPLOAD=0
   fi
 
-  # Server overrides both on the first check-in.
-  SCAN_SECONDS=30
+  # Server overrides all three on the first check-in.
+  SCAN_FLOOR_SECONDS=30
+  INTERVAL_SECONDS=300
   HEARTBEAT_SECONDS=86400
   PAUSED=false
   SYNC_REQUESTED=false
@@ -884,6 +938,8 @@ cmd_loop() {
   # Suppresses repeat check-ins while paused, or while an upload keeps
   # failing, so a stuck agent still can't turn into a request loop.
   SKIP_UNTIL=0
+  # Live backoff gap, between $SCAN_FLOOR_SECONDS and $INTERVAL_SECONDS.
+  SCAN_SECONDS=$SCAN_FLOOR_SECONDS
 
   while true; do
     sleep "$SCAN_SECONDS"
@@ -897,7 +953,26 @@ cmd_loop() {
       REASON=heartbeat
     fi
 
-    [ -z "$REASON" ] && continue
+    if [ -z "$REASON" ]; then
+      # Quiet pass — widen the window toward the user's configured interval.
+      SCAN_SECONDS=$((SCAN_SECONDS * 2))
+      [ "$SCAN_SECONDS" -gt "$INTERVAL_SECONDS" ] && SCAN_SECONDS=$INTERVAL_SECONDS
+      # ...but never sleep past the next heartbeat. The heartbeat is only
+      # evaluated on a scan pass, so an unbounded gap silently delays it: with
+      # the 86400 ("manual only") interval the gap sequence reaches 61440 at
+      # t=61410s, and the following pass lands at t=122850s — 34.1h, past the
+      # 26h liveness window, so a perfectly healthy idle agent would render as
+      # "no recent activity" on the dashboard. Clamping here keeps the observed
+      # heartbeat within a few minutes of HEARTBEAT_SECONDS for every interval.
+      HB_REMAINING=$((LAST_BEAT + HEARTBEAT_SECONDS - NOW))
+      [ "$HB_REMAINING" -lt 1 ] && HB_REMAINING=1
+      [ "$SCAN_SECONDS" -gt "$HB_REMAINING" ] && SCAN_SECONDS=$HB_REMAINING
+      continue
+    fi
+
+    # Something happened — snap back to the floor so the rest of a burst of
+    # Claude activity is picked up promptly instead of at the backed-off gap.
+    SCAN_SECONDS=$SCAN_FLOOR_SECONDS
 
     # Only now do we touch the network.
     if ! checkin "$REASON"; then

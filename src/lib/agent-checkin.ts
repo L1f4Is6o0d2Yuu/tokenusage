@@ -6,11 +6,29 @@ import type { UserSyncState } from "./sync-state";
 // handlers can't drift apart. Both runtimes authenticate, read sync state,
 // and hand the result here.
 
-// How often the agent rescans its local source dirs. This is a *local*
-// stat() sweep, not a network call — it costs nothing on either side, so
-// it can be tight enough that a finished Claude session shows up on the
-// dashboard within about half a minute.
-export const AGENT_SCAN_INTERVAL_SECONDS = 30;
+// Floor for the agent's local rescan. This is a *local* filesystem sweep,
+// not a network call, so right after activity it can be tight enough that a
+// finished Claude session reaches the dashboard within about half a minute.
+//
+// It is only the floor: the agent doubles its scan gap on every idle pass up
+// to the user's configured `sync_interval_seconds`, so an idle machine settles
+// at that interval rather than walking ~/.claude/projects every 30s forever.
+export const AGENT_SCAN_FLOOR_SECONDS = 30;
+
+// Hard lower bound on anything we advertise as a sleep duration. The column is
+// `NOT NULL DEFAULT 300` and setSyncInterval() validates against
+// VALID_INTERVALS, so a bad value takes a manual write to get in — but the `??`
+// default only catches NULL, so a stored 0 would sail through Math.min() and
+// tell the agent to sleep 0. That is a local spin, not a request storm, which
+// makes it the kind of thing nobody notices except the user whose laptop fan is
+// running. Cheaper to clamp than to rely on every writer being careful.
+const MIN_ADVERTISED_SECONDS = 5;
+
+function sane(seconds: number, fallback: number): number {
+  return Number.isFinite(seconds) && seconds >= MIN_ADVERTISED_SECONDS
+    ? Math.floor(seconds)
+    : fallback;
+}
 
 // Why the agent is calling. This is what decides whether the check-in is
 // allowed to spend a D1 row-write on `last_used_at`:
@@ -49,7 +67,12 @@ export type AgentCheckinResponse = {
   // Cadence knobs, server-controlled so we can retune deployed agents
   // without shipping a new CLI.
   heartbeatSeconds: number;
+  // Floor and ceiling for the agent's local scan gap. It starts at
+  // scanSeconds after any activity and doubles each idle pass up to
+  // intervalSeconds — the user's existing `sync_interval_seconds` setting,
+  // which until now the agent parsed and then ignored.
   scanSeconds: number;
+  intervalSeconds: number;
 };
 
 // A sync is outstanding when the user asked for one and nothing has been
@@ -68,13 +91,18 @@ export function buildCheckinResponse(
   state: UserSyncState,
   uploadServer: string | null
 ): AgentCheckinResponse {
+  const interval = sane(state.syncIntervalSeconds, 300);
   return {
     ok: true,
     paused: state.paused,
     syncRequested: !state.paused && isSyncPending(state),
     uploadServer,
     heartbeatSeconds: Math.floor(AGENT_HEARTBEAT_INTERVAL_MS / 1000),
-    scanSeconds: AGENT_SCAN_INTERVAL_SECONDS,
+    // Never advertise a floor above the ceiling — a user who picks the 60s
+    // interval would otherwise get a 30s floor clamped against a 60s cap on
+    // one side and nothing on the other.
+    scanSeconds: Math.min(AGENT_SCAN_FLOOR_SECONDS, interval),
+    intervalSeconds: interval,
   };
 }
 

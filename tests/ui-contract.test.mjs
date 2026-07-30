@@ -413,7 +413,13 @@ test('agent pushes on local change instead of polling the server', () => {
 
   // Change detection is local, so an idle machine makes zero requests.
   assert.match(agent, /has_new_data\(\)/);
-  assert.match(agent, /find "\$d" -newer "\$SYNC_MARKER" -type f -print -quit/);
+  // Bounded on BOTH sides. A future-dated file (clock skew, restored backup,
+  // archive with bogus timestamps) is newer than any marker we will ever
+  // write, so a lower bound alone stays true forever and the agent pushes on
+  // every scan for its whole life — the same request storm from the other
+  // direction. Such a file can't trigger a push, but is still carried along by
+  // any push that happens for another reason, so no data is dropped.
+  assert.match(agent, /find "\$d" -newer "\$SYNC_MARKER" ! -newer "\$now_marker" -type f -print -quit/);
 
   // The marker must be a real file: an epoch-second marker rebuilt via
   // `touch -d` sits at T.0 while the files it covers sit at T.4, so every one
@@ -430,10 +436,41 @@ test('agent pushes on local change instead of polling the server', () => {
 
   // A failed upload or a paused agent must back off, not retry every scan.
   assert.match(agent, /SKIP_UNTIL=/);
+
+  // upload()'s RETURN trap must disarm itself. A RETURN trap set in a function
+  // fires again when the CALLER returns, and $TMP is local to upload() — the
+  // second firing hits an unbound variable and `set -u` kills the shell. Only
+  // the never-returning cmd_loop called upload() before; now `tokenusage sync`
+  // and the LOOP_ONCE install self-test do, which turned a successful sync into
+  // "✓ synced" followed by exit 1.
+  assert.match(agent, /trap 'rm -rf "\$TMP"; rm -f "\$START_MARKER"; trap - RETURN' RETURN/);
+
+  // The scan gap backs off toward the user's configured sync_interval_seconds
+  // instead of sitting at a flat gap. INTERVAL_SECONDS was the value the old
+  // loop fetched and then never used — leaving `sleep 1` as the only pacing.
+  assert.match(agent, /SCAN_SECONDS=\$\(\(SCAN_SECONDS \* 2\)\)/);
+  assert.match(agent, /\[ "\$SCAN_SECONDS" -gt "\$INTERVAL_SECONDS" \] && SCAN_SECONDS=\$INTERVAL_SECONDS/);
+  // Activity resets to the floor so a burst stays responsive.
+  assert.match(agent, /SCAN_SECONDS=\$SCAN_FLOOR_SECONDS/);
+  // A ceiling below the floor would make the backoff run backwards.
+  assert.match(agent, /\[ "\$INTERVAL_SECONDS" -lt "\$SCAN_FLOOR_SECONDS" \] && SCAN_FLOOR_SECONDS=\$INTERVAL_SECONDS/);
+  // checkin() must set floor/ceiling only — never the live gap, or every
+  // check-in would reset the backoff.
+  assert.doesNotMatch(agent, /\[ -n "\$scan" \] && SCAN_SECONDS=/);
+
+  // The gap must never overshoot the heartbeat deadline. The heartbeat is only
+  // evaluated on a scan pass, so an unbounded gap delays it: at the 86400
+  // interval the sequence lands the first post-deadline pass at 122850s =
+  // 34.1h, past the 26h liveness window, and a healthy idle agent would render
+  // as "no recent activity". With the clamp every interval heartbeats at 24.0h.
+  assert.match(agent, /HB_REMAINING=\$\(\(LAST_BEAT \+ HEARTBEAT_SECONDS - NOW\)\)/);
+  assert.match(agent, /\[ "\$SCAN_SECONDS" -gt "\$HB_REMAINING" \] && SCAN_SECONDS=\$HB_REMAINING/);
+  assert.match(agent, /\[ "\$HB_REMAINING" -lt 1 \] && HB_REMAINING=1/);
 });
 
 test('agent check-in spends a D1 row-write only on real work', () => {
   const lib = read('../src/lib/agent-checkin.ts');
+  const agent = read('../agent/tokenusage');
   const health = read('../src/lib/agent-health.ts');
   const nodeHandler = read('../src/app/api/agent-checkin/node-handler.ts');
   const cfHandler = read('../src/app/api/agent-checkin/cloudflare-handler.ts');
@@ -462,6 +499,20 @@ test('agent check-in spends a D1 row-write only on real work', () => {
   // Both runtimes must agree on the wire shape.
   assert.match(nodeHandler, /buildCheckinResponse/);
   assert.match(cfHandler, /buildCheckinResponse/);
+
+  // The response carries the user's configured interval as the backoff
+  // ceiling, and never advertises a floor above it.
+  assert.match(lib, /const interval = sane\(state\.syncIntervalSeconds, 300\)/);
+  assert.match(lib, /intervalSeconds: interval/);
+  assert.match(lib, /Math\.min\(AGENT_SCAN_FLOOR_SECONDS, interval\)/);
+  // A stored 0 would make the agent `sleep 0` and busy-spin over the user's
+  // whole ~/.claude tree. Clamped on both sides — server and agent.
+  assert.match(lib, /MIN_ADVERTISED_SECONDS = 5/);
+  assert.match(agent, /\[ "\$INTERVAL_SECONDS" -lt 5 \] && INTERVAL_SECONDS=5/);
+  // heartbeatSeconds needs its own floor: unlike the scan knobs it gates a
+  // *network* call, so a small value means one check-in per scan — the request
+  // loop this change removed, reintroduced by a config typo.
+  assert.match(agent, /\[ "\$HEARTBEAT_SECONDS" -lt 60 \] && HEARTBEAT_SECONDS=60/);
 });
 
 test('deprecated sync-wait still holds so legacy agents cannot hot-loop', () => {
