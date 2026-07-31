@@ -105,7 +105,10 @@ jobs:
           SHA: ${{ steps.target.outputs.sha }}
         run: |
           set -euo pipefail
-          SSH_OPTS="-i $HOME/.ssh/deploy_key -p $SSH_PORT -o StrictHostKeyChecking=yes -o UserKnownHostsFile=$HOME/.ssh/known_hosts -o BatchMode=yes"
+          # `-o Port=` rather than a port flag: ssh spells it -p and scp
+          # spells it -P, and scp's -p means "preserve mtimes" — so a shared
+          # opts string using -p would quietly connect scp to port 22.
+          SSH_OPTS="-i $HOME/.ssh/deploy_key -o Port=$SSH_PORT -o StrictHostKeyChecking=yes -o UserKnownHostsFile=$HOME/.ssh/known_hosts -o BatchMode=yes"
 
           # Ship this checkout's copy of the script rather than running the
           # one already on the box — see the header comment in ops/deploy.sh.
