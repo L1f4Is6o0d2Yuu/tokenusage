@@ -1,0 +1,137 @@
+name: CD
+
+# Deploys a commit to the self-hosted production docker-compose stack.
+#
+# Manual by default. That keeps the policy `ci.yml` documents — production is
+# our own box and deploys are a decision, not a side effect of merging — while
+# moving the actual mechanics into version control. To deploy automatically on
+# release tags instead, uncomment the `push:` trigger below; the job body needs
+# no other change (`inputs.ref` falls back to the pushed ref).
+#
+# Rollback is the same button: dispatch again with the previous SHA in `ref`.
+# The deploy script also rolls back on its own if the health gate fails.
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: 'Branch, tag, or SHA to deploy'
+        required: false
+        default: main
+      force:
+        description: 'Deploy even if CI is not green for this commit'
+        type: boolean
+        required: false
+        default: false
+  # push:
+  #   tags: ['v*']
+
+# One deploy at a time, and never cancel one in flight — a half-applied
+# deploy is worse than a queued one.
+concurrency:
+  group: cd-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  actions: read      # needed to look up CI's conclusion for the target SHA
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # Attach required reviewers / a deploy window to this environment in
+    # repo settings if you ever want approval gating; nothing here depends
+    # on it beyond the secrets being scoped to it.
+    environment: production
+
+    steps:
+      - name: Check out the ref being deployed
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || github.ref }}
+          # Full history: the box resolves this SHA after its own fetch, and
+          # a shallow clone here makes the resolved SHA easy to get wrong.
+          fetch-depth: 0
+
+      - name: Resolve target commit
+        id: target
+        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      # The merge gate proves a commit is safe to merge; this proves the
+      # commit being deployed actually passed it. Deploying an arbitrary SHA
+      # by hand would otherwise skip CI entirely.
+      - name: Require a green CI run for this commit
+        if: ${{ !inputs.force }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ steps.target.outputs.sha }}
+        run: |
+          set -euo pipefail
+          runs=$(gh api \
+            "repos/${GITHUB_REPOSITORY}/actions/workflows/ci.yml/runs?head_sha=${SHA}&status=success" \
+            --jq '.total_count')
+          if [ "$runs" -eq 0 ]; then
+            echo "::error::No successful CI run for ${SHA}. Re-run CI, or dispatch with force=true if you know why it is missing."
+            exit 1
+          fi
+          echo "CI green for ${SHA} (${runs} successful run(s))"
+
+      - name: Configure SSH
+        env:
+          SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.DEPLOY_SSH_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          if [ -z "${SSH_KEY:-}" ] || [ -z "${SSH_KNOWN_HOSTS:-}" ]; then
+            echo "::error::DEPLOY_SSH_KEY and DEPLOY_SSH_KNOWN_HOSTS must both be set."
+            exit 1
+          fi
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          # Pinned host key rather than ssh-keyscan: scanning at deploy time
+          # trusts whatever answers on the day, which is the thing host key
+          # checking exists to prevent.
+          printf '%s\n' "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 644 ~/.ssh/known_hosts
+
+      - name: Deploy
+        env:
+          SSH_HOST: ${{ secrets.DEPLOY_SSH_HOST }}
+          SSH_USER: ${{ secrets.DEPLOY_SSH_USER }}
+          SSH_PORT: ${{ secrets.DEPLOY_SSH_PORT || '22' }}
+          REPO_DIR: ${{ secrets.DEPLOY_PATH || '/opt/tokenusage' }}
+          SHA: ${{ steps.target.outputs.sha }}
+        run: |
+          set -euo pipefail
+          # `-o Port=` rather than a port flag: ssh spells it -p and scp
+          # spells it -P, and scp's -p means "preserve mtimes" — so a shared
+          # opts string using -p would quietly connect scp to port 22.
+          SSH_OPTS="-i $HOME/.ssh/deploy_key -o Port=$SSH_PORT -o StrictHostKeyChecking=yes -o UserKnownHostsFile=$HOME/.ssh/known_hosts -o BatchMode=yes"
+
+          # Ship this checkout's copy of the script rather than running the
+          # one already on the box — see the header comment in ops/deploy.sh.
+          # shellcheck disable=SC2086
+          scp $SSH_OPTS ops/deploy.sh "${SSH_USER}@${SSH_HOST}:/tmp/tokenusage-deploy.sh"
+
+          # shellcheck disable=SC2086
+          ssh $SSH_OPTS "${SSH_USER}@${SSH_HOST}" \
+            "REPO_DIR='${REPO_DIR}' sh /tmp/tokenusage-deploy.sh '${SHA}'"
+
+      - name: Report
+        if: always()
+        env:
+          SHA: ${{ steps.target.outputs.sha }}
+        run: |
+          if [ "${{ job.status }}" = "success" ]; then
+            echo "### Deployed \`${SHA}\` to production" >> "$GITHUB_STEP_SUMMARY"
+          else
+            {
+              echo "### Deploy of \`${SHA}\` did not complete"
+              echo ""
+              echo "The deploy script rolls the stack back to the previous commit"
+              echo "automatically when the health gate fails. Check the step log"
+              echo "above to see whether the rollback also succeeded."
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
