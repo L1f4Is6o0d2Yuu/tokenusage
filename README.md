@@ -63,6 +63,44 @@ For sharing one dashboard across multiple machines — your home server hosts it
 
 The server DB lives in the named Docker volume `tokenusage_data` (mounted at `/data/server.db` inside the container). Back it up with `docker compose run --rm app cp /data/server.db /data/server.db.bak` or by snapshotting the volume host-side.
 
+### Deploying an update
+
+`ops/deploy.sh` wraps the update in the checks you'd otherwise do by hand — snapshot the DB, rebuild, verify, and put the old version back if the new one doesn't come up healthy:
+
+```bash
+/opt/tokenusage/ops/deploy.sh main     # or any tag / SHA
+```
+
+It refuses to run on a dirty working tree (`ALLOW_DIRTY=1` overrides), aborts if the pre-deploy DB snapshot fails, and gates on `/api/health` reporting both `ok: true` and the `buildSha` you just deployed. If that gate fails it restores the previous commit *and* the previous image, then reports the failure through `ops/notify.sh`.
+
+**Rolling back is just deploying the older commit:** `ops/deploy.sh <previous-sha>`.
+
+### Continuous deployment (optional)
+
+`.github/workflows/cd.yml` runs the same script from GitHub Actions. It's `workflow_dispatch` only — deploys stay a deliberate act — and refuses to deploy a commit that doesn't have a green CI run, unless dispatched with `force: true`.
+
+It SSHes in from a GitHub-hosted runner, so it needs these repository secrets (ideally scoped to a `production` environment):
+
+| Secret | Required | Notes |
+|---|---|---|
+| `DEPLOY_SSH_HOST` | yes | Hostname or IP of the box |
+| `DEPLOY_SSH_USER` | yes | User with permission to run `docker` |
+| `DEPLOY_SSH_KEY` | yes | Private key, PEM format. Generate a dedicated one — don't reuse a personal key |
+| `DEPLOY_SSH_KNOWN_HOSTS` | yes | Output of `ssh-keyscan -H <host>`, pinned so the deploy can't be MITM'd |
+| `DEPLOY_SSH_PORT` | no | Defaults to `22` |
+| `DEPLOY_PATH` | no | Defaults to `/opt/tokenusage` |
+
+```bash
+ssh-keygen -t ed25519 -f ~/.ssh/tokenusage_deploy -C tokenusage-cd -N ''
+ssh-copy-id -i ~/.ssh/tokenusage_deploy.pub user@your.domain.example
+ssh-keyscan -H your.domain.example        # -> DEPLOY_SSH_KNOWN_HOSTS
+cat ~/.ssh/tokenusage_deploy              # -> DEPLOY_SSH_KEY
+```
+
+The workflow copies its own checkout of `ops/deploy.sh` to the box rather than running the copy already there — otherwise a fix to the deploy script could never deploy itself, and the first run would fail on a box that has never seen the file.
+
+To deploy automatically on release tags instead of by hand, uncomment the `push: tags: ['v*']` trigger at the top of `cd.yml`. If you'd rather not expose sshd or store a key in GitHub, the alternative is a self-hosted runner on the box: swap `runs-on: ubuntu-latest` for your runner label and replace the *Configure SSH* and *Deploy* steps with a direct `sh ops/deploy.sh "$SHA"`.
+
 ### Dev stack on the same host
 
 For staging new versions without touching prod, run a second compose project that shares Caddy via an external network:

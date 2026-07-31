@@ -2,10 +2,12 @@ name: CI
 
 # Merge gate. Runs on every PR and on pushes to the long-lived branches.
 #
-# There is deliberately no deploy job here: production is a self-hosted
-# docker-compose stack on our own box, and deploys stay manual
-# (`git pull && docker compose up -d --build` in /opt/tokenusage). This
-# workflow only answers "is this branch safe to merge".
+# This workflow only answers "is this branch safe to merge" — it never
+# deploys. Production is a self-hosted docker-compose stack on our own box,
+# and deploys stay a deliberate act: `cd.yml` ships them, triggered by hand
+# via workflow_dispatch. That workflow gates on a green run of *this* one for
+# the exact commit being deployed, so the two are coupled by SHA rather than
+# by chaining triggers.
 on:
   pull_request:
   push:
